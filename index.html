@@ -127,6 +127,10 @@
             font-size: 1rem;
             font-weight: 600;
             transition: var(--transition-speed);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
         }
         .btn-group button:hover { border-color: var(--text-secondary); }
         .btn-group button.active {
@@ -136,12 +140,13 @@
             box-shadow: 0 0 0 1px var(--color-primary);
         }
 
-        .form-group label {
+        .form-group label, .config-label {
             display: block;
             margin-bottom: 0.5rem;
             font-weight: 500;
-            color: var(--text-secondary);
+            color: var(--text-primary);
             font-size: 0.875rem;
+            text-transform: uppercase;
         }
         select, input[type="text"] {
             width: 100%;
@@ -153,6 +158,7 @@
             color: var(--text-primary);
             font-size: 1rem;
             transition: var(--transition-speed);
+            margin-bottom: 0.5rem;
         }
         select:focus, input[type="text"]:focus {
             outline: none;
@@ -228,35 +234,26 @@
         <div id="step-1" class="card">
             <h2>Passo 1: Configuração</h2>
             <div class="config-grid">
+                <!-- COLUNA DA ESQUERDA: SELEÇÃO DE FORNO -->
                 <div>
-                    <label>Seleção de Forno</label>
+                    <label class="config-label">Seleção de Forno</label>
                     <div class="btn-group" style="display: flex; gap: 1rem;">
-                        <button id="btn-forno-grande" class="active">Forno Grande (1001)</button>
-                        <button id="btn-forno-pequeno">Forno Pequeno (1002)</button>
+                        <button id="btn-forno-grande" class="active">
+                            <span>Forno Grande (1001)</span>
+                        </button>
+                        <button id="btn-forno-pequeno">
+                            <span>Forno Pequeno (1002)</span>
+                        </button>
                     </div>
                 </div>
+                <!-- COLUNA DA DIREITA: CONFIGURAÇÃO DINÂMICA -->
                 <div>
-                    <div id="config-forno-grande">
-                        <label>Configuração do Forno Grande</label>
-                        <div class="form-group">
-                            <select id="qtde-gts-grande">
-                                <option value="1">1 GT</option>
-                                <option value="2">2 GTs</option>
-                                <option value="3">3 GTs</option>
-                            </select>
-                        </div>
-                        <div id="inputs-gts-grande"></div>
+                    <label id="config-titulo" class="config-label">Configuração do Forno Grande</label>
+                    <div class="form-group">
+                        <label for="qtde-gts-dinamico" style="font-size: 0.8rem; color: var(--text-secondary);">Quantidade</label>
+                        <select id="qtde-gts-dinamico"></select>
                     </div>
-                    <div id="config-forno-pequeno" class="hidden">
-                         <label>Configuração do Forno Pequeno</label>
-                        <div class="form-group">
-                            <select id="qtde-gts-pequeno">
-                                <option value="1">1 GT</option>
-                                <option value="2">2 GTs</option>
-                            </select>
-                        </div>
-                        <div id="inputs-gts-pequeno"></div>
-                    </div>
+                    <div id="inputs-gts-dinamico"></div>
                 </div>
             </div>
             <div class="actions">
@@ -285,9 +282,9 @@
         <div id="step-3" class="card hidden">
              <h2>Passo 3: Ações Finais</h2>
              <div style="display: flex; justify-content: space-around; gap: 1rem;">
-                <button class="btn" style="background-color: var(--cor-verde); color: white;">Exportar para Excel</button>
+                <button class="btn" style="background-color: #10B981; color: white;">Exportar para Excel</button>
                 <button class="btn" style="background-color: var(--color-primary); color: white;">Exportar para PDF</button>
-                <button class="btn" style="background-color: var(--cor-azul); color: white;">Enviar por E-mail</button>
+                <button class="btn" style="background-color: #3B82F6; color: white;">Enviar por E-mail</button>
              </div>
         </div>
     </main>
@@ -305,17 +302,32 @@
                 step3: document.getElementById('step-3'),
                 btnFornoGrande: document.getElementById('btn-forno-grande'),
                 btnFornoPequeno: document.getElementById('btn-forno-pequeno'),
-                configGrande: document.getElementById('config-forno-grande'),
-                configPequeno: document.getElementById('config-forno-pequeno'),
-                qtdeGtsGrande: document.getElementById('qtde-gts-grande'),
-                qtdeGtsPequeno: document.getElementById('qtde-gts-pequeno'),
-                inputsGtsGrande: document.getElementById('inputs-gts-grande'),
-                inputsGtsPequeno: document.getElementById('inputs-gts-pequeno'),
+                configTitulo: document.getElementById('config-titulo'),
+                qtdeGtsDinamico: document.getElementById('qtde-gts-dinamico'),
+                inputsGtsDinamico: document.getElementById('inputs-gts-dinamico'),
                 btnCarregarCsv: document.getElementById('btn-carregar-csv'),
                 csvFileInput: document.getElementById('csv-file-input'),
                 btnGerarArranjo: document.getElementById('btn-gerar-arranjo'),
                 themeToggle: document.getElementById('theme-toggle'),
                 logo: document.getElementById('logo-fama')
+            };
+
+            const fornosConfig = {
+                grande: {
+                    titulo: 'Configuração do Forno Grande',
+                    opcoes: [
+                        { value: '1', text: '1 GT' },
+                        { value: '2', text: '2 GTs' },
+                        { value: '3', text: '3 GTs' }
+                    ]
+                },
+                pequeno: {
+                    titulo: 'Configuração do Forno Pequeno',
+                    opcoes: [
+                        { value: '1', text: '1 GT' },
+                        { value: '2', text: '2 GTs' }
+                    ]
+                }
             };
 
             const updateStepper = (currentStep) => {
@@ -324,32 +336,50 @@
                 elements.stepNav3.classList.toggle('active', currentStep >= 3);
             };
 
-            const toggleForno = (isGrande) => {
-                elements.btnFornoGrande.classList.toggle('active', isGrande);
-                elements.btnFornoPequeno.classList.toggle('active', !isGrande);
-                elements.configGrande.classList.toggle('hidden', !isGrande);
-                elements.configPequeno.classList.toggle('hidden', isGrande);
-            };
-
             const gerarInputs = (qtde, container) => {
                 container.innerHTML = '';
                 for (let i = 1; i <= qtde; i++) {
                     const input = document.createElement('input');
                     input.type = 'text';
                     input.placeholder = `Código GT ${i}`;
-                    input.style.marginBottom = '8px';
+                    input.style.marginTop = '0.5rem';
                     container.appendChild(input);
                 }
             };
             
-            elements.btnFornoGrande.addEventListener('click', () => toggleForno(true));
-            elements.btnFornoPequeno.addEventListener('click', () => toggleForno(false));
-            elements.qtdeGtsGrande.addEventListener('change', (e) => gerarInputs(e.target.value, elements.inputsGtsGrande));
-            elements.qtdeGtsPequeno.addEventListener('change', (e) => gerarInputs(e.target.value, elements.inputsGtsPequeno));
+            const atualizarConfiguracaoForno = (tipoForno) => {
+                const config = fornosConfig[tipoForno];
+                const isGrande = tipoForno === 'grande';
+
+                // Atualiza estado dos botões
+                elements.btnFornoGrande.classList.toggle('active', isGrande);
+                elements.btnFornoPequeno.classList.toggle('active', !isGrande);
+                
+                // Atualiza título da configuração
+                elements.configTitulo.textContent = config.titulo;
+
+                // Limpa e popula o dropdown de quantidade
+                elements.qtdeGtsDinamico.innerHTML = '';
+                config.opcoes.forEach(opt => {
+                    const optionEl = document.createElement('option');
+                    optionEl.value = opt.value;
+                    optionEl.textContent = opt.text;
+                    elements.qtdeGtsDinamico.appendChild(optionEl);
+                });
+
+                // Gera os inputs iniciais
+                gerarInputs(elements.qtdeGtsDinamico.value, elements.inputsGtsDinamico);
+            };
+
+            elements.btnFornoGrande.addEventListener('click', () => atualizarConfiguracaoForno('grande'));
+            elements.btnFornoPequeno.addEventListener('click', () => atualizarConfiguracaoForno('pequeno'));
+            elements.qtdeGtsDinamico.addEventListener('change', (e) => gerarInputs(e.target.value, elements.inputsGtsDinamico));
 
             elements.btnCarregarCsv.addEventListener('click', () => elements.csvFileInput.click());
             elements.csvFileInput.addEventListener('change', () => {
-                elements.btnCarregarCsv.textContent = `Arquivo: ${elements.csvFileInput.files[0].name}`;
+                if (elements.csvFileInput.files.length > 0) {
+                    elements.btnCarregarCsv.textContent = `Arquivo: ${elements.csvFileInput.files[0].name}`;
+                }
             });
             
             elements.btnGerarArranjo.addEventListener('click', async () => {
@@ -358,7 +388,6 @@
                     return;
                 }
 
-                // Estado de Loading
                 const originalButtonText = elements.btnGerarArranjo.innerHTML;
                 elements.btnGerarArranjo.innerHTML = '<div class="spinner"></div> Gerando...';
                 elements.btnGerarArranjo.disabled = true;
@@ -369,8 +398,7 @@
                 const fornoAtivo = elements.btnFornoGrande.classList.contains('active') ? 'grande' : 'pequeno';
                 formData.append('forno', fornoAtivo);
 
-                const gtsContainer = fornoAtivo === 'grande' ? elements.inputsGtsGrande : elements.inputsGtsPequeno;
-                const gts = Array.from(gtsContainer.querySelectorAll('input')).map(input => input.value).filter(Boolean);
+                const gts = Array.from(elements.inputsGtsDinamico.querySelectorAll('input')).map(input => input.value).filter(Boolean);
                 if (gts.length === 0) {
                      alert('Por favor, insira pelo menos um Código GT.');
                      elements.btnGerarArranjo.innerHTML = originalButtonText;
@@ -388,9 +416,11 @@
                     
                     const data = await response.json();
                     
+                    // Oculta Passo 1, mostra Passos 2 e 3
+                    elements.step1.classList.add('hidden');
                     elements.step2.classList.remove('hidden');
                     elements.step3.classList.remove('hidden');
-                    updateStepper(3);
+                    updateStepper(2); // Avança o stepper para o passo 2
                     
                     popularLista('arranjo-producao-lista', data.arranjo_producao);
                     popularLista('itens-pendentes-lista', data.itens_pendentes);
@@ -415,9 +445,9 @@
                     card.className = 'item-card';
                     card.draggable = true;
                     card.innerHTML = `
-                        <p class="op">Código: ${item.Código || item.codigo_item || 'N/A'}</p>
-                        <p class="desc">${item.Descrição || 'N/A'}</p>
-                        <p class="bitola">Bitola: ${item.Dimensão || item.bitola || 'N/A'}</p>
+                        <p><b>Código:</b> ${item.codigo || 'N/A'}</p>
+                        <p>${item.descricao || 'N/A'}</p>
+                        <p><b>Bitola:</b> ${item.dimensao || 'N/A'}</p>
                     `;
                     container.appendChild(card);
                 });
@@ -432,11 +462,10 @@
                     : 'https://ctfamadobrasil.com.br/wp-content/uploads/2025/09/logo.png';
             });
 
-            // Inicializações
-            gerarInputs(elements.qtdeGtsGrande.value, elements.inputsGtsGrande);
-            gerarInputs(elements.qtdeGtsPequeno.value, elements.inputsGtsPequeno);
+            // --- INICIALIZAÇÃO ---
             document.body.classList.add('dark-theme');
             updateStepper(1);
+            atualizarConfiguracaoForno('grande'); // Inicia a UI com o forno grande selecionado por padrão
         });
     </script>
 </body>
