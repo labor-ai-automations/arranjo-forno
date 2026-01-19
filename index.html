@@ -10,7 +10,7 @@
     <style>
         :root {
             /* Design System Tokens */
-            --color-primary: #D92D20; /* Vermelho Fama, um pouco mais escuro para acessibilidade */
+            --color-primary: #D92D20;
             --color-primary-hover: #B42318;
             --color-success: #10B981;
             --color-info: #3B82F6;
@@ -58,14 +58,27 @@
         .container { max-width: 960px; margin: 0 auto; padding: 2rem; }
         header {
             display: flex;
-            justify-content: space-between;
+            /* MUDANÇA: Centraliza o conteúdo principal (o logo) */
+            justify-content: center; 
             align-items: center;
             padding: 1rem 2rem;
             background-color: var(--bg-card);
             border-bottom: 1px solid var(--border-color);
+            /* MUDANÇA: Adiciona contexto de posicionamento para o theme-switcher */
+            position: relative; 
         }
-        header img { height: 32px; }
-        .theme-switcher { display: flex; align-items: center; gap: 10px; }
+        header img {
+            /* MUDANÇA: Aumenta o tamanho do logo */
+            height: 48px; 
+        }
+        .theme-switcher {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            /* MUDANÇA: Posiciona o seletor de tema no canto direito */
+            position: absolute;
+            right: 2rem;
+        }
 
         /* Stepper de Progresso */
         .stepper {
@@ -231,15 +244,14 @@
     </header>
 
     <main class="container">
+        <!-- O resto do seu HTML (main, steps, etc.) permanece exatamente o mesmo -->
         <div class="stepper">
             <div id="step-nav-1" class="step active"><span class="step-number">1</span>Configuração</div>
             <div id="step-nav-2" class="step"><span class="step-number">2</span>Organize a Sequência</div>
             <div id="step-nav-3" class="step"><span class="step-number">3</span>Ações Finais</div>
         </div>
 
-        <!-- PASSO 1 -->
         <div id="step-1" class="card">
-            <!-- Conteúdo do Passo 1 inalterado -->
             <h2>Passo 1: Configuração</h2>
             <div class="config-grid">
                 <div>
@@ -265,7 +277,6 @@
             </div>
         </div>
 
-        <!-- PASSO 2 -->
         <div id="step-2" class="card hidden">
             <h2>Passo 2: Organize a Sequência</h2>
             <div class="arranjo-container">
@@ -280,7 +291,6 @@
             </div>
         </div>
 
-        <!-- PASSO 3 -->
         <div id="step-3" class="card hidden">
              <h2>Passo 3: Ações Finais</h2>
              <div class="actions-final">
@@ -292,6 +302,7 @@
     </main>
 
     <script>
+        // Todo o seu JavaScript permanece exatamente o mesmo
         document.addEventListener('DOMContentLoaded', () => {
             const n8nWebhookUrl = 'https://n8n-n8n.znxk1t.easypanel.host/webhook/gerar-arranjo';
             const n8nExportExcelUrl = 'https://n8n-n8n.znxk1t.easypanel.host/webhook/exportar-excel'; 
@@ -328,7 +339,6 @@
             elements.csvFileInput.addEventListener('change', () => { if (elements.csvFileInput.files.length > 0) { elements.btnCarregarCsv.textContent = `Arquivo: ${elements.csvFileInput.files[0].name}`; } });
             
             elements.btnGerarArranjo.addEventListener('click', async () => {
-                // Lógica do btnGerarArranjo permanece a mesma...
                  if (!elements.csvFileInput.files[0]) {
                     alert('Por favor, carregue um arquivo CSV primeiro.');
                     return;
@@ -384,13 +394,10 @@
                     const card = document.createElement('div');
                     card.className = 'item-card';
                     card.draggable = true;
-                    // Adicionamos data attributes para facilitar a extração posterior
                     card.dataset.codigo = item.codigo || 'N/A';
                     card.dataset.descricao = item.descricao || 'N/A';
                     card.dataset.dimensao = item.dimensao || 'N/A';
-                    card.dataset.gt = item.gt || 'N/A'; // <-- NOVO DATA ATTRIBUTE
-
-                    // ALTERAÇÃO AQUI: Adicionamos a linha do GT
+                    card.dataset.gt = item.gt || 'N/A'; 
                     card.innerHTML = `
                         <p class="item-codigo"><b>Código:</b> ${item.codigo || 'N/A'}</p>
                         <p class="item-descricao">${item.descricao || 'N/A'}</p>
@@ -410,12 +417,11 @@
                 const itemCards = elements.arranjoProducaoLista.querySelectorAll('.item-card');
                 
                 itemCards.forEach(card => {
-                    // ALTERAÇÃO AQUI: Adicionamos o campo GT na exportação
                     itemsParaExportar.push({
                         "Código": card.dataset.codigo,
                         "Descrição": card.dataset.descricao,
                         "Dimensão (Bitola)": card.dataset.dimensao,
-                        "GT": card.dataset.gt // <-- NOVA LINHA
+                        "GT": card.dataset.gt
                     });
                 });
 
@@ -456,7 +462,14 @@
                 }
             });
 
-            elements.themeToggle.addEventListener('change', () => { /* ... código inalterado ... */ });
+            elements.themeToggle.addEventListener('change', () => {
+                const isDark = elements.themeToggle.checked;
+                document.body.classList.toggle('dark-theme', isDark);
+                document.body.classList.toggle('light-theme', !isDark);
+                elements.logo.src = isDark 
+                    ? 'https://ctfamadobrasil.com.br/wp-content/uploads/2025/12/Gemini_Generated_Image_v8cib8v8cib8v8ci-removebg-preview.png' 
+                    : 'https://ctfamadobrasil.com.br/wp-content/uploads/2025/09/logo.png';
+            });
             document.body.classList.add('dark-theme');
             updateStepper(1);
             atualizarConfiguracaoForno('grande');
