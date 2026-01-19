@@ -240,16 +240,16 @@
                     return;
                 }
 
-                items.forEach(item => { // 'item' agora já é o objeto com os dados unificados
+                items.forEach(item => { // 'item' agora é o objeto com chaves limpas e minúsculas
                     const card = document.createElement('div');
                     card.className = 'item-card';
                     card.draggable = true;
                     
-                    // Usa os nomes exatos das propriedades que vêm do n8n (com maiúsculas e acentos)
+                    // Usa os nomes de chaves que foram limpos e padronizados pelo n8n
                     card.innerHTML = `
-                        <p class="op">Item: ${item.Item || item.codigo_item || 'N/A'}</p>
-                        <p class="desc">${item.Descrição || 'N/A'}</p>
-                        <p class="bitola">Bitola: ${item.Dimensão || item.bitola || 'N/A'}</p>
+                        <p class="op">Código: ${item.codigo || item.codigoitem || 'N/A'}</p>
+                        <p class="desc">${item.descricao || 'N/A'}</p>
+                        <p class="bitola">Bitola: ${item.dimensao || item.bitola || 'N/A'}</p>
                     `;
                     container.appendChild(card);
                 });
