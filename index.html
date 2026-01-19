@@ -113,16 +113,42 @@
         .spinner { width: 16px; height: 16px; border: 2px solid rgba(255, 255, 255, 0.3); border-radius: 50%; border-top-color: #fff; animation: spin 1s ease-in-out infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
 
-        /* Estilos para Drag-and-Drop */
+        /* Estilos para Drag-and-Drop e Itens */
         .arranjo-container { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
         .arranjo-coluna { min-height: 300px; padding: 1rem; border-radius: var(--radius-md); border: 2px dashed transparent; transition: var(--transition-speed); }
         .arranjo-coluna.drag-over { border-color: var(--color-primary); background-color: rgba(217, 45, 32, 0.05); }
         .arranjo-coluna h3 { font-size: 1rem; font-weight: 600; color: var(--text-secondary); border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; margin-bottom: 1rem; }
         
-        .item-card { background-color: var(--bg-main); padding: 0.75rem 1rem; border-radius: var(--radius-md); margin-bottom: 1rem; border: 1px solid var(--border-color); border-left: 4px solid var(--color-primary); box-shadow: var(--shadow-sm); cursor: grab; }
+        .item-card { 
+            position: relative; /* Necessário para posicionar o botão de deletar */
+            background-color: var(--bg-main); 
+            padding: 0.75rem 1rem; 
+            border-radius: var(--radius-md); 
+            margin-bottom: 1rem; 
+            border: 1px solid var(--border-color); 
+            border-left: 4px solid var(--color-primary); 
+            box-shadow: var(--shadow-sm); 
+            cursor: grab; 
+        }
         .item-card p { margin: 2px 0; font-size: 0.9rem; }
         .item-card.dragging { opacity: 0.5; }
         .item-card .gt-input { padding: 4px; width: 60px; font-size: 0.9rem; margin-left: 5px; }
+
+        /* NOVO: Estilo para o botão de deletar */
+        .delete-btn {
+            position: absolute;
+            top: 5px;
+            right: 10px;
+            font-size: 1.5rem;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: var(--transition-speed);
+            line-height: 1;
+        }
+        .delete-btn:hover {
+            color: var(--color-primary);
+            transform: scale(1.2);
+        }
     </style>
 </head>
 <body class="dark-theme">
@@ -221,7 +247,6 @@
                 btnExportExcel: document.getElementById('btn-export-excel'),
             };
 
-            // ** NOVO: Variável para guardar os GTs selecionados na busca **
             let gtsAtuais = [];
 
             const fornosConfig = {
@@ -310,7 +335,7 @@
                     elements.step3.classList.remove('hidden');
                     updateStepper(2);
                     popularLista('arranjo-producao-lista', data.arranjo_producao, false);
-                    popularLista('itens-pendentes-lista', data.itens_pendentes, true); // É um item pendente
+                    popularLista('itens-pendentes-lista', data.itens_pendentes, true);
                 } catch (error) {
                     alert('Ocorreu um erro ao gerar o arranjo: ' + error.message);
                 } finally {
@@ -332,14 +357,12 @@
                     card.draggable = true;
                     card.id = `${containerId}-item-${Date.now()}-${index}`;
                     
-                    // ** ALTERAÇÃO: Adicionando o campo 'ordemProducao' **
                     card.dataset.ordemProducao = item.ordemProducao || 'N/A';
                     card.dataset.codigo = item.codigo || 'N/A';
                     card.dataset.descricao = item.descricao || 'N/A';
                     card.dataset.dimensao = item.dimensao || 'N/A';
                     card.dataset.gt = item.gt || '';
 
-                    // ** ALTERAÇÃO: Lógica para criar campo de edição de GT **
                     let gtHtml = '';
                     if (isPendente && (!item.gt || item.gt.trim() === '')) {
                         gtHtml = `<b>GT:</b> <input type="text" class="gt-input" placeholder="N/A" onkeydown="reavaliarItem(event, this.parentElement.parentElement)">`;
@@ -347,7 +370,9 @@
                         gtHtml = `<b>GT:</b> ${item.gt || 'N/A'}`;
                     }
 
+                    // ** NOVO: Adicionado o botão de deletar (span) **
                     card.innerHTML = `
+                        <span class="delete-btn" onclick="this.parentElement.remove()">×</span>
                         <p><b>Ordem de Produção:</b> ${item.ordemProducao || 'N/A'}</p>
                         <p><b>Código:</b> ${item.codigo || 'N/A'}</p>
                         <p>${item.descricao || 'N/A'}</p>
@@ -362,7 +387,6 @@
                 });
             }
 
-            // ** NOVA FUNÇÃO: Reavalia um item após edição do GT **
             window.reavaliarItem = function(event, cardElement) {
                 if (event.key === 'Enter') {
                     const input = event.target;
@@ -373,7 +397,6 @@
                     const gtDisplayElement = cardElement.querySelector('.gt-display');
                     gtDisplayElement.innerHTML = `<b>GT:</b> ${novoGT || 'N/A'}`;
 
-                    // Verifica se o novo GT corresponde aos critérios do arranjo
                     const corresponde = gtsAtuais.some(gtSelecionado => novoGT.includes(gtSelecionado));
 
                     if (corresponde) {
@@ -383,7 +406,6 @@
                 }
             }
 
-            // ** NOVA FUNÇÃO: Reordena a lista de produção pela bitola **
             function reordenarArranjo() {
                 const lista = elements.arranjoProducaoLista;
                 const items = Array.from(lista.querySelectorAll('.item-card'));
@@ -399,7 +421,6 @@
                     }
                 });
 
-                // Limpa e re-adiciona os itens na ordem correta
                 items.forEach(item => lista.appendChild(item));
             }
             
@@ -415,10 +436,7 @@
             const dropZones = [elements.arranjoProducaoLista.parentElement, elements.itensPendentesLista.parentElement];
 
             dropZones.forEach(zone => {
-                zone.addEventListener('dragover', e => {
-                    e.preventDefault();
-                    zone.classList.add('drag-over');
-                });
+                zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
                 zone.addEventListener('dragleave', () => { zone.classList.remove('drag-over'); });
                 zone.addEventListener('drop', e => {
                     e.preventDefault();
@@ -428,14 +446,12 @@
                     const targetList = zone.querySelector('div[id$="-lista"]');
                     targetList.appendChild(draggableElement);
 
-                    // Se o item foi solto na lista de produção, reordena
                     if (targetList.id === 'arranjo-producao-lista') {
                         reordenarArranjo();
                     }
                 });
             });
             
-            // --- FUNÇÃO DE EXPORTAR PARA EXCEL ATUALIZADA ---
             elements.btnExportExcel.addEventListener('click', () => {
                 const originalText = elements.btnExportExcel.innerHTML;
                 elements.btnExportExcel.innerHTML = '<div class="spinner"></div> Exportando...';
@@ -450,7 +466,6 @@
                         return;
                     }
                     
-                    // ** ALTERAÇÃO: Cabeçalho com "Ordem de Produção" **
                     itemsParaExportar.push([ "Ordem de Produção", "Código", "Descrição", "Bitola", "GT" ]);
                     
                     itemCards.forEach(card => {
