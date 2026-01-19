@@ -228,7 +228,7 @@
                 }
             });
 
-            // *** INÍCIO DA ALTERAÇÃO ***
+            // *** INÍCIO DA ALTERAÇÃO CORRIGIDA ***
             function popularLista(containerId, items) {
                 const container = document.getElementById(containerId);
                 container.innerHTML = '';
@@ -237,11 +237,16 @@
                     return;
                 }
 
-                items.forEach(item => { // 'item' agora já é o objeto com os dados unificados
+                items.forEach(itemWrapper => {
+                    // Acessa o objeto 'json' que contém todos os dados
+                    const item = itemWrapper.json; 
+                    
                     const card = document.createElement('div');
                     card.className = 'item-card';
                     card.draggable = true;
-                    // Usa os nomes de chaves originais e do Supabase
+                    
+                    // Acessa as propriedades dentro do objeto 'item'
+                    // Usa os nomes originais do CSV e do Supabase
                     card.innerHTML = `
                         <p class="op">Item: ${item.Item || 'N/A'}</p>
                         <p class="desc">${item.Descrição || item.Descricao || 'N/A'}</p>
@@ -250,7 +255,7 @@
                     container.appendChild(card);
                 });
             }
-            // *** FIM DA ALTERAÇÃO ***
+            // *** FIM DA ALTERAÇÃO CORRIGIDA ***
 
             const themeToggle = document.getElementById('theme-toggle');
             themeToggle.addEventListener('change', () => {
