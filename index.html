@@ -210,7 +210,10 @@
                         method: 'POST',
                         body: formData,
                     });
-                    if (!response.ok) throw new Error(`Erro na comunicação com o servidor: ${response.statusText}`);
+                    if (!response.ok) {
+                         const errorText = await response.text();
+                         throw new Error(`Erro na comunicação com o servidor: ${response.statusText}. Detalhes: ${errorText}`);
+                    }
                     
                     const data = await response.json();
                     
@@ -228,7 +231,6 @@
                 }
             });
 
-            // *** INÍCIO DA ALTERAÇÃO CORRIGIDA ***
             function popularLista(containerId, items) {
                 const container = document.getElementById(containerId);
                 container.innerHTML = '';
@@ -237,25 +239,18 @@
                     return;
                 }
 
-                items.forEach(itemWrapper => {
-                    // Acessa o objeto 'json' que contém todos os dados
-                    const item = itemWrapper.json; 
-                    
+                items.forEach(item => { // 'item' agora já é o objeto com os dados unificados e limpos
                     const card = document.createElement('div');
                     card.className = 'item-card';
                     card.draggable = true;
-                    
-                    // Acessa as propriedades dentro do objeto 'item'
-                    // Usa os nomes originais do CSV e do Supabase
                     card.innerHTML = `
-                        <p class="op">Item: ${item.Item || 'N/A'}</p>
-                        <p class="desc">${item.Descrição || item.Descricao || 'N/A'}</p>
-                        <p class="bitola">Bitola: ${item.Dimensão || item.bitola || 'N/A'}</p>
+                        <p class="op">Item: ${item.item || 'N/A'}</p>
+                        <p class="desc">${item.descricao || 'N/A'}</p>
+                        <p class="bitola">Bitola: ${item.dimensao || item.bitola || 'N/A'}</p>
                     `;
                     container.appendChild(card);
                 });
             }
-            // *** FIM DA ALTERAÇÃO CORRIGIDA ***
 
             const themeToggle = document.getElementById('theme-toggle');
             themeToggle.addEventListener('change', () => {
