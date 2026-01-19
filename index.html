@@ -231,6 +231,7 @@
                 }
             });
 
+            // *** INÍCIO DA ALTERAÇÃO FINAL ***
             function popularLista(containerId, items) {
                 const container = document.getElementById(containerId);
                 container.innerHTML = '';
@@ -239,18 +240,21 @@
                     return;
                 }
 
-                items.forEach(item => { // 'item' agora já é o objeto com os dados unificados e limpos
+                items.forEach(item => { // 'item' agora já é o objeto com os dados unificados
                     const card = document.createElement('div');
                     card.className = 'item-card';
                     card.draggable = true;
+                    
+                    // Usa os nomes exatos das propriedades que vêm do n8n (com maiúsculas e acentos)
                     card.innerHTML = `
-                        <p class="op">Item: ${item.item || 'N/A'}</p>
-                        <p class="desc">${item.descricao || 'N/A'}</p>
-                        <p class="bitola">Bitola: ${item.dimensao || item.bitola || 'N/A'}</p>
+                        <p class="op">Item: ${item.Item || item.codigo_item || 'N/A'}</p>
+                        <p class="desc">${item.Descrição || 'N/A'}</p>
+                        <p class="bitola">Bitola: ${item.Dimensão || item.bitola || 'N/A'}</p>
                     `;
                     container.appendChild(card);
                 });
             }
+            // *** FIM DA ALTERAÇÃO FINAL ***
 
             const themeToggle = document.getElementById('theme-toggle');
             themeToggle.addEventListener('change', () => {
