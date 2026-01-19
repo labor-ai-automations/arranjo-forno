@@ -7,6 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Adiciona a biblioteca SheetJS para exportação em Excel -->
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
     <style>
         :root {
@@ -119,7 +120,7 @@
         .arranjo-coluna h3 { font-size: 1rem; font-weight: 600; color: var(--text-secondary); border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; margin-bottom: 1rem; }
         
         .item-card { 
-            position: relative; /* Necessário para posicionar o botão de deletar */
+            position: relative; 
             background-color: var(--bg-main); 
             padding: 0.75rem 1rem; 
             border-radius: var(--radius-md); 
@@ -132,8 +133,7 @@
         .item-card p { margin: 2px 0; font-size: 0.9rem; }
         .item-card.dragging { opacity: 0.5; }
         .item-card .gt-input { padding: 4px; width: 60px; font-size: 0.9rem; margin-left: 5px; }
-
-        /* Estilo para o botão de deletar */
+        
         .delete-btn {
             position: absolute;
             top: 5px;
@@ -233,7 +233,8 @@
                 step2: document.getElementById('step-2'),
                 step3: document.getElementById('step-3'),
                 btnFornoGrande: document.getElementById('btn-forno-grande'),
-                btnFornoPqueno: document.getElementById('btn-forno-pequeno'),
+                // ***** CORREÇÃO DO ERRO DE DIGITAÇÃO AQUI *****
+                btnFornoPequeno: document.getElementById('btn-forno-pequeno'),
                 configTitulo: document.getElementById('config-titulo'),
                 qtdeGtsDinamico: document.getElementById('qtde-gts-dinamico'),
                 inputsGtsDinamico: document.getElementById('inputs-gts-dinamico'),
@@ -386,7 +387,6 @@
                 });
             }
 
-            // --- NOVA FUNÇÃO DE REAVALIAR ITEM, AGORA COM ATUALIZAÇÃO NO BANCO ---
             window.reavaliarItem = async function(event, cardElement) {
                 if (event.key === 'Enter') {
                     const input = event.target;
@@ -395,12 +395,10 @@
                     
                     if (!novoGT) return;
 
-                    // Bloqueia o campo para evitar dupla submissão
                     input.disabled = true;
                     input.value = "Salvando...";
 
                     try {
-                        // Envia os dados para o novo webhook de atualização
                         const response = await fetch(n8nAtualizarGTUrl, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
@@ -411,12 +409,10 @@
                             throw new Error('Falha ao atualizar o GT no banco de dados.');
                         }
 
-                        // Atualiza o card na tela
                         cardElement.dataset.gt = novoGT;
                         const gtDisplayElement = cardElement.querySelector('.gt-display');
                         gtDisplayElement.innerHTML = `<b>GT:</b> ${novoGT}`;
 
-                        // Verifica se o novo GT corresponde aos critérios do arranjo
                         const corresponde = gtsAtuais.some(gtSelecionado => novoGT.includes(gtSelecionado));
 
                         if (corresponde) {
@@ -425,7 +421,6 @@
                         }
                     } catch (error) {
                         alert(error.message);
-                        // Em caso de erro, reabilita o campo
                         input.disabled = false;
                         input.value = novoGT;
                     }
@@ -495,7 +490,6 @@
                     itemsParaExportar.push([ "Ordem de Produção", "Código", "Descrição", "Bitola", "GT" ]);
                     
                     itemCards.forEach(card => {
-                        // ** ATUALIZAÇÃO: Lê o GT do dataset, que é sempre o mais atual **
                         itemsParaExportar.push([
                             card.dataset.ordemProducao,
                             card.dataset.codigo,
