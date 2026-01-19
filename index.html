@@ -133,6 +133,7 @@
         .item-card p { margin: 2px 0; font-size: 0.9rem; }
         .item-card.dragging { opacity: 0.5; }
         .item-card .gt-input { padding: 4px; width: 60px; font-size: 0.9rem; margin-left: 5px; }
+        .gt-display { cursor: pointer; } /* Torna o texto do GT clicável */
         
         .delete-btn {
             position: absolute;
@@ -233,7 +234,6 @@
                 step2: document.getElementById('step-2'),
                 step3: document.getElementById('step-3'),
                 btnFornoGrande: document.getElementById('btn-forno-grande'),
-                // ***** CORREÇÃO DO ERRO DE DIGITAÇÃO AQUI *****
                 btnFornoPequeno: document.getElementById('btn-forno-pequeno'),
                 configTitulo: document.getElementById('config-titulo'),
                 qtdeGtsDinamico: document.getElementById('qtde-gts-dinamico'),
@@ -371,13 +371,14 @@
                         gtHtml = `<b>GT:</b> ${item.gt || 'N/A'}`;
                     }
 
+                    // A função onclick para editar é adicionada ao <p> do GT
                     card.innerHTML = `
                         <span class="delete-btn" onclick="this.parentElement.remove()">×</span>
                         <p><b>Ordem de Produção:</b> ${item.ordemProducao || 'N/A'}</p>
                         <p><b>Código:</b> ${item.codigo || 'N/A'}</p>
                         <p>${item.descricao || 'N/A'}</p>
                         <p><b>Bitola:</b> ${item.dimensao || 'N/A'}</p>
-                        <p class="gt-display">${gtHtml}</p>
+                        <p class="gt-display" onclick="editarGT(event, this.parentElement)">${gtHtml}</p>
                     `;
                     
                     card.addEventListener('dragstart', handleDragStart);
@@ -386,6 +387,27 @@
                     container.appendChild(card);
                 });
             }
+            
+            // --- NOVA FUNÇÃO PARA PERMITIR A EDIÇÃO DO GT AO CLICAR ---
+            window.editarGT = function(event, cardElement) {
+                // Impede que a função seja chamada novamente se já estivermos editando
+                if (event.target.tagName === 'INPUT') {
+                    return;
+                }
+
+                const gtDisplayElement = cardElement.querySelector('.gt-display');
+                const currentGT = cardElement.dataset.gt;
+
+                // Substitui o texto pelo campo de input
+                gtDisplayElement.innerHTML = `<b>GT:</b> <input type="text" class="gt-input" value="${currentGT}" onkeydown="reavaliarItem(event, this.parentElement.parentElement)">`;
+                
+                // Foca automaticamente no campo de input e seleciona o texto
+                const inputField = gtDisplayElement.querySelector('.gt-input');
+                if (inputField) {
+                    inputField.focus();
+                    inputField.select();
+                }
+            }
 
             window.reavaliarItem = async function(event, cardElement) {
                 if (event.key === 'Enter') {
@@ -393,7 +415,11 @@
                     const novoGT = input.value.trim();
                     const codigoItem = cardElement.dataset.codigo;
                     
-                    if (!novoGT) return;
+                    if (novoGT === cardElement.dataset.gt) { // Se não houve mudança, apenas restaura o texto
+                        const gtDisplayElement = cardElement.querySelector('.gt-display');
+                        gtDisplayElement.innerHTML = `<b>GT:</b> ${novoGT || 'N/A'}`;
+                        return;
+                    }
 
                     input.disabled = true;
                     input.value = "Salvando...";
@@ -411,14 +437,18 @@
 
                         cardElement.dataset.gt = novoGT;
                         const gtDisplayElement = cardElement.querySelector('.gt-display');
-                        gtDisplayElement.innerHTML = `<b>GT:</b> ${novoGT}`;
+                        gtDisplayElement.innerHTML = `<b>GT:</b> ${novoGT || 'N/A'}`;
 
                         const corresponde = gtsAtuais.some(gtSelecionado => novoGT.includes(gtSelecionado));
 
-                        if (corresponde) {
+                        if (corresponde && cardElement.parentElement.id !== 'arranjo-producao-lista') {
                             elements.arranjoProducaoLista.appendChild(cardElement);
                             reordenarArranjo();
+                        } else if (!corresponde && cardElement.parentElement.id !== 'itens-pendentes-lista') {
+                            elements.itensPendentesLista.appendChild(cardElement);
+                            // Não precisa reordenar os pendentes
                         }
+
                     } catch (error) {
                         alert(error.message);
                         input.disabled = false;
@@ -518,7 +548,7 @@
                 document.body.classList.toggle('light-theme', !isDark);
                 elements.logo.src = isDark 
                     ? 'https://ctfamadobrasil.com.br/wp-content/uploads/2025/12/Gemini_Generated_Image_v8cib8v8cib8v8ci-removebg-preview.png' 
-                    : 'https://ctfamadobrasil.com.br/wp-content/uploads/2025/09/logo.png';
+                    ? 'https://ctfamadobrasil.com.br/wp-content/uploads/2025/09/logo.png';
             });
             
             // --- INICIALIZAÇÃO ---
