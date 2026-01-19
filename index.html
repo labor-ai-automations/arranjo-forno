@@ -173,8 +173,8 @@
 
             qtdeGtsGrande.addEventListener('change', (e) => gerarInputs(e.target.value, inputsGtsGrande));
             qtdeGtsPequeno.addEventListener('change', (e) => gerarInputs(e.target.value, inputsGtsPequeno));
-            gerarInputs(qtdeGtsGrande.value, inputsGtsGrande); // Iniciar
-            gerarInputs(qtdeGtsPequeno.value, inputsGtsPequeno); // Iniciar
+            gerarInputs(qtdeGtsGrande.value, inputsGtsGrande);
+            gerarInputs(qtdeGtsPequeno.value, inputsGtsPequeno);
 
             btnCarregarCsv.addEventListener('click', () => csvFileInput.click());
             csvFileInput.addEventListener('change', () => {
@@ -237,15 +237,18 @@
                 }
 
                 items.forEach(itemData => {
-                    const item = itemData.json;
+                    const item = itemData.json; // Acessa o objeto interno 'json'
                     const card = document.createElement('div');
                     card.className = 'item-card';
                     card.draggable = true;
+                    // *** INÍCIO DA ALTERAÇÃO ***
+                    // Agora usa os nomes de chaves limpos e sem acentos
                     card.innerHTML = `
-                        <p class="op">Item: ${item.Item || 'N/A'}</p>
-                        <p class="desc">${item.Descrição || item.Descricao || 'N/A'}</p>
-                        <p class="bitola">Bitola: ${item.Dimensão || 'N/A'}</p>
+                        <p class="op">Item: ${item.item || 'N/A'}</p>
+                        <p class="desc">${item.descricao || 'N/A'}</p>
+                        <p class="bitola">Bitola: ${item.dimensao || 'N/A'}</p>
                     `;
+                    // *** FIM DA ALTERAÇÃO ***
                     container.appendChild(card);
                 });
             }
