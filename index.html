@@ -1,1 +1,268 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arranjo de Forno Inteligente</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root { --cor-vermelho: #E30613; --cor-verde: #28a745; --cor-azul: #007bff; --font-principal: 'Poppins', sans-serif; }
+        body { font-family: var(--font-principal); margin: 0; transition: background-color 0.3s, color 0.3s; }
+        .light-theme { --bg-principal: #F4F4F9; --bg-card: #FFFFFF; --texto-principal: #212529; --texto-secundario: #6c757d; --borda-cor: #dee2e6; }
+        .dark-theme { --bg-principal: #121212; --bg-card: #1e1e1e; --texto-principal: #EFEFEF; --texto-secundario: #a0a0a0; --borda-cor: #444; }
+        body { background-color: var(--bg-principal); color: var(--texto-principal); }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        header { display: flex; justify-content: space-between; align-items: center; padding: 10px 40px; background-color: var(--bg-card); border-bottom: 1px solid var(--borda-cor); }
+        header img { height: 40px; }
+        header h1 { font-size: 1.2rem; color: var(--cor-vermelho); font-weight: 600; margin: 0; }
+        .theme-switcher { display: flex; align-items: center; gap: 10px; }
+        .card { background-color: var(--bg-card); border-radius: 12px; padding: 24px; margin-bottom: 24px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+        .dark-theme .card { box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+        .step-indicator { background-color: var(--cor-vermelho); color: white; border-radius: 50%; width: 30px; height: 30px; display: inline-flex; align-items: center; justify-content: center; font-weight: 700; margin-right: 12px; }
+        h2 { display: flex; align-items: center; font-size: 1.5rem; margin-top: 0; }
+        .config-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: start; }
+        .btn-group button { background-color: transparent; border: 2px solid var(--borda-cor); color: var(--texto-secundario); padding: 20px; width: 100%; border-radius: 8px; cursor: pointer; font-size: 1rem; font-weight: 500; transition: all 0.2s; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+        .btn-group button.active { border-color: var(--cor-vermelho); color: var(--cor-vermelho); background-color: rgba(227, 6, 19, 0.05); }
+        .form-group { margin-bottom: 16px; }
+        label { display: block; margin-bottom: 8px; font-weight: 500; color: var(--texto-secundario); }
+        select, input[type="text"] { width: 100%; box-sizing: border-box; padding: 10px; border-radius: 6px; border: 1px solid var(--borda-cor); background-color: var(--bg-principal); color: var(--texto-principal); font-size: 1rem; }
+        .actions { margin-top: 24px; display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        .btn { padding: 12px 24px; border: none; border-radius: 8px; font-size: 1rem; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+        .btn-primary { background-color: var(--cor-vermelho); color: white; }
+        .btn-secondary { border: 2px solid var(--borda-cor); background: transparent; color: var(--texto-principal); }
+        .hidden { display: none; }
+        .arranjo-container { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+        .arranjo-coluna { border: 2px dashed var(--borda-cor); border-radius: 8px; padding: 16px; min-height: 400px; }
+        .item-card { background-color: var(--bg-principal); padding: 12px; border-radius: 6px; margin-bottom: 12px; border-left: 4px solid var(--cor-vermelho); cursor: grab; }
+        .item-card p { margin: 2px 0; }
+        .item-card .op { font-weight: 700; font-size: 0.9rem; }
+        .item-card .desc { font-weight: 600; font-size: 1.1rem; }
+        .item-card .bitola { font-size: 0.9rem; color: var(--texto-secundario); }
+    </style>
+</head>
+<body class="dark-theme">
 
+    <header>
+        <img id="logo-fama" src="https://ctfamadobrasil.com.br/wp-content/uploads/2025/12/Gemini_Generated_Image_v8cib8v8cib8v8ci-removebg-preview.png" alt="Logo Molas Fama">
+        <h1>ARRANJO DE FORNO INTELIGENTE</h1>
+        <div class="theme-switcher">
+            ☀️
+            <input type="checkbox" id="theme-toggle" checked>
+            🌙
+        </div>
+    </header>
+
+    <main class="container">
+        <!-- PASSO 1 -->
+        <div id="step-1" class="card">
+            <h2><span class="step-indicator">1</span>Passo 1: Configuração</h2>
+            <div class="config-grid">
+                <div>
+                    <label>SELEÇÃO DE FORNO</label>
+                    <div class="btn-group" style="display: flex; gap: 16px;">
+                        <button id="btn-forno-grande" class="active">
+                            Forno Grande (1001)
+                        </button>
+                        <button id="btn-forno-pequeno">
+                            Forno Pequeno (1002)
+                        </button>
+                    </div>
+                </div>
+                <div>
+                    <div id="config-forno-grande">
+                        <label>CONFIGURAÇÃO DO FORNO GRANDE</label>
+                        <div class="form-group">
+                            <select id="qtde-gts-grande">
+                                <option value="1">1 GT</option>
+                                <option value="2">2 GTs</option>
+                                <option value="3">3 GTs</option>
+                            </select>
+                        </div>
+                        <div id="inputs-gts-grande">
+                            <input type="text" placeholder="Código GT 1">
+                        </div>
+                    </div>
+                    <div id="config-forno-pequeno" class="hidden">
+                         <label>CONFIGURAÇÃO DO FORNO PEQUENO</label>
+                        <div class="form-group">
+                            <select id="qtde-gts-pequeno">
+                                <option value="1">1 GT</option>
+                                <option value="2">2 GTs</option>
+                            </select>
+                        </div>
+                        <div id="inputs-gts-pequeno">
+                             <input type="text" placeholder="Código GT 1">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="actions">
+                <input type="file" id="csv-file-input" class="hidden" accept=".csv">
+                <button id="btn-carregar-csv" class="btn btn-secondary">Carregar Lista de Produção (.CSV)</button>
+                <button id="btn-gerar-arranjo" class="btn btn-primary">Gerar Arranjo Inteligente</button>
+            </div>
+        </div>
+
+        <!-- PASSO 2 -->
+        <div id="step-2" class="card hidden">
+            <h2><span class="step-indicator">2</span>Passo 2: Organize a Sequência</h2>
+            <div class="arranjo-container">
+                <div class="arranjo-coluna">
+                    <h3>ARRANJO DE PRODUÇÃO</h3>
+                    <div id="arranjo-producao-lista"></div>
+                </div>
+                <div class="arranjo-coluna">
+                    <h3>ITENS PENDENTES</h3>
+                    <div id="itens-pendentes-lista"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- PASSO 3 -->
+        <div id="step-3" class="card hidden">
+             <h2><span class="step-indicator">3</span>Passo 3: Ações Finais</h2>
+             <div style="display: flex; justify-content: space-around;">
+                <button class="btn" style="background-color: var(--cor-verde); color: white;">Exportar para Excel</button>
+                <button class="btn" style="background-color: var(--cor-vermelho); color: white;">Exportar para PDF</button>
+                <button class="btn" style="background-color: var(--cor-azul); color: white;">Enviar por E-mail</button>
+             </div>
+        </div>
+    </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const n8nWebhookUrl = 'https://n8n-n8n.znxk1t.easypanel.host/webhook/gerar-arranjo';
+
+            const btnFornoGrande = document.getElementById('btn-forno-grande');
+            const btnFornoPequeno = document.getElementById('btn-forno-pequeno');
+            const configGrande = document.getElementById('config-forno-grande');
+            const configPequeno = document.getElementById('config-forno-pequeno');
+            const qtdeGtsGrande = document.getElementById('qtde-gts-grande');
+            const qtdeGtsPequeno = document.getElementById('qtde-gts-pequeno');
+            const inputsGtsGrande = document.getElementById('inputs-gts-grande');
+            const inputsGtsPequeno = document.getElementById('inputs-gts-pequeno');
+            const btnCarregarCsv = document.getElementById('btn-carregar-csv');
+            const csvFileInput = document.getElementById('csv-file-input');
+            const btnGerarArranjo = document.getElementById('btn-gerar-arranjo');
+
+            btnFornoGrande.addEventListener('click', () => {
+                btnFornoGrande.classList.add('active');
+                btnFornoPequeno.classList.remove('active');
+                configGrande.classList.remove('hidden');
+                configPequeno.classList.add('hidden');
+            });
+            btnFornoPequeno.addEventListener('click', () => {
+                btnFornoPequeno.classList.add('active');
+                btnFornoGrande.classList.remove('active');
+                configPequeno.classList.remove('hidden');
+                configGrande.classList.add('hidden');
+            });
+
+            const gerarInputs = (qtde, container) => {
+                container.innerHTML = '';
+                for (let i = 1; i <= qtde; i++) {
+                    const input = document.createElement('input');
+                    input.type = 'text';
+                    input.placeholder = `Código GT ${i}`;
+                    input.style.marginBottom = '8px';
+                    container.appendChild(input);
+                }
+            };
+
+            qtdeGtsGrande.addEventListener('change', (e) => gerarInputs(e.target.value, inputsGtsGrande));
+            qtdeGtsPequeno.addEventListener('change', (e) => gerarInputs(e.target.value, inputsGtsPequeno));
+            gerarInputs(qtdeGtsGrande.value, inputsGtsGrande); // Iniciar
+            gerarInputs(qtdeGtsPequeno.value, inputsGtsPequeno); // Iniciar
+
+            btnCarregarCsv.addEventListener('click', () => csvFileInput.click());
+            csvFileInput.addEventListener('change', () => {
+                 btnCarregarCsv.textContent = `Arquivo: ${csvFileInput.files[0].name}`;
+            });
+            
+            btnGerarArranjo.addEventListener('click', async () => {
+                if (!csvFileInput.files[0]) {
+                    alert('Por favor, carregue um arquivo CSV primeiro.');
+                    return;
+                }
+                btnGerarArranjo.textContent = 'Gerando...';
+                btnGerarArranjo.disabled = true;
+
+                const formData = new FormData();
+                formData.append('file', csvFileInput.files[0], 'data.csv');
+                
+                const fornoAtivo = btnFornoGrande.classList.contains('active') ? 'grande' : 'pequeno';
+                formData.append('forno', fornoAtivo);
+
+                const gtsContainer = fornoAtivo === 'grande' ? inputsGtsGrande : inputsGtsPequeno;
+                const gts = Array.from(gtsContainer.querySelectorAll('input')).map(input => input.value).filter(Boolean);
+                if (gts.length === 0) {
+                     alert('Por favor, insira pelo menos um Código GT.');
+                     btnGerarArranjo.textContent = 'Gerar Arranjo Inteligente';
+                     btnGerarArranjo.disabled = false;
+                     return;
+                }
+                formData.append('gts_selecionados', JSON.stringify(gts));
+                
+                try {
+                    const response = await fetch(n8nWebhookUrl, {
+                        method: 'POST',
+                        body: formData,
+                    });
+                    if (!response.ok) throw new Error(`Erro na comunicação com o servidor: ${response.statusText}`);
+                    
+                    const data = await response.json();
+                    
+                    document.getElementById('step-2').classList.remove('hidden');
+                    document.getElementById('step-3').classList.remove('hidden');
+                    
+                    popularLista('arranjo-producao-lista', data.arranjo_producao);
+                    popularLista('itens-pendentes-lista', data.itens_pendentes);
+
+                } catch (error) {
+                    alert('Ocorreu um erro ao gerar o arranjo: ' + error.message);
+                } finally {
+                    btnGerarArranjo.textContent = 'Gerar Arranjo Inteligente';
+                    btnGerarArranjo.disabled = false;
+                }
+            });
+
+            function popularLista(containerId, items) {
+                const container = document.getElementById(containerId);
+                container.innerHTML = '';
+                if (!items || items.length === 0) {
+                    container.innerHTML = '<p style="color: var(--texto-secundario);">Nenhum item para esta seleção.</p>';
+                    return;
+                }
+
+                items.forEach(itemData => {
+                    const item = itemData.json;
+                    const card = document.createElement('div');
+                    card.className = 'item-card';
+                    card.draggable = true;
+                    card.innerHTML = `
+                        <p class="op">Item: ${item.Item || 'N/A'}</p>
+                        <p class="desc">${item.Descrição || item.Descricao || 'N/A'}</p>
+                        <p class="bitola">Bitola: ${item.Dimensão || 'N/A'}</p>
+                    `;
+                    container.appendChild(card);
+                });
+            }
+
+            const themeToggle = document.getElementById('theme-toggle');
+            themeToggle.addEventListener('change', () => {
+                document.body.classList.toggle('dark-theme');
+                document.body.classList.toggle('light-theme');
+                const logo = document.getElementById('logo-fama');
+                if (document.body.classList.contains('dark-theme')) {
+                    logo.src = 'https://ctfamadobrasil.com.br/wp-content/uploads/2025/12/Gemini_Generated_Image_v8cib8v8cib8v8ci-removebg-preview.png';
+                } else {
+                    logo.src = 'https://ctfamadobrasil.com.br/wp-content/uploads/2025/09/logo.png';
+                }
+            });
+            if(document.body.classList.contains('light-theme') === false) document.body.classList.add('dark-theme');
+        });
+    </script>
+</body>
+</html>
