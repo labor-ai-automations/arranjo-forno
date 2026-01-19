@@ -7,6 +7,8 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Adiciona a biblioteca SheetJS para exportação em Excel -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
     <style>
         :root {
             /* Design System Tokens */
@@ -194,7 +196,6 @@
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const n8nWebhookUrl = 'https://n8n-n8n.znxk1t.easypanel.host/webhook/gerar-arranjo';
-            const n8nExportExcelUrl = 'https://n8n-n8n.znxk1t.easypanel.host/webhook/exportar-excel'; 
 
             const elements = {
                 stepNav1: document.getElementById('step-nav-1'),
@@ -221,18 +222,11 @@
             const fornosConfig = {
                 grande: {
                     titulo: 'Configuração do Forno Grande',
-                    opcoes: [
-                        { value: '1', text: '1 GT' },
-                        { value: '2', text: '2 GTs' },
-                        { value: '3', text: '3 GTs' }
-                    ]
+                    opcoes: [ { value: '1', text: '1 GT' }, { value: '2', text: '2 GTs' }, { value: '3', text: '3 GTs' } ]
                 },
                 pequeno: {
                     titulo: 'Configuração do Forno Pequeno',
-                    opcoes: [
-                        { value: '1', text: '1 GT' },
-                        { value: '2', text: '2 GTs' }
-                    ]
+                    opcoes: [ { value: '1', text: '1 GT' }, { value: '2', text: '2 GTs' } ]
                 }
             };
             
@@ -296,12 +290,7 @@
                 formData.append('forno', fornoAtivo);
 
                 const gts = Array.from(elements.inputsGtsDinamico.querySelectorAll('input')).map(input => input.value).filter(Boolean);
-                if (gts.length === 0) {
-                     alert('Por favor, insira pelo menos um Código GT.');
-                     elements.btnGerarArranjo.innerHTML = originalButtonText;
-                     elements.btnGerarArranjo.disabled = false;
-                     return;
-                }
+                
                 formData.append('gts_selecionados', JSON.stringify(gts));
                 
                 try {
@@ -336,7 +325,7 @@
                     const card = document.createElement('div');
                     card.className = 'item-card';
                     card.draggable = true;
-                    card.id = `${container.id}-item-${Date.now()}-${index}`; // ID Único para o drag
+                    card.id = `${containerId}-item-${Date.now()}-${index}`; // ID Único para o drag
                     card.dataset.codigo = item.codigo || 'N/A';
                     card.dataset.descricao = item.descricao || 'N/A';
                     card.dataset.dimensao = item.dimensao || 'N/A';
@@ -355,7 +344,6 @@
                 });
             }
             
-            // --- LÓGICA DE DRAG AND DROP ---
             function handleDragStart(e) {
                 e.target.classList.add('dragging');
                 e.dataTransfer.setData('text/plain', e.target.id);
@@ -383,52 +371,44 @@
                     zone.querySelector('div[id$="-lista"]').appendChild(draggableElement);
                 });
             });
-
-            elements.btnExportExcel.addEventListener('click', async () => {
+            
+            // --- NOVA FUNÇÃO DE EXPORTAR PARA EXCEL ---
+            elements.btnExportExcel.addEventListener('click', () => {
                 const originalText = elements.btnExportExcel.innerHTML;
                 elements.btnExportExcel.innerHTML = '<div class="spinner"></div> Exportando...';
                 elements.btnExportExcel.disabled = true;
 
-                const itemsParaExportar = [];
-                const itemCards = elements.arranjoProducaoLista.querySelectorAll('.item-card');
-                
-                itemCards.forEach(card => {
-                    itemsParaExportar.push({
-                        "Código": card.dataset.codigo,
-                        "Descrição": card.dataset.descricao,
-                        "Dimensão (Bitola)": card.dataset.dimensao,
-                        "GT": card.dataset.gt
-                    });
-                });
-
-                if (itemsParaExportar.length === 0) {
-                    alert("Não há itens no arranjo de produção para exportar.");
-                    elements.btnExportExcel.innerHTML = originalText;
-                    elements.btnExportExcel.disabled = false;
-                    return;
-                }
-
                 try {
-                    const response = await fetch(n8nExportExcelUrl, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(itemsParaExportar)
-                    });
-
-                    if (!response.ok) {
-                        throw new Error(`Erro no servidor: ${response.statusText}`);
+                    const itemsParaExportar = [];
+                    // Pega todos os cards que estão VISIVELMENTE na coluna de produção
+                    const itemCards = elements.arranjoProducaoLista.querySelectorAll('.item-card');
+                    
+                    if (itemCards.length === 0) {
+                        alert("Não há itens no arranjo de produção para exportar.");
+                        return;
                     }
 
-                    const blob = await response.blob();
-                    const url = window.URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.style.display = 'none';
-                    a.href = url;
-                    a.download = 'Arranjo_Producao.xlsx';
-                    document.body.appendChild(a);
-                    a.click();
-                    window.URL.revokeObjectURL(url);
-                    a.remove();
+                    // Adiciona o cabeçalho da planilha
+                    itemsParaExportar.push([ "Código", "Descrição", "Bitola", "GT" ]);
+
+                    // Coleta os dados de cada card
+                    itemCards.forEach(card => {
+                        itemsParaExportar.push([
+                            card.dataset.codigo,
+                            card.dataset.descricao,
+                            card.dataset.dimensao,
+                            card.dataset.gt
+                        ]);
+                    });
+
+                    // 1. Cria uma nova "pasta de trabalho" (workbook)
+                    const wb = XLSX.utils.book_new();
+                    // 2. Converte nosso array de dados para uma "planilha" (worksheet)
+                    const ws = XLSX.utils.aoa_to_sheet(itemsParaExportar);
+                    // 3. Adiciona a planilha à pasta de trabalho
+                    XLSX.utils.book_append_sheet(wb, ws, "Arranjo de Produção");
+                    // 4. Gera o arquivo e força o download
+                    XLSX.writeFile(wb, "Arranjo_Producao.xlsx");
 
                 } catch (error) {
                     alert(`Falha ao exportar para Excel: ${error.message}`);
@@ -437,6 +417,7 @@
                     elements.btnExportExcel.disabled = false;
                 }
             });
+
 
             elements.themeToggle.addEventListener('change', () => {
                 const isDark = elements.themeToggle.checked;
