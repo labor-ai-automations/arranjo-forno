@@ -64,7 +64,7 @@
         body { background-color: var(--bg-main); color: var(--text-primary); }
 
         /* Layout Principal e Header */
-        .container { max-width: 1200px; margin: 0 auto; padding: 2rem; } /* Aumentado para acomodar tabelas */
+        .container { max-width: 1200px; margin: 0 auto; padding: 2rem; }
         header {
             display: flex;
             justify-content: space-between; 
@@ -178,7 +178,7 @@
             transform: scale(1.2);
         }
 
-        /* --- Estilos para Modal e Tabelas (Novos) --- */
+        /* --- Estilos para Modal e Tabelas --- */
         .modal {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.6); display: flex; justify-content: center; align-items: center;
@@ -186,7 +186,7 @@
         }
         .modal.open { opacity: 1; pointer-events: all; }
         .modal-content {
-            background: var(--bg-card); width: 90%; max-width: 900px; max-height: 85vh;
+            background: var(--bg-card); width: 95%; max-width: 1100px; max-height: 85vh;
             border-radius: var(--radius-lg); padding: 2rem; box-shadow: var(--shadow-md);
             overflow-y: auto; position: relative;
         }
@@ -198,8 +198,8 @@
         /* Tabelas */
         .table-container { overflow-x: auto; width: 100%; }
         table { width: 100%; border-collapse: collapse; margin-top: 1rem; font-size: 0.95rem; }
-        th, td { padding: 0.75rem 1rem; text-align: left; border-bottom: 1px solid var(--border-color); }
-        th { background-color: var(--bg-main); font-weight: 600; color: var(--text-secondary); }
+        th, td { padding: 0.75rem 1rem; text-align: left; border-bottom: 1px solid var(--border-color); vertical-align: middle; }
+        th { background-color: var(--bg-main); font-weight: 600; color: var(--text-secondary); text-transform: uppercase; font-size: 0.8rem; letter-spacing: 0.5px; }
         tr:hover { background-color: rgba(0,0,0,0.02); }
         .dark-theme tr:hover { background-color: rgba(255,255,255,0.05); }
         
@@ -207,7 +207,7 @@
         .table-input { padding: 0.4rem; margin: 0; font-size: 0.9rem; width: 100%; }
         .actions-cell { display: flex; gap: 0.5rem; }
 
-        .search-bar { display: flex; gap: 1rem; margin-bottom: 1.5rem; }
+        .search-bar { display: flex; gap: 1rem; margin-bottom: 1rem; flex-wrap: wrap; }
         .search-bar input { margin-bottom: 0; flex-grow: 1; }
 
         .add-item-form {
@@ -222,6 +222,41 @@
             grid-template-columns: 1fr 2fr 1fr 1fr auto;
             gap: 1rem;
             align-items: end;
+        }
+        
+        /* Estilos de Paginação */
+        .pagination-toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            padding: 0.5rem;
+            background-color: var(--bg-main);
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-color);
+        }
+        .pagination-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .pagination-select {
+            width: auto;
+            margin-bottom: 0;
+            padding: 0.4rem 2rem 0.4rem 0.8rem;
+        }
+        .page-info {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        /* Responsividade Básica */
+        @media (max-width: 768px) {
+            .config-grid, .arranjo-container, .add-item-grid, .actions, .actions-final { grid-template-columns: 1fr; }
+            .add-item-grid > button { width: 100%; }
+            .pagination-toolbar { flex-direction: column; gap: 1rem; align-items: flex-start; }
+            .pagination-controls { width: 100%; justify-content: space-between; }
         }
     </style>
 </head>
@@ -335,6 +370,27 @@
             <div class="search-bar">
                 <input type="search" id="search-master-items" placeholder="Pesquisar por código, descrição ou GT...">
             </div>
+            
+            <!-- PAGINATION TOOLBAR -->
+            <div class="pagination-toolbar">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span style="color: var(--text-secondary); font-size: 0.9rem;">Exibir:</span>
+                    <select id="items-per-page" class="pagination-select">
+                        <option value="10" selected>10</option>
+                        <option value="15">15</option>
+                        <option value="25">25</option>
+                        <option value="50">50</option>
+                        <option value="all">Todos</option>
+                    </select>
+                </div>
+                
+                <div class="pagination-controls">
+                    <button id="btn-prev-page" class="btn btn-sm btn-secondary" disabled>Anterior</button>
+                    <span id="page-info" class="page-info">Página 1</span>
+                    <button id="btn-next-page" class="btn btn-sm btn-secondary">Próximo</button>
+                </div>
+            </div>
+
             <div class="table-container">
                 <table id="table-master-items">
                     <thead>
@@ -363,10 +419,11 @@
                 <table id="table-history">
                     <thead>
                         <tr>
+                            <th style="width: 50px;">ID</th>
                             <th>Data/Hora</th>
                             <th>Usuário</th>
-                            <th>Parâmetros (Fornos/GTs)</th>
-                            <th>Ação</th>
+                            <th>Parâmetros Usados</th>
+                            <th style="text-align: center;">Arranjo Resultado</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -387,6 +444,12 @@
             // --- CONFIGURAÇÃO N8N (LEGADO MANTIDO) ---
             const n8nGerarArranjoUrl = 'https://n8n-n8n.znxk1t.easypanel.host/webhook/gerar-arranjo';
             const n8nAtualizarGTUrl = 'https://n8n-n8n.znxk1t.easypanel.host/webhook/atualizar-itens-mestre'; 
+
+            // --- VARIÁVEIS DE ESTADO PAGINAÇÃO ---
+            let currentMasterPage = 1;
+            let itemsPerPage = 10;
+            let totalItems = 0;
+            let searchTimeout = null;
 
             // --- ELEMENTOS DOM ---
             const elements = {
@@ -413,7 +476,7 @@
 
                 // Configuração Forno
                 btnFornoGrande: document.getElementById('btn-forno-grande'),
-                btnFornoPequeno: document.getElementById('btn-forno-pequeno'), // Corrigido
+                btnFornoPequeno: document.getElementById('btn-forno-pequeno'),
                 configTitulo: document.getElementById('config-titulo'),
                 qtdeGtsDinamico: document.getElementById('qtde-gts-dinamico'),
                 inputsGtsDinamico: document.getElementById('inputs-gts-dinamico'),
@@ -438,13 +501,18 @@
                 newItemDescricao: document.getElementById('new-item-descricao'),
                 newItemDimensao: document.getElementById('new-item-dimensao'),
                 newItemGt: document.getElementById('new-item-gt'),
+                
+                // Paginação
+                itemsPerPageSelect: document.getElementById('items-per-page'),
+                btnPrevPage: document.getElementById('btn-prev-page'),
+                btnNextPage: document.getElementById('btn-next-page'),
+                pageInfo: document.getElementById('page-info'),
 
                 // Histórico
                 tableHistoryBody: document.querySelector('#table-history tbody')
             };
 
             let gtsAtuais = [];
-            let masterItemsCache = [];
 
             // --- LÓGICA DE UI GERAL ---
             const fornosConfig = {
@@ -507,7 +575,8 @@
             elements.btnMasterManager.addEventListener('click', () => {
                 elements.viewPrincipal.classList.add('hidden');
                 elements.viewGerenciador.classList.remove('hidden');
-                loadMasterItems();
+                currentMasterPage = 1;
+                fetchMasterItems();
             });
 
             elements.btnVoltarProducao.addEventListener('click', () => {
@@ -534,7 +603,7 @@
 
             // --- SUPABASE: HISTÓRICO ---
             async function loadHistory() {
-                elements.tableHistoryBody.innerHTML = '<tr><td colspan="4" style="text-align:center;">Carregando...</td></tr>';
+                elements.tableHistoryBody.innerHTML = '<tr><td colspan="5" style="text-align:center;">Carregando histórico...</td></tr>';
                 try {
                     const { data, error } = await _supabase
                         .from('arranjos_gerados')
@@ -546,20 +615,37 @@
 
                     elements.tableHistoryBody.innerHTML = '';
                     if (data.length === 0) {
-                        elements.tableHistoryBody.innerHTML = '<tr><td colspan="4">Nenhum histórico encontrado.</td></tr>';
+                        elements.tableHistoryBody.innerHTML = '<tr><td colspan="5">Nenhum histórico encontrado.</td></tr>';
                         return;
                     }
 
                     data.forEach(row => {
                         const tr = document.createElement('tr');
                         const date = new Date(row.created_at).toLocaleString('pt-BR');
-                        const params = typeof row.parametros === 'string' ? row.parametros : JSON.stringify(row.parametros);
+                        
+                        // Correção solicitada: Usar 'parametros_usados' do DB
+                        let paramsDisplay = "N/A";
+                        if (row.parametros_usados) {
+                             paramsDisplay = typeof row.parametros_usados === 'string' 
+                                ? row.parametros_usados 
+                                : JSON.stringify(row.parametros_usados);
+                        }
+
+                        // Formatação visual simples do JSON
+                        const formattedParams = paramsDisplay.length > 50 
+                            ? `<span title='${paramsDisplay}'>${paramsDisplay.substring(0, 50)}...</span>` 
+                            : paramsDisplay;
                         
                         tr.innerHTML = `
+                            <td>${row.id}</td>
                             <td>${date}</td>
                             <td>${row.usuario || 'Sistema'}</td>
-                            <td style="font-size:0.85rem; color:var(--text-secondary); max-width:300px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${params}</td>
-                            <td><button class="btn btn-sm btn-primary btn-load-history">Carregar</button></td>
+                            <td style="font-size:0.85rem; color:var(--text-secondary);">${formattedParams}</td>
+                            <td style="text-align: center;">
+                                <button class="btn btn-sm btn-primary btn-load-history" title="Carregar este arranjo na tela principal">
+                                    📂 Carregar Arranjo
+                                </button>
+                            </td>
                         `;
                         
                         const btnLoad = tr.querySelector('.btn-load-history');
@@ -569,7 +655,7 @@
 
                 } catch (err) {
                     console.error(err);
-                    elements.tableHistoryBody.innerHTML = `<tr><td colspan="4" style="color:var(--color-danger)">Erro ao carregar histórico: ${err.message}</td></tr>`;
+                    elements.tableHistoryBody.innerHTML = `<tr><td colspan="5" style="color:var(--color-danger)">Erro ao carregar histórico: ${err.message}</td></tr>`;
                 }
             }
 
@@ -597,37 +683,106 @@
                 }
             }
 
-            // --- SUPABASE: GERENCIADOR DE ITENS MESTRE ---
-            async function loadMasterItems() {
+            // --- SUPABASE: GERENCIADOR DE ITENS MESTRE COM PAGINAÇÃO ---
+            
+            // Eventos de Paginação
+            elements.itemsPerPageSelect.addEventListener('change', (e) => {
+                itemsPerPage = e.target.value === 'all' ? 'all' : parseInt(e.target.value);
+                currentMasterPage = 1;
+                fetchMasterItems();
+            });
+
+            elements.btnPrevPage.addEventListener('click', () => {
+                if (currentMasterPage > 1) {
+                    currentMasterPage--;
+                    fetchMasterItems();
+                }
+            });
+
+            elements.btnNextPage.addEventListener('click', () => {
+                const maxPages = itemsPerPage === 'all' ? 1 : Math.ceil(totalItems / itemsPerPage);
+                if (currentMasterPage < maxPages) {
+                    currentMasterPage++;
+                    fetchMasterItems();
+                }
+            });
+
+            // Filtro de Pesquisa com Debounce e integração com servidor
+            elements.searchMasterItems.addEventListener('input', (e) => {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(() => {
+                    currentMasterPage = 1;
+                    fetchMasterItems(e.target.value);
+                }, 500); // Aguarda 500ms antes de buscar
+            });
+
+            async function fetchMasterItems(searchTerm = '') {
                 elements.tableMasterItemsBody.innerHTML = '<tr><td colspan="5" style="text-align:center;">Carregando...</td></tr>';
+                elements.btnPrevPage.disabled = true;
+                elements.btnNextPage.disabled = true;
+
+                // Se não passou termo, tenta pegar do input atual
+                if(searchTerm === '') searchTerm = elements.searchMasterItems.value;
+
                 try {
-                    const { data, error } = await _supabase
-                        .from('itens_mestre')
-                        .select('*')
-                        .order('codigo_item', { ascending: true }); // Assumindo 'codigo_item'
+                    // Query base para contagem e dados
+                    let query = _supabase.from('itens_mestre').select('*', { count: 'exact' });
+
+                    // Aplica filtro se houver busca
+                    if (searchTerm) {
+                        const term = `%${searchTerm}%`;
+                        query = query.or(`codigo_item.ilike.${term},descricao.ilike.${term},gt.ilike.${term}`);
+                    }
+
+                    // Ordenação
+                    query = query.order('codigo_item', { ascending: true });
+
+                    // Aplica paginação se não for 'todos'
+                    if (itemsPerPage !== 'all') {
+                        const from = (currentMasterPage - 1) * itemsPerPage;
+                        const to = from + itemsPerPage - 1;
+                        query = query.range(from, to);
+                    }
+
+                    const { data, count, error } = await query;
 
                     if (error) throw error;
                     
-                    masterItemsCache = data;
+                    totalItems = count || 0;
                     renderMasterTable(data);
+                    updatePaginationControls();
+
                 } catch (err) {
                     console.error(err);
                     elements.tableMasterItemsBody.innerHTML = `<tr><td colspan="5" style="color:var(--color-danger)">Erro: ${err.message}</td></tr>`;
                 }
             }
 
+            function updatePaginationControls() {
+                if (itemsPerPage === 'all') {
+                    elements.pageInfo.textContent = `Mostrando todos (${totalItems})`;
+                    elements.btnPrevPage.disabled = true;
+                    elements.btnNextPage.disabled = true;
+                } else {
+                    const totalPages = Math.ceil(totalItems / itemsPerPage);
+                    if (totalPages === 0) currentMasterPage = 1;
+                    
+                    elements.pageInfo.textContent = `Página ${currentMasterPage} de ${totalPages || 1} (Total: ${totalItems})`;
+                    
+                    elements.btnPrevPage.disabled = currentMasterPage <= 1;
+                    elements.btnNextPage.disabled = currentMasterPage >= totalPages;
+                }
+            }
+
             function renderMasterTable(items) {
                 elements.tableMasterItemsBody.innerHTML = '';
-                if (items.length === 0) {
-                    elements.tableMasterItemsBody.innerHTML = '<tr><td colspan="5">Nenhum item encontrado.</td></tr>';
+                if (!items || items.length === 0) {
+                    elements.tableMasterItemsBody.innerHTML = '<tr><td colspan="5" style="text-align:center; color: var(--text-secondary);">Nenhum item encontrado.</td></tr>';
                     return;
                 }
 
                 items.forEach(item => {
                     const tr = document.createElement('tr');
-                    // Usamos data-attributes para referenciar o ID original (assumindo que seja 'id' ou 'codigo_item' como PK)
-                    // Vou assumir que 'id' é a chave primária única gerada pelo Supabase, ou usar 'codigo_item' se for único.
-                    // Para segurança, usarei os valores originais nos inputs.
                     
                     tr.innerHTML = `
                         <td><input type="text" class="table-input inp-codigo" value="${item.codigo_item || ''}" disabled title="Código não pode ser alterado aqui"></td>
@@ -635,8 +790,8 @@
                         <td><input type="text" class="table-input inp-dimensao" value="${item.dimensao || ''}"></td>
                         <td><input type="text" class="table-input inp-gt" value="${item.gt || ''}"></td>
                         <td class="actions-cell">
-                            <button class="btn btn-sm btn-success btn-save-row">💾</button>
-                            <button class="btn btn-sm btn-danger btn-delete-row">🗑️</button>
+                            <button class="btn btn-sm btn-success btn-save-row" title="Salvar Alterações">💾</button>
+                            <button class="btn btn-sm btn-danger btn-delete-row" title="Excluir Item">🗑️</button>
                         </td>
                     `;
 
@@ -644,7 +799,7 @@
                     const btnSave = tr.querySelector('.btn-save-row');
                     const btnDelete = tr.querySelector('.btn-delete-row');
                     
-                    // Identificador único (preferencia ID interno se existir, senão codigo_item)
+                    // Identificador único
                     const itemId = item.id; 
 
                     btnSave.addEventListener('click', async () => {
@@ -657,7 +812,7 @@
                             const { error } = await _supabase
                                 .from('itens_mestre')
                                 .update({ descricao: newDesc, dimensao: newDim, gt: newGt })
-                                .eq('id', itemId); // Usa ID para update seguro
+                                .eq('id', itemId);
 
                             if (error) throw error;
                             alert('Item atualizado com sucesso!');
@@ -679,8 +834,10 @@
                                 .eq('id', itemId);
 
                             if (error) throw error;
-                            tr.remove(); // Remove do DOM
-                            masterItemsCache = masterItemsCache.filter(x => x.id !== itemId); // Atualiza cache
+                            
+                            // Recarregar tabela mantendo a página atual
+                            fetchMasterItems();
+
                         } catch (e) {
                             alert('Erro ao excluir: ' + e.message);
                             btnDelete.disabled = false;
@@ -690,17 +847,6 @@
                     elements.tableMasterItemsBody.appendChild(tr);
                 });
             }
-
-            // Filtro de Pesquisa
-            elements.searchMasterItems.addEventListener('input', (e) => {
-                const term = e.target.value.toLowerCase();
-                const filtered = masterItemsCache.filter(item => 
-                    (item.codigo_item && item.codigo_item.toLowerCase().includes(term)) ||
-                    (item.descricao && item.descricao.toLowerCase().includes(term)) ||
-                    (item.gt && item.gt.toLowerCase().includes(term))
-                );
-                renderMasterTable(filtered);
-            });
 
             // Adicionar Novo Item
             elements.btnAddMasterItem.addEventListener('click', async () => {
@@ -728,8 +874,9 @@
                     elements.newItemDimensao.value = '';
                     elements.newItemGt.value = '';
 
-                    // Recarregar lista
-                    await loadMasterItems();
+                    // Recarregar lista (volta pra página 1 para ver o novo item se ordenação permitir, ou apenas recarrega)
+                    currentMasterPage = 1;
+                    await fetchMasterItems();
                     alert('Item criado com sucesso!');
 
                 } catch (e) {
