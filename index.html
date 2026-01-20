@@ -580,11 +580,25 @@
             }
 
             function showDetailsModal(id, paramText, detailsJson) {
-                const details = (typeof detailsJson === 'string') ? JSON.parse(detailsJson) : detailsJson;
+                // 1. Converte string para objeto se necessário
+                let details = (typeof detailsJson === 'string') ? JSON.parse(detailsJson) : detailsJson;
+                
+                // 2. CORREÇÃO: Verifica se os dados estão dentro de uma propriedade 'json' (comum no n8n)
+                if (details && details.json && !details.arranjo_producao) {
+                    details = details.json;
+                }
+
+                // 3. Garante que os arrays existam para não quebrar a tela
+                const arranjo = Array.isArray(details?.arranjo_producao) ? details.arranjo_producao : [];
+                const pendentes = Array.isArray(details?.itens_pendentes) ? details.itens_pendentes : [];
+
+                // 4. Preenche a tela
                 detailsTitle.textContent = `Detalhes do Arranjo #${id}`;
                 detailsParams.textContent = `Parâmetros: ${paramText}`;
-                popularLista(detailsArranjoLista, details.arranjo_producao, false);
-                popularLista(detailsPendentesLista, details.itens_pendentes, false);
+                
+                popularLista(detailsArranjoLista, arranjo, false);
+                popularLista(detailsPendentesLista, pendentes, false);
+                
                 detailsModal.classList.remove('hidden');
             }
 
