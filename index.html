@@ -35,7 +35,6 @@
             /* Cards / Superfícies */
             --color-card-light: #FFFFFF;
             --color-card-dark: #1F2937;
-            --color-card-hover: #374151;
             
             /* Texto Light Mode */
             --color-text-light-primary: #111827;
@@ -123,7 +122,7 @@
         }
         
         header img { 
-            height: 48px; 
+            height: 55px; /* Ajuste para as novas logos */
         }
         
         /* Botões de Navegação do Header */
@@ -801,7 +800,7 @@
             <button id="btn-history" class="nav-btn">📜 Histórico</button>
         </div>
         <div class="logo-area">
-            <img id="logo-fama" src="https://ctfamadobrasil.com.br/wp-content/uploads/2025/12/Gemini_Generated_Image_v8cib8v8cib8v8ci-removebg-preview.png" alt="Logo Molas Fama">
+            <img id="logo-fama" src="https://ctfamadobrasil.com.br/wp-content/uploads/2026/01/unnamed__51_-removebg-preview.png" alt="Logo Molas Fama">
         </div>
         <div class="right-actions">
             <div class="theme-switcher">
@@ -1218,26 +1217,47 @@
             };
 
             // --- INICIALIZAÇÃO DO MULTI-SELECT DE GTs ---
-            function initGtMultiSelect() {
-                // Lista de GTs comuns (pode ser expandida)
-                const commonGTs = ['01', '02', '03', '04', '05', '23', '151'];
-                
-                elements.gtDropdown.innerHTML = '';
-                commonGTs.forEach(gt => {
-                    const option = document.createElement('label');
-                    option.className = 'multi-select-option';
-                    option.innerHTML = `
-                        <input type="checkbox" value="${gt}">
-                        <span>GT ${gt}</span>
-                    `;
-                    elements.gtDropdown.appendChild(option);
+            async function initGtMultiSelect() {
+                try {
+                    // Busca todos os GTs únicos da tabela itens_mestre para popular o filtro
+                    const { data, error } = await _supabase
+                        .from('itens_mestre')
+                        .select('gt');
+                        
+                    if (error) throw error;
+
+                    // Filtra duplicatas, nulos e vazios, e ordena
+                    const uniqueGTs = [...new Set(data
+                        .map(item => item.gt)
+                        .filter(gt => gt && gt.trim() !== '')
+                    )].sort();
+
+                    elements.gtDropdown.innerHTML = '';
                     
-                    // Evento de change no checkbox
-                    const checkbox = option.querySelector('input');
-                    checkbox.addEventListener('change', () => {
-                        updateSelectedGTs();
+                    if (uniqueGTs.length === 0) {
+                        elements.gtDropdown.innerHTML = '<div style="padding:0.5rem 1rem;color:var(--text-secondary)">Nenhum GT encontrado</div>';
+                        return;
+                    }
+
+                    uniqueGTs.forEach(gt => {
+                        const label = document.createElement('label');
+                        label.className = 'multi-select-option';
+                        label.innerHTML = `
+                            <input type="checkbox" value="${gt}">
+                            <span>GT ${gt}</span>
+                        `;
+                        elements.gtDropdown.appendChild(label);
+                        
+                        // Evento de change no checkbox
+                        const checkbox = label.querySelector('input');
+                        checkbox.addEventListener('change', () => {
+                            updateSelectedGTs();
+                        });
                     });
-                });
+
+                } catch (e) {
+                    console.error('Erro ao popular filtro de GTs:', e);
+                }
 
                 // Toggle do dropdown
                 elements.gtDisplay.addEventListener('click', (e) => {
@@ -1267,7 +1287,7 @@
                     elements.gtDisplay.textContent = `${selectedGTsFilter.length} selecionados`;
                 }
                 
-                // Dispara busca
+                // Dispara busca no histórico
                 currentHistoryPage = 1;
                 fetchHistory();
             }
@@ -1294,6 +1314,8 @@
 
             elements.btnHistory.addEventListener('click', () => {
                 showView('view-historico');
+                // Recarrega lista de GTs para garantir atualização
+                initGtMultiSelect();
                 currentHistoryPage = 1;
                 fetchHistory();
             });
@@ -1390,6 +1412,7 @@
                 if (!rawParams) return "N/A";
 
                 let params = rawParams;
+                // Tratamento de JSON aninhado ou strings escapadas
                 if (typeof params === 'string') {
                     try { params = JSON.parse(params); } catch (e) { return rawParams; }
                 }
@@ -1469,6 +1492,7 @@
                     // 1. Filtro de Forno
                     const fornoVal = elements.filterHistoryForno.value;
                     if (fornoVal !== 'all') {
+                        // Using 'contains' is safer for JSONB
                         query = query.contains('parametros_usados', { forno: fornoVal });
                     }
 
@@ -1478,20 +1502,7 @@
                         query = query.ilike('usuario', `%${userVal}%`);
                     }
 
-                    // 3. Filtro de GTs (Logica OR para múltiplos selecionados)
-                    if (selectedGTsFilter.length > 0) {
-                        // Monta string de filtro OR para buscar no texto do JSON
-                        // Ex: parametros_usados.ilike.%\"23\"%,parametros_usados.ilike.%\"03\"%
-                        // Usamos ilike no campo inteiro para achar a string do GT.
-                        // Adicionamos aspas escapadas para evitar falsos positivos (ex: achar "123" buscando "23")
-                        const orCondition = selectedGTsFilter
-                            .map(gt => `parametros_usados.ilike.%${gt}%`) 
-                            .join(',');
-                        
-                        query = query.or(orCondition);
-                    }
-
-                    // 4. Filtro de Data
+                    // 3. Filtro de Data
                     const dateVal = elements.filterHistoryDate.value;
                     if (dateVal) {
                         const start = new Date(dateVal).toISOString();
@@ -1501,19 +1512,67 @@
 
                     query = query.order('created_at', { ascending: false });
 
-                    // Paginação
-                    if (historyItemsPerPage !== 'all') {
-                        const from = (currentHistoryPage - 1) * historyItemsPerPage;
-                        const to = from + historyItemsPerPage - 1;
-                        query = query.range(from, to);
+                    // Estrategia Mista:
+                    // Se tiver filtro de GT (que é complexo dentro do JSON), buscamos mais dados e filtramos no cliente.
+                    // Se não tiver, paginamos no banco.
+                    
+                    let dataToRender = [];
+                    let finalCount = 0;
+                    
+                    const hasGtFilter = selectedGTsFilter.length > 0;
+
+                    if (hasGtFilter) {
+                        // Fetch a reasonable batch (e.g. latest 1000) to filter client side
+                        // Note: This is a trade-off. For huge datasets, we'd need a PostgreSQL function or different schema.
+                        const { data, count, error } = await query.limit(1000); 
+                        if (error) throw error;
+
+                        // Apply GT Filter Locally
+                        const filteredData = data.filter(row => {
+                            let params = row.parametros_usados;
+                            // Parse JSON safely
+                            if (typeof params === 'string') { try { params = JSON.parse(params); } catch (e) { return false; } }
+                            if (typeof params === 'string') { try { params = JSON.parse(params); } catch (e) { return false; } }
+
+                            let gtsInRow = [];
+                            if (Array.isArray(params.gts_selecionados)) {
+                                gtsInRow = params.gts_selecionados;
+                            } else if (typeof params.gts_selecionados === 'string') {
+                                try { gtsInRow = JSON.parse(params.gts_selecionados); } 
+                                catch (e) { gtsInRow = [params.gts_selecionados]; }
+                            }
+                            
+                            // Normalize to strings and clean quotes
+                            gtsInRow = gtsInRow.map(g => String(g).replace(/['"]+/g, ''));
+                            
+                            // Check intersection (OR logic: if row has ANY of the selected GTs)
+                            return selectedGTsFilter.some(filterGt => gtsInRow.includes(filterGt));
+                        });
+
+                        totalHistoryItems = filteredData.length;
+                        
+                        // Client-side Pagination
+                        if (historyItemsPerPage !== 'all') {
+                            const start = (currentHistoryPage - 1) * historyItemsPerPage;
+                            dataToRender = filteredData.slice(start, start + historyItemsPerPage);
+                        } else {
+                            dataToRender = filteredData;
+                        }
+
+                    } else {
+                        // Standard DB Pagination
+                        if (historyItemsPerPage !== 'all') {
+                            const from = (currentHistoryPage - 1) * historyItemsPerPage;
+                            const to = from + historyItemsPerPage - 1;
+                            query = query.range(from, to);
+                        }
+                        const { data, count, error } = await query;
+                        if (error) throw error;
+                        totalHistoryItems = count || 0;
+                        dataToRender = data;
                     }
 
-                    const { data, count, error } = await query;
-
-                    if (error) throw error;
-                    
-                    totalHistoryItems = count || 0;
-                    renderHistoryTable(data);
+                    renderHistoryTable(dataToRender);
                     updateHistoryPaginationControls();
 
                 } catch (err) {
@@ -2033,9 +2092,11 @@
                 const isDark = elements.themeToggle.checked;
                 document.body.classList.toggle('dark-theme', isDark);
                 document.body.classList.toggle('light-theme', !isDark);
+                
+                // URLS DAS LOGOS ATUALIZADAS
                 elements.logo.src = isDark 
-                    ? 'https://ctfamadobrasil.com.br/wp-content/uploads/2025/12/Gemini_Generated_Image_v8cib8v8cib8v8ci-removebg-preview.png' 
-                    : 'https://ctfamadobrasil.com.br/wp-content/uploads/2025/09/logo.png';
+                    ? 'https://ctfamadobrasil.com.br/wp-content/uploads/2026/01/unnamed__51_-removebg-preview.png' // Logo Dark (Fundo Escuro)
+                    : 'https://ctfamadobrasil.com.br/wp-content/uploads/2026/01/unnamed__50_-removebg-preview.png'; // Logo Light (Fundo Claro)
             });
             
             // --- Inicialização ---
