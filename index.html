@@ -35,6 +35,7 @@
             /* Cards / Superfícies */
             --color-card-light: #FFFFFF;
             --color-card-dark: #1F2937;
+            --color-card-hover: #374151;
             
             /* Texto Light Mode */
             --color-text-light-primary: #111827;
@@ -122,7 +123,7 @@
         }
         
         header img { 
-            height: 55px; /* Ajuste para as novas logos */
+            height: 55px; 
         }
         
         /* Botões de Navegação do Header */
@@ -293,7 +294,7 @@
             text-transform: uppercase; 
         }
         
-        select, input[type="text"], input[type="search"], input[type="date"] { 
+        select, input[type="text"], input[type="search"], input[type="date"], input[type="number"] { 
             width: 100%; 
             box-sizing: border-box; 
             padding: 0.75rem; 
@@ -306,7 +307,7 @@
             margin-bottom: 0.5rem; 
         }
         
-        select:focus, input[type="text"]:focus, input[type="search"]:focus, input[type="date"]:focus { 
+        select:focus, input[type="text"]:focus, input[type="search"]:focus, input[type="date"]:focus, input[type="number"]:focus { 
             outline: none; 
             border-color: var(--color-primary); 
             box-shadow: 0 0 0 2px rgba(217, 45, 32, 0.2); 
@@ -410,6 +411,8 @@
             border-radius: var(--radius-md); 
             border: 2px dashed transparent; 
             transition: var(--transition-speed); 
+            display: flex;
+            flex-direction: column;
         }
         
         .arranjo-coluna.drag-over { 
@@ -417,13 +420,30 @@
             background-color: rgba(217, 45, 32, 0.05); 
         }
         
+        .coluna-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-color); 
+            padding-bottom: 0.5rem; 
+            margin-bottom: 1rem; 
+        }
+
         .arranjo-coluna h3 { 
             font-size: 1rem; 
             font-weight: 600; 
             color: var(--text-secondary); 
-            border-bottom: 1px solid var(--border-color); 
-            padding-bottom: 0.5rem; 
-            margin-bottom: 1rem; 
+            margin: 0;
+        }
+
+        /* Totalizador de Capacidade */
+        .total-capacidade {
+            font-size: 0.95rem;
+            font-weight: 700;
+            padding: 0.2rem 0.5rem;
+            border-radius: var(--radius-md);
+            background: var(--bg-main);
+            border: 1px solid var(--border-color);
         }
         
         /* Card do Item de Produção */
@@ -740,6 +760,14 @@
             min-width: 100px; 
         }
 
+        /* --- Modal Manual Item --- */
+        .modal-form-content {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            text-align: left;
+        }
+
         /* --- Responsividade --- */
         @media (max-width: 768px) {
             header { 
@@ -800,7 +828,7 @@
             <button id="btn-history" class="nav-btn">📜 Histórico</button>
         </div>
         <div class="logo-area">
-            <img id="logo-fama" src="https://ctfamadobrasil.com.br/wp-content/uploads/2026/01/unnamed__51_-removebg-preview.png" alt="Logo Molas Fama">
+            <img id="logo-fama" src="https://ctfamadobrasil.com.br/wp-content/uploads/2025/12/Gemini_Generated_Image_v8cib8v8cib8v8ci-removebg-preview.png" alt="Logo Molas Fama">
         </div>
         <div class="right-actions">
             <div class="theme-switcher">
@@ -846,12 +874,11 @@
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
                 <h2 style="margin:0">Passo 2: Resultado</h2>
                 
-                <!-- Botão Padrão: Novo Arranjo -->
+                <!-- Botões de navegação condicional -->
                 <button id="btn-reset-production" onclick="resetarProducao()" class="btn btn-sm btn-secondary">
                     ↺ Novo Arranjo
                 </button>
                 
-                <!-- Botão Condicional: Voltar para Histórico (Só aparece quando vem do histórico) -->
                 <button id="btn-back-to-history" class="btn btn-sm btn-info hidden">
                     ← Voltar para Histórico
                 </button>
@@ -859,11 +886,17 @@
             
             <div class="arranjo-container">
                 <div class="arranjo-coluna">
-                    <h3>ARRANJO DE PRODUÇÃO</h3>
+                    <div class="coluna-header">
+                        <h3>ARRANJO DE PRODUÇÃO</h3>
+                        <span id="total-capacidade" class="total-capacidade">Total de Molas: 0</span>
+                    </div>
                     <div id="arranjo-producao-lista"></div>
                 </div>
                 <div class="arranjo-coluna">
-                    <h3>ITENS PENDENTES</h3>
+                    <div class="coluna-header">
+                        <h3>ITENS PENDENTES</h3>
+                        <button id="btn-manual-add" class="btn btn-sm btn-primary">+ Adicionar Manual</button>
+                    </div>
                     <div id="itens-pendentes-lista"></div>
                 </div>
             </div>
@@ -958,7 +991,7 @@
         </div>
 
         <div class="card">
-            <!-- BARRA DE FILTROS APRIMORADA (4 COLUNAS) -->
+            <!-- BARRA DE FILTROS -->
             <div class="search-bar">
                 <div class="filter-group">
                     <label for="filter-history-forno" style="font-size: 0.8rem; margin-bottom: 4px; color: var(--text-secondary);">Filtrar por Forno:</label>
@@ -969,7 +1002,6 @@
                     </select>
                 </div>
                 
-                <!-- NOVO FILTRO DE GT (MULTI-SELECT) -->
                 <div class="filter-group">
                     <label style="font-size: 0.8rem; margin-bottom: 4px; color: var(--text-secondary);">Filtrar por GTs:</label>
                     <div class="multi-select-container" id="filter-history-gt-wrapper">
@@ -1028,7 +1060,7 @@
         </div>
     </main>
 
-    <!-- ELEMENTO GLOBAL DE ALERT/CONFIRM CUSTOMIZADO -->
+    <!-- CUSTOM DIALOG (Alert/Confirm) -->
     <div id="custom-dialog-overlay" class="custom-dialog-overlay">
         <div class="custom-dialog-box">
             <span id="custom-dialog-icon" class="custom-dialog-icon">⚠️</span>
@@ -1036,6 +1068,40 @@
             <p id="custom-dialog-msg" class="custom-dialog-msg">Mensagem aqui</p>
             <div id="custom-dialog-actions" class="custom-dialog-actions">
                 <!-- Botões injetados via JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DE ADIÇÃO MANUAL -->
+    <div id="modal-manual-add-overlay" class="custom-dialog-overlay">
+        <div class="custom-dialog-box" style="max-width: 500px; text-align: left;">
+            <h3 class="custom-dialog-title" style="text-align: center; margin-bottom: 1.5rem;">Adicionar Item Manualmente</h3>
+            <div class="modal-form-content">
+                <div class="form-group">
+                    <label class="config-label">Código da Mola</label>
+                    <input type="text" id="manual-codigo" placeholder="Digite o código para buscar...">
+                </div>
+                <div class="form-group">
+                    <label class="config-label">Nº Ordem de Produção (OP)</label>
+                    <input type="text" id="manual-op" placeholder="Ex: 123456">
+                </div>
+                <div class="form-group">
+                    <label class="config-label">Quantidade</label>
+                    <input type="number" id="manual-qtd" placeholder="0">
+                </div>
+                <!-- Campos preenchidos automaticamente (Hidden or Readonly) -->
+                <div class="form-group">
+                    <label class="config-label">Bitola/Dimensão</label>
+                    <input type="text" id="manual-dimensao" readonly style="background-color: rgba(0,0,0,0.1); cursor: not-allowed;">
+                </div>
+                <div class="form-group">
+                    <label class="config-label">GT</label>
+                    <input type="text" id="manual-gt" readonly style="background-color: rgba(0,0,0,0.1); cursor: not-allowed;">
+                </div>
+            </div>
+            <div class="custom-dialog-actions" style="margin-top: 1.5rem;">
+                <button id="btn-cancel-manual" class="btn btn-secondary custom-dialog-btn">Cancelar</button>
+                <button id="btn-confirm-manual" class="btn btn-success custom-dialog-btn">Adicionar</button>
             </div>
         </div>
     </div>
@@ -1055,14 +1121,13 @@
             const n8nGerarArranjoUrl = 'https://n8n-n8n.znxk1t.easypanel.host/webhook/gerar-arranjo';
             const n8nAtualizarGTUrl = 'https://n8n-n8n.znxk1t.easypanel.host/webhook/atualizar-itens-mestre'; 
 
-            // --- SISTEMA DE DIALOG CUSTOMIZADO (Substitui alert/confirm) ---
+            // --- SISTEMA DE DIALOG CUSTOMIZADO ---
             const dialogOverlay = document.getElementById('custom-dialog-overlay');
             const dialogTitle = document.getElementById('custom-dialog-title');
             const dialogMsg = document.getElementById('custom-dialog-msg');
             const dialogActions = document.getElementById('custom-dialog-actions');
             const dialogIcon = document.getElementById('custom-dialog-icon');
 
-            // Função global para mostrar alertas
             window.showAlert = (message, title = 'Aviso', type = 'warning') => {
                 return new Promise((resolve) => {
                     dialogTitle.textContent = title;
@@ -1093,7 +1158,6 @@
                 });
             };
 
-            // Função global para mostrar confirmação (retorna true/false)
             window.showConfirm = (message, title = 'Confirmação') => {
                 return new Promise((resolve) => {
                     dialogTitle.textContent = title;
@@ -1126,68 +1190,48 @@
                 });
             };
 
-            // --- Variáveis de Estado Global ---
-            // Itens Mestre
+            // --- Variáveis de Estado ---
             let currentMasterPage = 1;
             let itemsPerPage = 10;
             let totalItems = 0;
             let searchTimeout = null;
             
-            // Histórico
             let currentHistoryPage = 1;
             let historyItemsPerPage = 10;
             let totalHistoryItems = 0;
             let historySearchTimeout = null;
-            let selectedGTsFilter = []; // Estado dos GTs selecionados no filtro
+            let selectedGTsFilter = []; 
             
-            // Estado Atual
             let gtsAtuais = [];
 
             // --- Referências ao DOM ---
             const elements = {
-                // Views
                 viewPrincipal: document.getElementById('view-principal'),
                 viewGerenciador: document.getElementById('view-gerenciador'),
                 viewHistorico: document.getElementById('view-historico'),
-
-                // Navigation Buttons
                 btnMasterManager: document.getElementById('btn-master-manager'),
                 btnHistory: document.getElementById('btn-history'),
                 btnVoltarProducaoMaster: document.getElementById('btn-voltar-producao-master'),
                 btnVoltarProducaoHistory: document.getElementById('btn-voltar-producao-history'),
                 btnResetProduction: document.getElementById('btn-reset-production'),
                 btnBackToHistory: document.getElementById('btn-back-to-history'),
-
-                // Theme & Logo
                 themeToggle: document.getElementById('theme-toggle'),
                 logo: document.getElementById('logo-fama'),
-
-                // Stepper
                 stepNav1: document.getElementById('step-nav-1'),
                 stepNav2: document.getElementById('step-nav-2'),
                 step1: document.getElementById('step-1'),
                 step2: document.getElementById('step-2'),
-
-                // Configuração Forno
                 btnFornoGrande: document.getElementById('btn-forno-grande'),
                 btnFornoPequeno: document.getElementById('btn-forno-pequeno'),
                 configTitulo: document.getElementById('config-titulo'),
                 qtdeGtsDinamico: document.getElementById('qtde-gts-dinamico'),
                 inputsGtsDinamico: document.getElementById('inputs-gts-dinamico'),
-
-                // Ações Principais
                 btnCarregarCsv: document.getElementById('btn-carregar-csv'),
                 csvFileInput: document.getElementById('csv-file-input'),
                 btnGerarArranjo: document.getElementById('btn-gerar-arranjo'),
-                
-                // Listas Drag & Drop
                 arranjoProducaoLista: document.getElementById('arranjo-producao-lista'),
                 itensPendentesLista: document.getElementById('itens-pendentes-lista'),
-                
-                // Exportação
                 btnExportExcel: document.getElementById('btn-export-excel'),
-
-                // Gerenciador Mestre
                 searchMasterItems: document.getElementById('search-master-items'),
                 tableMasterItemsBody: document.querySelector('#table-master-items tbody'),
                 btnAddMasterItem: document.getElementById('btn-add-master-item'),
@@ -1199,8 +1243,6 @@
                 btnPrevPage: document.getElementById('btn-prev-page'),
                 btnNextPage: document.getElementById('btn-next-page'),
                 pageInfo: document.getElementById('page-info'),
-
-                // Histórico (Elementos de Filtro Atualizados)
                 tableHistoryBody: document.querySelector('#table-history tbody'),
                 filterHistoryForno: document.getElementById('filter-history-forno'),
                 filterHistoryUser: document.getElementById('filter-history-user'),
@@ -1209,419 +1251,301 @@
                 btnHistoryPrev: document.getElementById('btn-history-prev'),
                 btnHistoryNext: document.getElementById('btn-history-next'),
                 historyPageInfo: document.getElementById('history-page-info'),
-                
-                // Multi Select Elements
                 gtWrapper: document.getElementById('filter-history-gt-wrapper'),
                 gtDisplay: document.getElementById('filter-history-gt-display'),
-                gtDropdown: document.getElementById('filter-history-gt-dropdown')
+                gtDropdown: document.getElementById('filter-history-gt-dropdown'),
+                totalCapacidade: document.getElementById('total-capacidade'),
+                btnManualAdd: document.getElementById('btn-manual-add'),
+                modalManualAddOverlay: document.getElementById('modal-manual-add-overlay'),
+                btnCancelManual: document.getElementById('btn-cancel-manual'),
+                btnConfirmManual: document.getElementById('btn-confirm-manual'),
+                manualCodigo: document.getElementById('manual-codigo'),
+                manualOp: document.getElementById('manual-op'),
+                manualQtd: document.getElementById('manual-qtd'),
+                manualDimensao: document.getElementById('manual-dimensao'),
+                manualGt: document.getElementById('manual-gt')
             };
 
             // --- INICIALIZAÇÃO DO MULTI-SELECT DE GTs ---
             async function initGtMultiSelect() {
                 try {
-                    // Busca todos os GTs únicos da tabela itens_mestre para popular o filtro
-                    const { data, error } = await _supabase
-                        .from('itens_mestre')
-                        .select('gt');
-                        
+                    const { data, error } = await _supabase.from('itens_mestre').select('gt');
                     if (error) throw error;
-
-                    // Filtra duplicatas, nulos e vazios, e ordena
-                    const uniqueGTs = [...new Set(data
-                        .map(item => item.gt)
-                        .filter(gt => gt && gt.trim() !== '')
-                    )].sort();
-
+                    const uniqueGTs = [...new Set(data.map(item => item.gt).filter(gt => gt && gt.trim() !== ''))].sort();
                     elements.gtDropdown.innerHTML = '';
-                    
                     if (uniqueGTs.length === 0) {
                         elements.gtDropdown.innerHTML = '<div style="padding:0.5rem 1rem;color:var(--text-secondary)">Nenhum GT encontrado</div>';
                         return;
                     }
-
                     uniqueGTs.forEach(gt => {
                         const label = document.createElement('label');
                         label.className = 'multi-select-option';
-                        label.innerHTML = `
-                            <input type="checkbox" value="${gt}">
-                            <span>GT ${gt}</span>
-                        `;
+                        label.innerHTML = `<input type="checkbox" value="${gt}"> <span>GT ${gt}</span>`;
+                        if (selectedGTsFilter.includes(gt)) label.querySelector('input').checked = true;
+                        label.querySelector('input').addEventListener('change', updateSelectedGTs);
                         elements.gtDropdown.appendChild(label);
-                        
-                        // Evento de change no checkbox
-                        const checkbox = label.querySelector('input');
-                        checkbox.addEventListener('change', () => {
-                            updateSelectedGTs();
-                        });
                     });
-
-                } catch (e) {
-                    console.error('Erro ao popular filtro de GTs:', e);
-                }
-
-                // Toggle do dropdown
-                elements.gtDisplay.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    elements.gtDropdown.classList.toggle('open');
-                });
-
-                // Fechar ao clicar fora
-                document.addEventListener('click', () => {
-                    elements.gtDropdown.classList.remove('open');
-                });
-                
-                elements.gtDropdown.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                });
+                } catch (e) { console.error('Erro ao popular filtro de GTs:', e); }
+                elements.gtDisplay.addEventListener('click', (e) => { e.stopPropagation(); elements.gtDropdown.classList.toggle('open'); });
+                document.addEventListener('click', () => elements.gtDropdown.classList.remove('open'));
+                elements.gtDropdown.addEventListener('click', (e) => e.stopPropagation());
             }
 
             function updateSelectedGTs() {
                 const checkboxes = elements.gtDropdown.querySelectorAll('input[type="checkbox"]:checked');
                 selectedGTsFilter = Array.from(checkboxes).map(cb => cb.value);
-                
-                if (selectedGTsFilter.length === 0) {
-                    elements.gtDisplay.textContent = 'Todos';
-                } else if (selectedGTsFilter.length <= 2) {
-                    elements.gtDisplay.textContent = selectedGTsFilter.join(', ');
-                } else {
-                    elements.gtDisplay.textContent = `${selectedGTsFilter.length} selecionados`;
-                }
-                
-                // Dispara busca no histórico
-                currentHistoryPage = 1;
-                fetchHistory();
+                if (selectedGTsFilter.length === 0) elements.gtDisplay.textContent = 'Todos';
+                else if (selectedGTsFilter.length <= 2) elements.gtDisplay.textContent = selectedGTsFilter.join(', ');
+                else elements.gtDisplay.textContent = `${selectedGTsFilter.length} selecionados`;
+                currentHistoryPage = 1; fetchHistory();
             }
-
-            // Inicializa o componente
             initGtMultiSelect();
 
-
-            // --- Lógica de Navegação SPA ---
+            // --- NAVEGAÇÃO SPA ---
             function showView(viewId) {
                 elements.viewPrincipal.classList.add('hidden');
                 elements.viewGerenciador.classList.add('hidden');
                 elements.viewHistorico.classList.add('hidden');
-                
                 document.getElementById(viewId).classList.remove('hidden');
             }
+            elements.btnMasterManager.addEventListener('click', () => { showView('view-gerenciador'); currentMasterPage = 1; fetchMasterItems(); });
+            elements.btnHistory.addEventListener('click', () => { showView('view-historico'); initGtMultiSelect(); currentHistoryPage = 1; fetchHistory(); });
+            elements.btnVoltarProducaoMaster.addEventListener('click', () => { resetarProducao(); showView('view-principal'); });
+            elements.btnVoltarProducaoHistory.addEventListener('click', () => { resetarProducao(); showView('view-principal'); });
+            elements.btnBackToHistory.addEventListener('click', () => { showView('view-historico'); fetchHistory(); });
 
-            // Menu Principal
-            elements.btnMasterManager.addEventListener('click', () => {
-                showView('view-gerenciador');
-                currentMasterPage = 1;
-                fetchMasterItems();
-            });
-
-            elements.btnHistory.addEventListener('click', () => {
-                showView('view-historico');
-                // Recarrega lista de GTs para garantir atualização
-                initGtMultiSelect();
-                currentHistoryPage = 1;
-                fetchHistory();
-            });
-
-            // Botões "Voltar" (Reseta a tela de produção)
-            elements.btnVoltarProducaoMaster.addEventListener('click', () => {
-                resetarProducao();
-                showView('view-principal');
-            });
-            
-            elements.btnVoltarProducaoHistory.addEventListener('click', () => {
-                resetarProducao();
-                showView('view-principal');
-            });
-            
-            // Botão "Voltar para Histórico" (Dentro do Resultado de Histórico)
-            elements.btnBackToHistory.addEventListener('click', () => {
-                showView('view-historico');
-                fetchHistory(); 
-            });
-
-            // Resetar Produção (Novo Arranjo)
             window.resetarProducao = function() {
-                elements.step1.classList.remove('hidden');
-                elements.step2.classList.add('hidden');
-                updateStepper(1);
-                elements.csvFileInput.value = '';
-                elements.btnCarregarCsv.textContent = 'Carregar Lista de Produção (.CSV)';
-                elements.arranjoProducaoLista.innerHTML = '';
-                elements.itensPendentesLista.innerHTML = '';
-                
-                // Restaura estado padrão dos botões
-                elements.btnResetProduction.classList.remove('hidden');
-                elements.btnBackToHistory.classList.add('hidden');
+                elements.step1.classList.remove('hidden'); elements.step2.classList.add('hidden'); updateStepper(1);
+                elements.csvFileInput.value = ''; elements.btnCarregarCsv.textContent = 'Carregar Lista de Produção (.CSV)';
+                elements.arranjoProducaoLista.innerHTML = ''; elements.itensPendentesLista.innerHTML = '';
+                elements.btnResetProduction.classList.remove('hidden'); elements.btnBackToHistory.classList.add('hidden');
+                atualizarTotalizador();
             };
 
-            // --- Configuração dos Fornos ---
-            const fornosConfig = {
-                grande: {
-                    titulo: 'Configuração do Forno Grande',
-                    opcoes: [ { value: '1', text: '1 GT' }, { value: '2', text: '2 GTs' }, { value: '3', text: '3 GTs' } ]
-                },
-                pequeno: {
-                    titulo: 'Configuração do Forno Pequeno',
-                    opcoes: [ { value: '1', text: '1 GT' }, { value: '2', text: '2 GTs' } ]
-                }
-            };
-            
-            const updateStepper = (currentStep) => {
-                elements.stepNav1.classList.toggle('active', currentStep >= 1);
-                elements.stepNav2.classList.toggle('active', currentStep >= 2);
-            };
-            
-            const gerarInputs = (qtde, container) => {
-                container.innerHTML = '';
-                for (let i = 1; i <= qtde; i++) {
-                    const input = document.createElement('input');
-                    input.type = 'text';
-                    input.placeholder = `Código GT ${i}`;
-                    input.style.marginTop = '0.5rem';
-                    container.appendChild(input);
-                }
-            };
-            
-            const atualizarConfiguracaoForno = (tipoForno) => {
-                const config = fornosConfig[tipoForno];
-                const isGrande = tipoForno === 'grande';
-                elements.btnFornoGrande.classList.toggle('active', isGrande);
-                elements.btnFornoPequeno.classList.toggle('active', !isGrande);
-                elements.configTitulo.textContent = config.titulo;
-                elements.qtdeGtsDinamico.innerHTML = '';
-                config.opcoes.forEach(opt => {
-                    const optionEl = document.createElement('option');
-                    optionEl.value = opt.value;
-                    optionEl.textContent = opt.text;
-                    elements.qtdeGtsDinamico.appendChild(optionEl);
+            // --- TOTALIZADOR DE CAPACIDADE ---
+            function atualizarTotalizador() {
+                const cards = elements.arranjoProducaoLista.querySelectorAll('.item-card');
+                let total = 0;
+                cards.forEach(card => {
+                    const qtd = parseInt(card.dataset.quantidade) || 0;
+                    total += qtd;
                 });
-                gerarInputs(elements.qtdeGtsDinamico.value, elements.inputsGtsDinamico);
-            };
 
-            elements.btnFornoGrande.addEventListener('click', () => atualizarConfiguracaoForno('grande'));
-            elements.btnFornoPequeno.addEventListener('click', () => atualizarConfiguracaoForno('pequeno'));
-            elements.qtdeGtsDinamico.addEventListener('change', (e) => gerarInputs(e.target.value, elements.inputsGtsDinamico));
-            
-            elements.btnCarregarCsv.addEventListener('click', () => elements.csvFileInput.click());
-            elements.csvFileInput.addEventListener('change', () => {
-                if (elements.csvFileInput.files.length > 0) {
-                    elements.btnCarregarCsv.textContent = `Arquivo: ${elements.csvFileInput.files[0].name}`;
+                elements.totalCapacidade.textContent = `Total de Molas: ${total}`;
+                
+                if (total < 3750) {
+                    elements.totalCapacidade.style.color = 'var(--color-warning)';
+                } else if (total <= 5500) {
+                    elements.totalCapacidade.style.color = 'var(--color-success)';
+                } else {
+                    elements.totalCapacidade.style.color = 'var(--color-primary)';
+                }
+            }
+
+            // --- ADIÇÃO MANUAL DE ITENS ---
+            elements.btnManualAdd.addEventListener('click', () => {
+                // Reset fields
+                elements.manualCodigo.value = '';
+                elements.manualOp.value = '';
+                elements.manualQtd.value = '';
+                elements.manualDimensao.value = '';
+                elements.manualGt.value = '';
+                elements.modalManualAddOverlay.classList.add('open');
+            });
+
+            elements.btnCancelManual.addEventListener('click', () => {
+                elements.modalManualAddOverlay.classList.remove('open');
+            });
+
+            // Busca automática no Supabase ao sair do campo código
+            elements.manualCodigo.addEventListener('blur', async () => {
+                const codigo = elements.manualCodigo.value.trim();
+                if (!codigo) return;
+
+                try {
+                    const { data, error } = await _supabase
+                        .from('itens_mestre')
+                        .select('dimensao, gt')
+                        .eq('codigo_item', codigo) // Assumindo que a coluna é 'codigo_item' ou 'codigo'
+                        .maybeSingle(); // maybeSingle evita erro se não encontrar
+
+                    if (data) {
+                        elements.manualDimensao.value = data.dimensao || '';
+                        elements.manualGt.value = data.gt || '';
+                    } else {
+                        // Opcional: Avisar que não encontrou ou deixar o usuário preencher (se quisesse liberar)
+                        elements.manualDimensao.value = '';
+                        elements.manualGt.value = '';
+                    }
+                } catch (e) {
+                    console.error("Erro na busca de item mestre:", e);
                 }
             });
+
+            elements.btnConfirmManual.addEventListener('click', () => {
+                const codigo = elements.manualCodigo.value.trim();
+                const op = elements.manualOp.value.trim();
+                const qtd = elements.manualQtd.value.trim();
+                const dimensao = elements.manualDimensao.value;
+                const gt = elements.manualGt.value;
+
+                if (!codigo || !op || !qtd) {
+                    showAlert("Preencha Código, OP e Quantidade.", "Aviso");
+                    return;
+                }
+
+                // Criar o objeto item
+                const item = {
+                    ordemProducao: op,
+                    codigo: codigo,
+                    descricao: "Item Manual", // Descrição genérica ou poderia buscar do mestre
+                    dimensao: dimensao,
+                    gt: gt,
+                    quantidade: qtd
+                };
+
+                // Criar card e adicionar à lista de pendentes
+                criarCard(item, elements.itensPendentesLista, true);
+                
+                elements.modalManualAddOverlay.classList.remove('open');
+                showAlert("Item adicionado com sucesso!", "Sucesso", "success");
+            });
+
+            // Função unificada para criar e adicionar card ao DOM
+            function criarCard(item, targetContainer, isPendente) {
+                const card = document.createElement('div');
+                card.className = 'item-card';
+                card.draggable = true;
+                card.id = `item-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+                
+                // DATASET PROPERTIES
+                card.dataset.ordemProducao = item.ordemProducao || 'N/A';
+                card.dataset.codigo = item.codigo || 'N/A';
+                card.dataset.descricao = item.descricao || 'N/A';
+                card.dataset.dimensao = item.dimensao || 'N/A';
+                card.dataset.gt = item.gt || '';
+                card.dataset.quantidade = item.quantidade || 0; // Nova propriedade
+
+                let gtHtml = `<b>GT:</b> ${item.gt || 'N/A'}`;
+                if (isPendente && (!item.gt || item.gt.trim() === '')) {
+                    gtHtml = `<b>GT:</b> <input type="text" class="gt-input" placeholder="N/A" onkeydown="reavaliarItem(event, this.parentElement.parentElement)">`;
+                }
+                
+                card.innerHTML = `
+                    <span class="delete-btn" onclick="removerCard(this)">×</span>
+                    <p><b>Ordem de Produção:</b> ${item.ordemProducao || 'N/A'}</p>
+                    <p><b>Código:</b> ${item.codigo || 'N/A'}</p>
+                    <p>${item.descricao || 'N/A'}</p>
+                    <p><b>Bitola:</b> ${item.dimensao || 'N/A'}</p>
+                    <p><b>Qtd:</b> ${item.quantidade || 0}</p>
+                    <p class="gt-display" onclick="editarGT(event, this.parentElement)">${gtHtml}</p>
+                `;
+                
+                card.addEventListener('dragstart', handleDragStart);
+                card.addEventListener('dragend', handleDragEnd);
+                
+                targetContainer.appendChild(card);
+                
+                // Se adicionado ao arranjo (via histórico ou lógica futura), atualiza total
+                if(targetContainer.id === 'arranjo-producao-lista') {
+                    atualizarTotalizador();
+                }
+            }
+
+            // Função global para remover card e atualizar totalizador
+            window.removerCard = function(btn) {
+                const card = btn.parentElement;
+                card.remove();
+                atualizarTotalizador();
+            }
+
+            // --- CONFIG FORNO E STEPPER ---
+            const fornosConfig = { grande: { titulo: 'Configuração do Forno Grande', opcoes: [ { value: '1', text: '1 GT' }, { value: '2', text: '2 GTs' }, { value: '3', text: '3 GTs' } ] }, pequeno: { titulo: 'Configuração do Forno Pequeno', opcoes: [ { value: '1', text: '1 GT' }, { value: '2', text: '2 GTs' } ] } };
+            const updateStepper = (currentStep) => { elements.stepNav1.classList.toggle('active', currentStep >= 1); elements.stepNav2.classList.toggle('active', currentStep >= 2); };
+            const gerarInputs = (qtde, container) => { container.innerHTML = ''; for (let i = 1; i <= qtde; i++) { const input = document.createElement('input'); input.type = 'text'; input.placeholder = `Código GT ${i}`; input.style.marginTop = '0.5rem'; container.appendChild(input); } };
+            const atualizarConfiguracaoForno = (tipoForno) => { const config = fornosConfig[tipoForno]; elements.btnFornoGrande.classList.toggle('active', tipoForno === 'grande'); elements.btnFornoPequeno.classList.toggle('active', tipoForno !== 'grande'); elements.configTitulo.textContent = config.titulo; elements.qtdeGtsDinamico.innerHTML = ''; config.opcoes.forEach(opt => { const optionEl = document.createElement('option'); optionEl.value = opt.value; optionEl.textContent = opt.text; elements.qtdeGtsDinamico.appendChild(optionEl); }); gerarInputs(elements.qtdeGtsDinamico.value, elements.inputsGtsDinamico); };
+            elements.btnFornoGrande.addEventListener('click', () => atualizarConfiguracaoForno('grande')); elements.btnFornoPequeno.addEventListener('click', () => atualizarConfiguracaoForno('pequeno'));
+            elements.qtdeGtsDinamico.addEventListener('change', (e) => gerarInputs(e.target.value, elements.inputsGtsDinamico));
+            elements.btnCarregarCsv.addEventListener('click', () => elements.csvFileInput.click());
+            elements.csvFileInput.addEventListener('change', () => { if (elements.csvFileInput.files.length > 0) elements.btnCarregarCsv.textContent = `Arquivo: ${elements.csvFileInput.files[0].name}`; });
 
             // --- Lógica do Histórico ---
             function formatarParametros(rawParams) {
                 if (!rawParams) return "N/A";
-
                 let params = rawParams;
-                // Tratamento de JSON aninhado ou strings escapadas
-                if (typeof params === 'string') {
-                    try { params = JSON.parse(params); } catch (e) { return rawParams; }
-                }
-                if (typeof params === 'string') {
-                    try { params = JSON.parse(params); } catch (e) { }
-                }
-
-                let forno = params.forno || '?';
-                forno = forno.charAt(0).toUpperCase() + forno.slice(1);
-
-                let gtsData = params.gts_selecionados;
-                let gtsList = [];
-
-                if (Array.isArray(gtsData)) {
-                    gtsList = gtsData;
-                } else if (typeof gtsData === 'string') {
-                    try {
-                        gtsList = JSON.parse(gtsData);
-                    } catch (e) {
-                        gtsList = [gtsData];
-                    }
-                }
-                
+                if (typeof params === 'string') { try { params = JSON.parse(params); } catch (e) { return rawParams; } }
+                if (typeof params === 'string') { try { params = JSON.parse(params); } catch (e) { } }
+                let forno = params.forno || '?'; forno = forno.charAt(0).toUpperCase() + forno.slice(1);
+                let gtsList = []; const gtsData = params.gts_selecionados;
+                if (Array.isArray(gtsData)) gtsList = gtsData; else if (typeof gtsData === 'string') { try { gtsList = JSON.parse(gtsData); } catch (e) { gtsList = [gtsData]; } }
                 const gtsDisplay = gtsList.map(g => g.replace(/['"]+/g, '')).join(', ') || "Nenhum";
                 return `<b>Forno:</b> ${forno} <span style="margin: 0 10px; color: var(--border-color);">|</span> <b>GTs:</b> ${gtsDisplay}`;
             }
 
-            // Event Listeners para Filtros do Histórico
-            elements.filterHistoryForno.addEventListener('change', () => {
-                currentHistoryPage = 1;
-                fetchHistory();
-            });
+            // Filtros Histórico
+            elements.filterHistoryForno.addEventListener('change', () => { currentHistoryPage = 1; fetchHistory(); });
+            elements.filterHistoryUser.addEventListener('input', (e) => { clearTimeout(historySearchTimeout); historySearchTimeout = setTimeout(() => { currentHistoryPage = 1; fetchHistory(); }, 500); });
+            elements.filterHistoryDate.addEventListener('change', () => { currentHistoryPage = 1; fetchHistory(); });
+            elements.historyItemsPerPageSelect.addEventListener('change', (e) => { historyItemsPerPage = e.target.value === 'all' ? 'all' : parseInt(e.target.value); currentHistoryPage = 1; fetchHistory(); });
+            elements.btnHistoryPrev.addEventListener('click', () => { if (currentHistoryPage > 1) { currentHistoryPage--; fetchHistory(); } });
+            elements.btnHistoryNext.addEventListener('click', () => { if (currentHistoryPage < (historyItemsPerPage === 'all' ? 1 : Math.ceil(totalHistoryItems / historyItemsPerPage))) { currentHistoryPage++; fetchHistory(); } });
 
-            elements.filterHistoryUser.addEventListener('input', (e) => {
-                clearTimeout(historySearchTimeout);
-                historySearchTimeout = setTimeout(() => {
-                    currentHistoryPage = 1;
-                    fetchHistory();
-                }, 500);
-            });
-
-            elements.filterHistoryDate.addEventListener('change', () => {
-                currentHistoryPage = 1;
-                fetchHistory();
-            });
-
-            elements.historyItemsPerPageSelect.addEventListener('change', (e) => {
-                historyItemsPerPage = e.target.value === 'all' ? 'all' : parseInt(e.target.value);
-                currentHistoryPage = 1;
-                fetchHistory();
-            });
-
-            elements.btnHistoryPrev.addEventListener('click', () => {
-                if (currentHistoryPage > 1) {
-                    currentHistoryPage--;
-                    fetchHistory();
-                }
-            });
-
-            elements.btnHistoryNext.addEventListener('click', () => {
-                const maxPages = historyItemsPerPage === 'all' ? 1 : Math.ceil(totalHistoryItems / historyItemsPerPage);
-                if (currentHistoryPage < maxPages) {
-                    currentHistoryPage++;
-                    fetchHistory();
-                }
-            });
-
-            // Função principal de busca do histórico
             async function fetchHistory() {
                 elements.tableHistoryBody.innerHTML = '<tr><td colspan="4" style="text-align:center;">Carregando histórico...</td></tr>';
-                elements.btnHistoryPrev.disabled = true;
-                elements.btnHistoryNext.disabled = true;
-
+                elements.btnHistoryPrev.disabled = true; elements.btnHistoryNext.disabled = true;
                 try {
                     let query = _supabase.from('arranjos_gerados').select('*', { count: 'exact' });
-
-                    // 1. Filtro de Forno
                     const fornoVal = elements.filterHistoryForno.value;
-                    if (fornoVal !== 'all') {
-                        // Using 'contains' is safer for JSONB
-                        query = query.contains('parametros_usados', { forno: fornoVal });
-                    }
-
-                    // 2. Filtro de Usuário
+                    if (fornoVal !== 'all') query = query.contains('parametros_usados', { forno: fornoVal });
                     const userVal = elements.filterHistoryUser.value.trim();
-                    if (userVal) {
-                        query = query.ilike('usuario', `%${userVal}%`);
-                    }
-
-                    // 3. Filtro de Data
+                    if (userVal) query = query.ilike('usuario', `%${userVal}%`);
                     const dateVal = elements.filterHistoryDate.value;
-                    if (dateVal) {
-                        const start = new Date(dateVal).toISOString();
-                        const end = new Date(new Date(dateVal).setHours(23,59,59,999)).toISOString();
-                        query = query.gte('created_at', start).lte('created_at', end);
-                    }
-
+                    if (dateVal) { const start = new Date(dateVal).toISOString(); const end = new Date(new Date(dateVal).setHours(23,59,59,999)).toISOString(); query = query.gte('created_at', start).lte('created_at', end); }
                     query = query.order('created_at', { ascending: false });
 
-                    // Estrategia Mista:
-                    // Se tiver filtro de GT (que é complexo dentro do JSON), buscamos mais dados e filtramos no cliente.
-                    // Se não tiver, paginamos no banco.
-                    
                     let dataToRender = [];
-                    let finalCount = 0;
-                    
                     const hasGtFilter = selectedGTsFilter.length > 0;
 
                     if (hasGtFilter) {
-                        // Fetch a reasonable batch (e.g. latest 1000) to filter client side
-                        // Note: This is a trade-off. For huge datasets, we'd need a PostgreSQL function or different schema.
-                        const { data, count, error } = await query.limit(1000); 
+                        const { data, error } = await query.limit(1000); 
                         if (error) throw error;
-
-                        // Apply GT Filter Locally
                         const filteredData = data.filter(row => {
                             let params = row.parametros_usados;
-                            // Parse JSON safely
                             if (typeof params === 'string') { try { params = JSON.parse(params); } catch (e) { return false; } }
                             if (typeof params === 'string') { try { params = JSON.parse(params); } catch (e) { return false; } }
-
                             let gtsInRow = [];
-                            if (Array.isArray(params.gts_selecionados)) {
-                                gtsInRow = params.gts_selecionados;
-                            } else if (typeof params.gts_selecionados === 'string') {
-                                try { gtsInRow = JSON.parse(params.gts_selecionados); } 
-                                catch (e) { gtsInRow = [params.gts_selecionados]; }
-                            }
-                            
-                            // Normalize to strings and clean quotes
+                            if (Array.isArray(params.gts_selecionados)) gtsInRow = params.gts_selecionados;
+                            else if (typeof params.gts_selecionados === 'string') { try { gtsInRow = JSON.parse(params.gts_selecionados); } catch (e) { gtsInRow = [params.gts_selecionados]; } }
                             gtsInRow = gtsInRow.map(g => String(g).replace(/['"]+/g, ''));
-                            
-                            // Check intersection (OR logic: if row has ANY of the selected GTs)
                             return selectedGTsFilter.some(filterGt => gtsInRow.includes(filterGt));
                         });
-
                         totalHistoryItems = filteredData.length;
-                        
-                        // Client-side Pagination
-                        if (historyItemsPerPage !== 'all') {
-                            const start = (currentHistoryPage - 1) * historyItemsPerPage;
-                            dataToRender = filteredData.slice(start, start + historyItemsPerPage);
-                        } else {
-                            dataToRender = filteredData;
-                        }
-
+                        if (historyItemsPerPage !== 'all') { const start = (currentHistoryPage - 1) * historyItemsPerPage; dataToRender = filteredData.slice(start, start + historyItemsPerPage); } else { dataToRender = filteredData; }
                     } else {
-                        // Standard DB Pagination
-                        if (historyItemsPerPage !== 'all') {
-                            const from = (currentHistoryPage - 1) * historyItemsPerPage;
-                            const to = from + historyItemsPerPage - 1;
-                            query = query.range(from, to);
-                        }
+                        if (historyItemsPerPage !== 'all') { const from = (currentHistoryPage - 1) * historyItemsPerPage; query = query.range(from, from + historyItemsPerPage - 1); }
                         const { data, count, error } = await query;
                         if (error) throw error;
                         totalHistoryItems = count || 0;
                         dataToRender = data;
                     }
-
-                    renderHistoryTable(dataToRender);
-                    updateHistoryPaginationControls();
-
-                } catch (err) {
-                    console.error(err);
-                    elements.tableHistoryBody.innerHTML = `<tr><td colspan="4" style="color:var(--color-danger)">Erro ao carregar histórico: ${err.message}</td></tr>`;
-                }
+                    renderHistoryTable(dataToRender); updateHistoryPaginationControls();
+                } catch (err) { console.error(err); elements.tableHistoryBody.innerHTML = `<tr><td colspan="4" style="color:var(--color-danger)">Erro ao carregar histórico: ${err.message}</td></tr>`; }
             }
 
             function updateHistoryPaginationControls() {
-                if (historyItemsPerPage === 'all') {
-                    elements.historyPageInfo.textContent = `Mostrando todos (${totalHistoryItems})`;
-                    elements.btnHistoryPrev.disabled = true;
-                    elements.btnHistoryNext.disabled = true;
-                } else {
-                    const totalPages = Math.ceil(totalHistoryItems / historyItemsPerPage);
-                    if (totalPages === 0) currentHistoryPage = 1;
-                    
-                    elements.historyPageInfo.textContent = `Página ${currentHistoryPage} de ${totalPages || 1} (Total: ${totalHistoryItems})`;
-                    
-                    elements.btnHistoryPrev.disabled = currentHistoryPage <= 1;
-                    elements.btnHistoryNext.disabled = currentHistoryPage >= totalPages;
-                }
+                if (historyItemsPerPage === 'all') { elements.historyPageInfo.textContent = `Mostrando todos (${totalHistoryItems})`; elements.btnHistoryPrev.disabled = true; elements.btnHistoryNext.disabled = true; }
+                else { const totalPages = Math.ceil(totalHistoryItems / historyItemsPerPage); if (totalPages === 0) currentHistoryPage = 1; elements.historyPageInfo.textContent = `Página ${currentHistoryPage} de ${totalPages || 1} (Total: ${totalHistoryItems})`; elements.btnHistoryPrev.disabled = currentHistoryPage <= 1; elements.btnHistoryNext.disabled = currentHistoryPage >= totalPages; }
             }
 
             function renderHistoryTable(data) {
                 elements.tableHistoryBody.innerHTML = '';
-                if (data.length === 0) {
-                    elements.tableHistoryBody.innerHTML = '<tr><td colspan="4">Nenhum histórico encontrado.</td></tr>';
-                    return;
-                }
-
+                if (data.length === 0) { elements.tableHistoryBody.innerHTML = '<tr><td colspan="4">Nenhum histórico encontrado.</td></tr>'; return; }
                 data.forEach(row => {
                     const tr = document.createElement('tr');
                     const date = new Date(row.created_at).toLocaleString('pt-BR');
                     const formattedParams = formatarParametros(row.parametros_usados);
-                    
-                    tr.innerHTML = `
-                        <td>${date}</td>
-                        <td>${row.usuario || 'Sistema'}</td>
-                        <td>${formattedParams}</td>
-                        <td style="text-align: center;">
-                            <button class="btn btn-sm btn-primary btn-load-history">
-                                📂 Carregar Arranjo
-                            </button>
-                        </td>
-                    `;
-                    
-                    const btnLoad = tr.querySelector('.btn-load-history');
-                    btnLoad.addEventListener('click', () => loadHistoryItemIntoView(row.arranjo_resultado));
+                    tr.innerHTML = `<td>${date}</td><td>${row.usuario || 'Sistema'}</td><td>${formattedParams}</td><td style="text-align: center;"><button class="btn btn-sm btn-primary btn-load-history">📂 Carregar Arranjo</button></td>`;
+                    tr.querySelector('.btn-load-history').addEventListener('click', () => loadHistoryItemIntoView(row.arranjo_resultado));
                     elements.tableHistoryBody.appendChild(tr);
                 });
             }
@@ -1629,462 +1553,138 @@
             function loadHistoryItemIntoView(jsonResultado) {
                 try {
                     let data = jsonResultado;
-                    // Double parse protection for escaped strings
-                    if (typeof data === 'string') {
-                        try { data = JSON.parse(data); } catch (e) {}
-                    }
-                    if (typeof data === 'string') {
-                         try { data = JSON.parse(data); } catch (e) {}
-                    }
-
-                    // Ir para view de produção (Resultado)
+                    if (typeof data === 'string') { try { data = JSON.parse(data); } catch (e) {} }
+                    if (typeof data === 'string') { try { data = JSON.parse(data); } catch (e) {} }
                     showView('view-principal');
+                    elements.step1.classList.add('hidden'); elements.step2.classList.remove('hidden'); updateStepper(2);
+                    elements.btnResetProduction.classList.add('hidden'); elements.btnBackToHistory.classList.remove('hidden');
                     
-                    elements.step1.classList.add('hidden');
-                    elements.step2.classList.remove('hidden');
-                    updateStepper(2);
-
-                    // MODO "VISUALIZAÇÃO DE HISTÓRICO"
-                    elements.btnResetProduction.classList.add('hidden');
-                    elements.btnBackToHistory.classList.remove('hidden');
-
                     popularLista('arranjo-producao-lista', data.arranjo_producao || [], false);
                     popularLista('itens-pendentes-lista', data.itens_pendentes || [], true);
-
-                } catch (e) {
-                    showAlert('Erro ao processar os dados do histórico: ' + e.message, 'Erro', 'error');
-                    console.error(e);
-                }
+                } catch (e) { showAlert('Erro ao processar dados do histórico: ' + e.message, 'Erro', 'error'); }
             }
 
-            // --- Lógica de Itens Mestre ---
-            elements.itemsPerPageSelect.addEventListener('change', (e) => {
-                itemsPerPage = e.target.value === 'all' ? 'all' : parseInt(e.target.value);
-                currentMasterPage = 1;
-                fetchMasterItems();
-            });
-
-            elements.btnPrevPage.addEventListener('click', () => {
-                if (currentMasterPage > 1) {
-                    currentMasterPage--;
-                    fetchMasterItems();
-                }
-            });
-
-            elements.btnNextPage.addEventListener('click', () => {
-                const maxPages = itemsPerPage === 'all' ? 1 : Math.ceil(totalItems / itemsPerPage);
-                if (currentMasterPage < maxPages) {
-                    currentMasterPage++;
-                    fetchMasterItems();
-                }
-            });
-
-            elements.searchMasterItems.addEventListener('input', (e) => {
-                clearTimeout(searchTimeout);
-                searchTimeout = setTimeout(() => {
-                    currentMasterPage = 1;
-                    fetchMasterItems(e.target.value);
-                }, 500); 
-            });
+            // --- Itens Mestre Logic ---
+            elements.itemsPerPageSelect.addEventListener('change', (e) => { itemsPerPage = e.target.value === 'all' ? 'all' : parseInt(e.target.value); currentMasterPage = 1; fetchMasterItems(); });
+            elements.btnPrevPage.addEventListener('click', () => { if (currentMasterPage > 1) { currentMasterPage--; fetchMasterItems(); } });
+            elements.btnNextPage.addEventListener('click', () => { if (currentMasterPage < (itemsPerPage === 'all' ? 1 : Math.ceil(totalItems / itemsPerPage))) { currentMasterPage++; fetchMasterItems(); } });
+            elements.searchMasterItems.addEventListener('input', (e) => { clearTimeout(searchTimeout); searchTimeout = setTimeout(() => { currentMasterPage = 1; fetchMasterItems(e.target.value); }, 500); });
 
             async function fetchMasterItems(searchTerm = '') {
                 elements.tableMasterItemsBody.innerHTML = '<tr><td colspan="5" style="text-align:center;">Carregando...</td></tr>';
-                elements.btnPrevPage.disabled = true;
-                elements.btnNextPage.disabled = true;
-
+                elements.btnPrevPage.disabled = true; elements.btnNextPage.disabled = true;
                 if(searchTerm === '') searchTerm = elements.searchMasterItems.value;
-
                 try {
                     let query = _supabase.from('itens_mestre').select('*', { count: 'exact' });
-
-                    if (searchTerm) {
-                        const term = `%${searchTerm}%`;
-                        query = query.or(`codigo_item.ilike.${term},descricao.ilike.${term},gt.ilike.${term}`);
-                    }
-
+                    if (searchTerm) { const term = `%${searchTerm}%`; query = query.or(`codigo_item.ilike.${term},descricao.ilike.${term},gt.ilike.${term}`); }
                     query = query.order('codigo_item', { ascending: true });
-
-                    if (itemsPerPage !== 'all') {
-                        const from = (currentMasterPage - 1) * itemsPerPage;
-                        const to = from + itemsPerPage - 1;
-                        query = query.range(from, to);
-                    }
-
+                    if (itemsPerPage !== 'all') { const from = (currentMasterPage - 1) * itemsPerPage; query = query.range(from, from + itemsPerPage - 1); }
                     const { data, count, error } = await query;
-
                     if (error) throw error;
-                    
-                    totalItems = count || 0;
-                    renderMasterTable(data);
-                    updatePaginationControls();
-
-                } catch (err) {
-                    console.error(err);
-                    elements.tableMasterItemsBody.innerHTML = `<tr><td colspan="5" style="color:var(--color-danger)">Erro: ${err.message}</td></tr>`;
-                }
+                    totalItems = count || 0; renderMasterTable(data); updatePaginationControls();
+                } catch (err) { elements.tableMasterItemsBody.innerHTML = `<tr><td colspan="5" style="color:var(--color-danger)">Erro: ${err.message}</td></tr>`; }
             }
 
             function updatePaginationControls() {
-                if (itemsPerPage === 'all') {
-                    elements.pageInfo.textContent = `Mostrando todos (${totalItems})`;
-                    elements.btnPrevPage.disabled = true;
-                    elements.btnNextPage.disabled = true;
-                } else {
-                    const totalPages = Math.ceil(totalItems / itemsPerPage);
-                    if (totalPages === 0) currentMasterPage = 1;
-                    
-                    elements.pageInfo.textContent = `Página ${currentMasterPage} de ${totalPages || 1} (Total: ${totalItems})`;
-                    
-                    elements.btnPrevPage.disabled = currentMasterPage <= 1;
-                    elements.btnNextPage.disabled = currentMasterPage >= totalPages;
-                }
+                if (itemsPerPage === 'all') { elements.pageInfo.textContent = `Mostrando todos (${totalItems})`; elements.btnPrevPage.disabled = true; elements.btnNextPage.disabled = true; }
+                else { const totalPages = Math.ceil(totalItems / itemsPerPage); if (totalPages === 0) currentMasterPage = 1; elements.pageInfo.textContent = `Página ${currentMasterPage} de ${totalPages || 1} (Total: ${totalItems})`; elements.btnPrevPage.disabled = currentMasterPage <= 1; elements.btnNextPage.disabled = currentMasterPage >= totalPages; }
             }
 
             function renderMasterTable(items) {
                 elements.tableMasterItemsBody.innerHTML = '';
-                if (!items || items.length === 0) {
-                    elements.tableMasterItemsBody.innerHTML = '<tr><td colspan="5" style="text-align:center;">Nenhum item encontrado.</td></tr>';
-                    return;
-                }
-
+                if (!items || items.length === 0) { elements.tableMasterItemsBody.innerHTML = '<tr><td colspan="5" style="text-align:center;">Nenhum item encontrado.</td></tr>'; return; }
                 items.forEach(item => {
                     const tr = document.createElement('tr');
-                    
-                    tr.innerHTML = `
-                        <td><input type="text" class="table-input inp-codigo" value="${item.codigo_item || ''}" disabled></td>
-                        <td><input type="text" class="table-input inp-descricao" value="${item.descricao || ''}"></td>
-                        <td><input type="text" class="table-input inp-dimensao" value="${item.dimensao || ''}"></td>
-                        <td><input type="text" class="table-input inp-gt" value="${item.gt || ''}"></td>
-                        <td class="actions-cell">
-                            <button class="btn btn-sm btn-success btn-save-row">💾</button>
-                            <button class="btn btn-sm btn-danger btn-delete-row">🗑️</button>
-                        </td>
-                    `;
-
-                    const btnSave = tr.querySelector('.btn-save-row');
-                    const btnDelete = tr.querySelector('.btn-delete-row');
-                    const itemId = item.id; 
-
+                    tr.innerHTML = `<td><input type="text" class="table-input inp-codigo" value="${item.codigo_item || ''}" disabled></td><td><input type="text" class="table-input inp-descricao" value="${item.descricao || ''}"></td><td><input type="text" class="table-input inp-dimensao" value="${item.dimensao || ''}"></td><td><input type="text" class="table-input inp-gt" value="${item.gt || ''}"></td><td class="actions-cell"><button class="btn btn-sm btn-success btn-save-row">💾</button><button class="btn btn-sm btn-danger btn-delete-row">🗑️</button></td>`;
+                    const btnSave = tr.querySelector('.btn-save-row'); const btnDelete = tr.querySelector('.btn-delete-row'); const itemId = item.id; 
                     btnSave.addEventListener('click', async () => {
-                        const newDesc = tr.querySelector('.inp-descricao').value;
-                        const newDim = tr.querySelector('.inp-dimensao').value;
-                        const newGt = tr.querySelector('.inp-gt').value;
-
+                        const newDesc = tr.querySelector('.inp-descricao').value; const newDim = tr.querySelector('.inp-dimensao').value; const newGt = tr.querySelector('.inp-gt').value;
                         btnSave.disabled = true;
-                        try {
-                            const { error } = await _supabase
-                                .from('itens_mestre')
-                                .update({ descricao: newDesc, dimensao: newDim, gt: newGt })
-                                .eq('id', itemId);
-
-                            if (error) throw error;
-                            showAlert('Item atualizado com sucesso!', 'Sucesso', 'success');
-                        } catch (e) {
-                            showAlert('Erro ao atualizar: ' + e.message, 'Erro', 'error');
-                        } finally {
-                            btnSave.disabled = false;
-                        }
+                        try { const { error } = await _supabase.from('itens_mestre').update({ descricao: newDesc, dimensao: newDim, gt: newGt }).eq('id', itemId); if (error) throw error; showAlert('Item atualizado com sucesso!', 'Sucesso', 'success'); } catch (e) { showAlert('Erro ao atualizar: ' + e.message, 'Erro', 'error'); } finally { btnSave.disabled = false; }
                     });
-
                     btnDelete.addEventListener('click', async () => {
                         if(await showConfirm(`Tem certeza que deseja excluir o item ${item.codigo_item}?`)) {
                             btnDelete.disabled = true;
-                            try {
-                                const { error } = await _supabase
-                                    .from('itens_mestre')
-                                    .delete()
-                                    .eq('id', itemId);
-
-                                if (error) throw error;
-                                fetchMasterItems();
-                            } catch (e) {
-                                showAlert('Erro ao excluir: ' + e.message, 'Erro', 'error');
-                                btnDelete.disabled = false;
-                            }
+                            try { const { error } = await _supabase.from('itens_mestre').delete().eq('id', itemId); if (error) throw error; fetchMasterItems(); } catch (e) { showAlert('Erro ao excluir: ' + e.message, 'Erro', 'error'); btnDelete.disabled = false; }
                         }
                     });
-
                     elements.tableMasterItemsBody.appendChild(tr);
                 });
             }
 
             elements.btnAddMasterItem.addEventListener('click', async () => {
-                const codigo = elements.newItemCodigo.value.trim();
-                const descricao = elements.newItemDescricao.value.trim();
-                const dimensao = elements.newItemDimensao.value.trim();
-                const gt = elements.newItemGt.value.trim();
-
+                const codigo = elements.newItemCodigo.value.trim(); const descricao = elements.newItemDescricao.value.trim(); const dimensao = elements.newItemDimensao.value.trim(); const gt = elements.newItemGt.value.trim();
                 if (!codigo) { showAlert('Código é obrigatório.', 'Atenção'); return; }
-
-                elements.btnAddMasterItem.innerHTML = '<div class="spinner"></div>';
-                elements.btnAddMasterItem.disabled = true;
-
-                try {
-                    const { data, error } = await _supabase
-                        .from('itens_mestre')
-                        .insert([{ codigo_item: codigo, descricao, dimensao, gt }])
-                        .select();
-
-                    if (error) throw error;
-
-                    elements.newItemCodigo.value = '';
-                    elements.newItemDescricao.value = '';
-                    elements.newItemDimensao.value = '';
-                    elements.newItemGt.value = '';
-
-                    currentMasterPage = 1;
-                    await fetchMasterItems();
-                    showAlert('Item criado com sucesso!', 'Sucesso', 'success');
-
-                } catch (e) {
-                    showAlert('Erro ao criar item: ' + e.message, 'Erro', 'error');
-                } finally {
-                    elements.btnAddMasterItem.innerHTML = '+ Criar';
-                    elements.btnAddMasterItem.disabled = false;
-                }
+                elements.btnAddMasterItem.innerHTML = '<div class="spinner"></div>'; elements.btnAddMasterItem.disabled = true;
+                try { const { data, error } = await _supabase.from('itens_mestre').insert([{ codigo_item: codigo, descricao, dimensao, gt }]).select(); if (error) throw error; elements.newItemCodigo.value = ''; elements.newItemDescricao.value = ''; elements.newItemDimensao.value = ''; elements.newItemGt.value = ''; currentMasterPage = 1; await fetchMasterItems(); showAlert('Item criado com sucesso!', 'Sucesso', 'success'); } catch (e) { showAlert('Erro ao criar item: ' + e.message, 'Erro', 'error'); } finally { elements.btnAddMasterItem.innerHTML = '+ Criar'; elements.btnAddMasterItem.disabled = false; }
             });
 
-
-            // --- Lógica de Geração do Arranjo (N8N) ---
+            // --- Generate Logic (N8N) ---
             elements.btnGerarArranjo.addEventListener('click', async () => {
-                if (!elements.csvFileInput.files[0]) {
-                    showAlert('Por favor, carregue um arquivo CSV primeiro.', 'Atenção');
-                    return;
-                }
-                const originalButtonText = elements.btnGerarArranjo.innerHTML;
-                elements.btnGerarArranjo.innerHTML = '<div class="spinner"></div> Gerando...';
-                elements.btnGerarArranjo.disabled = true;
-
-                const formData = new FormData();
-                formData.append('file', elements.csvFileInput.files[0], 'data.csv');
-                
-                const fornoAtivo = elements.btnFornoGrande.classList.contains('active') ? 'grande' : 'pequeno';
-                formData.append('forno', fornoAtivo);
-
-                gtsAtuais = Array.from(elements.inputsGtsDinamico.querySelectorAll('input')).map(input => input.value).filter(Boolean);
-                
-                formData.append('gts_selecionados', JSON.stringify(gtsAtuais));
-                
+                if (!elements.csvFileInput.files[0]) { showAlert('Por favor, carregue um arquivo CSV primeiro.', 'Atenção'); return; }
+                const originalButtonText = elements.btnGerarArranjo.innerHTML; elements.btnGerarArranjo.innerHTML = '<div class="spinner"></div> Gerando...'; elements.btnGerarArranjo.disabled = true;
+                const formData = new FormData(); formData.append('file', elements.csvFileInput.files[0], 'data.csv'); formData.append('forno', elements.btnFornoGrande.classList.contains('active') ? 'grande' : 'pequeno');
+                gtsAtuais = Array.from(elements.inputsGtsDinamico.querySelectorAll('input')).map(input => input.value).filter(Boolean); formData.append('gts_selecionados', JSON.stringify(gtsAtuais));
                 try {
                     const response = await fetch(n8nGerarArranjoUrl, { method: 'POST', body: formData });
-                    if (!response.ok) {
-                         const errorText = await response.text();
-                         throw new Error(`${response.statusText}. Detalhes: ${errorText}`);
-                    }
+                    if (!response.ok) { const errorText = await response.text(); throw new Error(`${response.statusText}. Detalhes: ${errorText}`); }
                     const data = await response.json();
-                    
-                    elements.step1.classList.add('hidden');
-                    elements.step2.classList.remove('hidden');
-                    updateStepper(2);
-
-                    elements.btnResetProduction.classList.remove('hidden');
-                    elements.btnBackToHistory.classList.add('hidden');
+                    elements.step1.classList.add('hidden'); elements.step2.classList.remove('hidden'); updateStepper(2);
+                    elements.btnResetProduction.classList.remove('hidden'); elements.btnBackToHistory.classList.add('hidden');
                     
                     popularLista('arranjo-producao-lista', data.arranjo_producao, false);
                     popularLista('itens-pendentes-lista', data.itens_pendentes, true);
-
-                } catch (error) {
-                    showAlert('Ocorreu um erro ao gerar o arranjo: ' + error.message, 'Erro', 'error');
-                } finally {
-                    elements.btnGerarArranjo.innerHTML = originalButtonText;
-                    elements.btnGerarArranjo.disabled = false;
-                }
+                } catch (error) { showAlert('Ocorreu um erro ao gerar o arranjo: ' + error.message, 'Erro', 'error'); } finally { elements.btnGerarArranjo.innerHTML = originalButtonText; elements.btnGerarArranjo.disabled = false; }
             });
 
             // --- Funções Auxiliares de Lista e DragDrop ---
             function popularLista(containerId, items, isPendente) {
-                const container = document.getElementById(containerId);
-                container.innerHTML = '';
+                const container = document.getElementById(containerId); container.innerHTML = '';
                 if (!items || items.length === 0) {
-                    container.innerHTML = '<p style="color: var(--text-secondary);">Nenhum item para esta seleção.</p>';
-                    return;
+                    // Se estiver vazio, não mostra nada
                 }
-                items.forEach((item, index) => {
-                    const card = document.createElement('div');
-                    card.className = 'item-card';
-                    card.draggable = true;
-                    card.id = `${containerId}-item-${Date.now()}-${index}`;
-                    
-                    card.dataset.ordemProducao = item.ordemProducao || 'N/A';
-                    card.dataset.codigo = item.codigo || 'N/A';
-                    card.dataset.descricao = item.descricao || 'N/A';
-                    card.dataset.dimensao = item.dimensao || 'N/A';
-                    card.dataset.gt = item.gt || '';
-
-                    let gtHtml = `<b>GT:</b> ${item.gt || 'N/A'}`;
-                    if (isPendente && (!item.gt || item.gt.trim() === '')) {
-                        gtHtml = `<b>GT:</b> <input type="text" class="gt-input" placeholder="N/A" onkeydown="reavaliarItem(event, this.parentElement.parentElement)">`;
-                    }
-                    
-                    card.innerHTML = `
-                        <span class="delete-btn" onclick="this.parentElement.remove()">×</span>
-                        <p><b>Ordem de Produção:</b> ${item.ordemProducao || 'N/A'}</p>
-                        <p><b>Código:</b> ${item.codigo || 'N/A'}</p>
-                        <p>${item.descricao || 'N/A'}</p>
-                        <p><b>Bitola:</b> ${item.dimensao || 'N/A'}</p>
-                        <p class="gt-display" onclick="editarGT(event, this.parentElement)">${gtHtml}</p>
-                    `;
-                    
-                    card.addEventListener('dragstart', handleDragStart);
-                    card.addEventListener('dragend', handleDragEnd);
-                    
-                    container.appendChild(card);
+                items.forEach((item) => {
+                    criarCard(item, container, isPendente);
                 });
             }
             
-            window.editarGT = function(event, cardElement) {
-                if (event.target.tagName === 'INPUT') { return; }
-                const gtDisplayElement = cardElement.querySelector('.gt-display');
-                const currentGT = cardElement.dataset.gt;
-                gtDisplayElement.innerHTML = `<b>GT:</b> <input type="text" class="gt-input" value="${currentGT}" onkeydown="reavaliarItem(event, this.parentElement.parentElement)" onblur="cancelarEdicao(event, this.parentElement.parentElement)">`;
-                const inputField = gtDisplayElement.querySelector('.gt-input');
-                if (inputField) {
-                    inputField.focus();
-                    inputField.select();
-                }
-            }
-
-            window.cancelarEdicao = function(event, cardElement) {
-                setTimeout(() => {
-                    const input = cardElement.querySelector('.gt-input');
-                    if (input && !input.disabled) {
-                        const currentGT = cardElement.dataset.gt;
-                        const gtDisplayElement = cardElement.querySelector('.gt-display');
-                        gtDisplayElement.innerHTML = `<b>GT:</b> ${currentGT || 'N/A'}`;
-                    }
-                }, 100);
-            }
-
+            window.editarGT = function(event, cardElement) { if (event.target.tagName === 'INPUT') return; const gtDisplayElement = cardElement.querySelector('.gt-display'); const currentGT = cardElement.dataset.gt; gtDisplayElement.innerHTML = `<b>GT:</b> <input type="text" class="gt-input" value="${currentGT}" onkeydown="reavaliarItem(event, this.parentElement.parentElement)" onblur="cancelarEdicao(event, this.parentElement.parentElement)">`; const inputField = gtDisplayElement.querySelector('.gt-input'); if (inputField) { inputField.focus(); inputField.select(); } }
+            window.cancelarEdicao = function(event, cardElement) { setTimeout(() => { const input = cardElement.querySelector('.gt-input'); if (input && !input.disabled) { const currentGT = cardElement.dataset.gt; cardElement.querySelector('.gt-display').innerHTML = `<b>GT:</b> ${currentGT || 'N/A'}`; } }, 100); }
             window.reavaliarItem = async function(event, cardElement) {
                 if (event.key === 'Enter') {
-                    const input = event.target;
-                    const novoGT = input.value.trim();
-                    const codigoItem = cardElement.dataset.codigo;
-                    
-                    if (novoGT === cardElement.dataset.gt) {
-                        cancelarEdicao(event, cardElement);
-                        return;
-                    }
-
-                    input.disabled = true;
-                    input.value = "Salvando...";
-
-                    try {
-                        const response = await fetch(n8nAtualizarGTUrl, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ codigo: codigoItem, gt: novoGT })
-                        });
-
-                        if (!response.ok) { throw new Error('Falha ao atualizar o GT no banco de dados.'); }
-
-                        cardElement.dataset.gt = novoGT;
-                        const gtDisplayElement = cardElement.querySelector('.gt-display');
-                        gtDisplayElement.innerHTML = `<b>GT:</b> ${novoGT || 'N/A'}`;
-
-                        const corresponde = gtsAtuais.some(gtSelecionado => novoGT.includes(gtSelecionado));
-
-                        if (corresponde && cardElement.parentElement.id !== 'arranjo-producao-lista') {
-                            elements.arranjoProducaoLista.appendChild(cardElement);
-                            reordenarArranjo();
-                        } else if (!corresponde && cardElement.parentElement.id !== 'itens-pendentes-lista') {
-                            elements.itensPendentesLista.appendChild(cardElement);
-                        }
-                    } catch (error) {
-                        showAlert(error.message, 'Erro', 'error');
-                        input.disabled = false;
-                        input.value = novoGT;
-                        input.focus();
-                    }
-                } else if (event.key === 'Escape') {
-                    cancelarEdicao(event, cardElement);
-                }
+                    const input = event.target; const novoGT = input.value.trim(); const codigoItem = cardElement.dataset.codigo;
+                    if (novoGT === cardElement.dataset.gt) { cancelarEdicao(event, cardElement); return; }
+                    input.disabled = true; input.value = "Salvando...";
+                    try { const response = await fetch(n8nAtualizarGTUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ codigo: codigoItem, gt: novoGT }) }); if (!response.ok) throw new Error('Falha ao atualizar o GT no banco.'); cardElement.dataset.gt = novoGT; cardElement.querySelector('.gt-display').innerHTML = `<b>GT:</b> ${novoGT || 'N/A'}`; const corresponde = gtsAtuais.some(gtSelecionado => novoGT.includes(gtSelecionado)); if (corresponde && cardElement.parentElement.id !== 'arranjo-producao-lista') { elements.arranjoProducaoLista.appendChild(cardElement); reordenarArranjo(); atualizarTotalizador(); } else if (!corresponde && cardElement.parentElement.id !== 'itens-pendentes-lista') { elements.itensPendentesLista.appendChild(cardElement); atualizarTotalizador(); } } catch (error) { showAlert(error.message, 'Erro', 'error'); input.disabled = false; input.value = novoGT; input.focus(); }
+                } else if (event.key === 'Escape') cancelarEdicao(event, cardElement);
             }
 
-            function reordenarArranjo() {
-                const lista = elements.arranjoProducaoLista;
-                const items = Array.from(lista.querySelectorAll('.item-card'));
-                items.sort((a, b) => {
-                    try {
-                        const espessuraA = parseFloat(a.dataset.dimensao.split('X')[1].trim().replace(',', '.'));
-                        const espessuraB = parseFloat(b.dataset.dimensao.split('X')[1].trim().replace(',', '.'));
-                        if (isNaN(espessuraA) || isNaN(espessuraB)) return 0;
-                        return espessuraA - espessuraB;
-                    } catch (e) {
-                        return 0;
-                    }
-                });
-                items.forEach(item => lista.appendChild(item));
-            }
+            function reordenarArranjo() { const lista = elements.arranjoProducaoLista; const items = Array.from(lista.querySelectorAll('.item-card')); items.sort((a, b) => { try { const valA = parseFloat(a.dataset.dimensao.split('X')[1].trim().replace(',', '.')); const valB = parseFloat(b.dataset.dimensao.split('X')[1].trim().replace(',', '.')); if (isNaN(valA) || isNaN(valB)) return 0; return valA - valB; } catch (e) { return 0; } }); items.forEach(item => lista.appendChild(item)); }
             
-            function handleDragStart(e) {
-                e.target.classList.add('dragging');
-                e.dataTransfer.setData('text/plain', e.target.id);
-            }
-
-            function handleDragEnd(e) {
-                e.target.classList.remove('dragging');
-            }
-
-            const dropZones = [elements.arranjoProducaoLista.parentElement, elements.itensPendentesLista.parentElement];
-
-            dropZones.forEach(zone => {
-                zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
-                zone.addEventListener('dragleave', () => { zone.classList.remove('drag-over'); });
-                zone.addEventListener('drop', e => {
-                    e.preventDefault();
-                    zone.classList.remove('drag-over');
-                    const id = e.dataTransfer.getData('text');
-                    const draggableElement = document.getElementById(id);
-                    if (!draggableElement) return;
-                    
-                    const targetList = zone.querySelector('div[id$="-lista"]');
-                    targetList.appendChild(draggableElement);
-
-                    if (targetList.id === 'arranjo-producao-lista') {
-                        reordenarArranjo();
-                    }
-                });
+            function handleDragStart(e) { e.target.classList.add('dragging'); e.dataTransfer.setData('text/plain', e.target.id); } 
+            function handleDragEnd(e) { e.target.classList.remove('dragging'); }
+            
+            [elements.arranjoProducaoLista.parentElement, elements.itensPendentesLista.parentElement].forEach(zone => { 
+                zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); }); 
+                zone.addEventListener('dragleave', () => zone.classList.remove('drag-over')); 
+                zone.addEventListener('drop', e => { 
+                    e.preventDefault(); zone.classList.remove('drag-over'); 
+                    const id = e.dataTransfer.getData('text'); 
+                    const el = document.getElementById(id); 
+                    if (!el) return; 
+                    const target = zone.querySelector('div[id$="-lista"]'); 
+                    target.appendChild(el); 
+                    if (target.id === 'arranjo-producao-lista') reordenarArranjo();
+                    atualizarTotalizador();
+                }); 
             });
             
             // --- Exportação Excel ---
             elements.btnExportExcel.addEventListener('click', () => {
                 const itemCards = elements.arranjoProducaoLista.querySelectorAll('.item-card');
-                if (itemCards.length === 0) {
-                    showAlert("Não há itens no arranjo de produção para exportar.", "Aviso");
-                    return;
-                }
-
-                const originalText = elements.btnExportExcel.innerHTML;
-                elements.btnExportExcel.innerHTML = '<div class="spinner"></div> Exportando...';
-                elements.btnExportExcel.disabled = true;
-
-                try {
-                    const itemsParaExportar = [];
-                    
-                    itemsParaExportar.push([ "Ordem de Produção", "Código", "Descrição", "Bitola", "GT" ]);
-                    
-                    itemCards.forEach(card => {
-                        itemsParaExportar.push([
-                            card.dataset.ordemProducao,
-                            card.dataset.codigo,
-                            card.dataset.descricao,
-                            card.dataset.dimensao,
-                            card.dataset.gt
-                        ]);
-                    });
-
-                    const wb = XLSX.utils.book_new();
-                    const ws = XLSX.utils.aoa_to_sheet(itemsParaExportar);
-                    XLSX.utils.book_append_sheet(wb, ws, "Arranjo de Produção");
-                    XLSX.writeFile(wb, "Arranjo_Producao.xlsx");
-
-                } catch (error) {
-                    showAlert(`Falha ao exportar para Excel: ${error.message}`, 'Erro', 'error');
-                } finally {
-                    elements.btnExportExcel.innerHTML = originalText;
-                    elements.btnExportExcel.disabled = false;
-                }
+                if (itemCards.length === 0) { showAlert("Não há itens no arranjo de produção para exportar.", "Aviso"); return; }
+                const originalText = elements.btnExportExcel.innerHTML; elements.btnExportExcel.innerHTML = '<div class="spinner"></div> Exportando...'; elements.btnExportExcel.disabled = true;
+                try { const itemsParaExportar = [["Ordem de Produção", "Código", "Descrição", "Bitola", "GT", "Quantidade"]]; itemCards.forEach(card => itemsParaExportar.push([card.dataset.ordemProducao, card.dataset.codigo, card.dataset.descricao, card.dataset.dimensao, card.dataset.gt, card.dataset.quantidade])); const wb = XLSX.utils.book_new(); const ws = XLSX.utils.aoa_to_sheet(itemsParaExportar); XLSX.utils.book_append_sheet(wb, ws, "Arranjo de Produção"); XLSX.writeFile(wb, "Arranjo_Producao.xlsx"); } catch (error) { showAlert(`Falha ao exportar para Excel: ${error.message}`, 'Erro', 'error'); } finally { elements.btnExportExcel.innerHTML = originalText; elements.btnExportExcel.disabled = false; }
             });
 
             // --- Toggle Tema ---
@@ -2092,11 +1692,9 @@
                 const isDark = elements.themeToggle.checked;
                 document.body.classList.toggle('dark-theme', isDark);
                 document.body.classList.toggle('light-theme', !isDark);
-                
-                // URLS DAS LOGOS ATUALIZADAS
                 elements.logo.src = isDark 
-                    ? 'https://ctfamadobrasil.com.br/wp-content/uploads/2025/12/Gemini_Generated_Image_v8cib8v8cib8v8ci-removebg-preview.png' // Logo Dark (Fundo Escuro)
-                    : 'https://ctfamadobrasil.com.br/wp-content/uploads/2025/09/logo.png'; // Logo Light (Fundo Claro)
+                    ? 'https://ctfamadobrasil.com.br/wp-content/uploads/2025/12/Gemini_Generated_Image_v8cib8v8cib8v8ci-removebg-preview.png' 
+                    : 'https://ctfamadobrasil.com.br/wp-content/uploads/2025/09/logo.png';
             });
             
             // --- Inicialização ---
