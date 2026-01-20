@@ -7,635 +7,581 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <!-- Bibliotecas Necessárias -->
+    <!-- Bibliotecas -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+    
     <style>
+        /* --- VARIÁVEIS E CORES --- */
         :root {
-            --color-primary: #D92D20; --color-primary-hover: #B42318; --color-success: #10B981; --color-info: #3B82F6;
-            --color-bg-light: #F9FAFB; --color-bg-dark: #111827; --color-card-light: #FFFFFF; --color-card-dark: #1F2937;
-            --color-text-light-primary: #111827; --color-text-dark-primary: #F9FAFB; --color-text-light-secondary: #6B7280;
-            --color-text-dark-secondary: #9CA3AF; --color-border-light: #E5E7EB; --color-border-dark: #374151;
-            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05); --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
-            --radius-md: 8px; --radius-lg: 12px; --font-main: 'Inter', sans-serif; --transition-speed: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            --color-primary: #D92D20; --color-primary-hover: #B42318;
+            --color-success: #10B981; --color-info: #3B82F6;
+            --radius-md: 8px; --radius-lg: 12px;
+            --font-main: 'Inter', sans-serif;
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
         }
-        body { font-family: var(--font-main); margin: 0; transition: background-color 0.3s, color 0.3s; }
-        .light-theme { --bg-main: var(--color-bg-light); --bg-card: var(--color-card-light); --text-primary: var(--color-text-light-primary); --text-secondary: var(--color-text-light-secondary); --border-color: var(--color-border-light); }
-        .dark-theme { --bg-main: var(--color-bg-dark); --bg-card: var(--color-card-dark); --text-primary: var(--color-text-dark-primary); --text-secondary: var(--color-text-dark-secondary); --border-color: var(--color-border-dark); }
-        body { background-color: var(--bg-main); color: var(--text-primary); }
-        
-        .container { max-width: 1200px; margin: 0 auto; padding: 2rem; }
-        
-        header { display: flex; justify-content: center; align-items: center; padding: 1rem 2rem; background-color: var(--bg-card); border-bottom: 1px solid var(--border-color); position: relative; margin-bottom: 2rem; }
-        header img { height: 48px; }
-        .theme-switcher { display: flex; align-items: center; gap: 10px; position: absolute; right: 2rem; }
-        .header-actions { position: absolute; left: 2rem; display: flex; gap: 1rem; }
 
-        /* Steps */
-        .stepper { display: flex; justify-content: space-between; margin-bottom: 2rem; padding: 1rem 0; border-bottom: 1px solid var(--border-color); }
-        .step { display: flex; align-items: center; color: var(--text-secondary); font-weight: 500; }
-        .step.active { color: var(--text-primary); font-weight: 600; }
-        .step .step-number { width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--border-color); display: inline-flex; align-items: center; justify-content: center; margin-right: 0.5rem; }
-        .step.active .step-number { border-color: var(--color-primary); background-color: var(--color-primary); color: white; }
+        /* Temas */
+        .light-theme {
+            --bg-main: #F9FAFB; --bg-card: #FFFFFF;
+            --text-primary: #111827; --text-secondary: #6B7280;
+            --border-color: #E5E7EB;
+        }
+        .dark-theme {
+            --bg-main: #111827; --bg-card: #1F2937;
+            --text-primary: #F9FAFB; --text-secondary: #9CA3AF;
+            --border-color: #374151;
+        }
 
-        /* Cards & Layout */
-        .card { background-color: var(--bg-card); border-radius: var(--radius-lg); padding: 1.5rem 2rem; margin-bottom: 2rem; box-shadow: var(--shadow-md); animation: fadeIn 0.5s var(--transition-speed) both; }
-        .hidden { display: none !important; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        h2 { font-size: 1.25rem; margin-top: 0; margin-bottom: 1.5rem; }
-        
-        .config-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; align-items: start; }
-        
-        /* Inputs & Buttons */
-        .btn-group button { background: var(--bg-main); border: 1px solid var(--border-color); color: var(--text-secondary); padding: 1rem; width: 100%; border-radius: var(--radius-md); cursor: pointer; font-size: 1rem; font-weight: 600; }
-        .btn-group button:hover { border-color: var(--text-secondary); }
-        .btn-group button.active { border-color: var(--color-primary); background: rgba(217, 45, 32, 0.05); color: var(--color-primary); box-shadow: 0 0 0 1px var(--color-primary); }
-        
-        .form-group label, .config-label { display: block; margin-bottom: 0.5rem; font-weight: 500; font-size: 0.875rem; text-transform: uppercase; }
-        select, input[type="text"] { width: 100%; box-sizing: border-box; padding: 0.75rem; border-radius: var(--radius-md); border: 1px solid var(--border-color); background-color: var(--bg-main); color: var(--text-primary); font-size: 1rem; margin-bottom: 0.5rem; }
-        
-        .actions { margin-top: 2rem; display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
-        .actions-final { display: flex; justify-content: space-around; gap: 1rem; }
-        
-        .btn { padding: 0.75rem 1.5rem; border: none; border-radius: var(--radius-md); font-size: 1rem; font-weight: 600; cursor: pointer; transition: var(--transition-speed); display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; text-decoration: none; color: inherit; }
+        body {
+            font-family: var(--font-main);
+            margin: 0;
+            background-color: var(--bg-main);
+            color: var(--text-primary);
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        /* --- LAYOUT DO CABEÇALHO (CORRIGIDO) --- */
+        header {
+            display: grid;
+            grid-template-columns: 1fr auto 1fr; /* Esquerda, Centro, Direita */
+            align-items: center;
+            padding: 1rem 2rem;
+            background-color: var(--bg-card);
+            border-bottom: 1px solid var(--border-color);
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .header-left { justify-self: start; display: flex; gap: 0.5rem; flex-wrap: wrap; }
+        .header-center { justify-self: center; }
+        .header-right { justify-self: end; display: flex; align-items: center; gap: 10px; }
+
+        header img { height: 48px; display: block; }
+
+        /* --- BOTÕES --- */
+        .btn {
+            padding: 0.6rem 1.2rem;
+            border: none;
+            border-radius: var(--radius-md);
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            color: inherit;
+        }
         .btn-primary { background-color: var(--color-primary); color: white; }
         .btn-primary:hover { background-color: var(--color-primary-hover); }
         .btn-secondary { border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary); }
-        .btn-secondary:hover { background-color: var(--bg-main); }
+        .btn-secondary:hover { background-color: var(--bg-main); border-color: var(--text-secondary); }
         .btn-success { background-color: var(--color-success); color: white; }
         .btn-info { background-color: var(--color-info); color: white; }
         .btn:disabled { opacity: 0.6; cursor: not-allowed; }
 
-        .spinner { width: 16px; height: 16px; border: 2px solid rgba(255, 255, 255, 0.3); border-radius: 50%; border-top-color: #fff; animation: spin 1s ease-in-out infinite; }
-        @keyframes spin { to { transform: rotate(360deg); } }
+        /* --- ESTRUTURA GERAL --- */
+        .container { max-width: 1200px; margin: 0 auto; padding: 0 2rem 2rem 2rem; }
+        .card { background-color: var(--bg-card); border-radius: var(--radius-lg); padding: 1.5rem 2rem; margin-bottom: 2rem; box-shadow: var(--shadow-md); }
+        .hidden { display: none !important; }
 
-        /* Arranjo Drag & Drop */
-        .arranjo-container { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
-        .arranjo-coluna { min-height: 300px; padding: 1rem; border-radius: var(--radius-md); border: 2px dashed transparent; }
-        .arranjo-coluna.drag-over { border-color: var(--color-primary); background-color: rgba(217, 45, 32, 0.05); }
-        .arranjo-coluna h3 { font-size: 1rem; font-weight: 600; color: var(--text-secondary); border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; margin-bottom: 1rem; }
+        /* --- STEPPER --- */
+        .stepper { display: flex; justify-content: space-between; margin-bottom: 2rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border-color); }
+        .step { display: flex; align-items: center; color: var(--text-secondary); font-weight: 500; }
+        .step.active { color: var(--text-primary); font-weight: 600; }
+        .step .step-number { width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--border-color); display: flex; align-items: center; justify-content: center; margin-right: 0.5rem; font-size: 0.8rem; }
+        .step.active .step-number { border-color: var(--color-primary); background-color: var(--color-primary); color: white; }
+
+        /* --- INPUTS & CONFIG --- */
+        .config-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; }
+        .btn-group { display: flex; gap: 1rem; margin-top: 0.5rem; }
+        .btn-group button { flex: 1; padding: 1rem; border: 1px solid var(--border-color); background: var(--bg-main); color: var(--text-secondary); border-radius: var(--radius-md); cursor: pointer; font-weight: 600; }
+        .btn-group button.active { border-color: var(--color-primary); background: rgba(217, 45, 32, 0.1); color: var(--color-primary); }
         
-        .item-card { position: relative; background-color: var(--bg-main); padding: 0.75rem 1rem; border-radius: var(--radius-md); margin-bottom: 1rem; border: 1px solid var(--border-color); border-left: 4px solid var(--color-primary); box-shadow: var(--shadow-sm); cursor: grab; }
-        .item-card p { margin: 2px 0; font-size: 0.9rem; }
-        .item-card.dragging { opacity: 0.5; }
-        .item-card .gt-input { padding: 4px; width: 60px; font-size: 0.9rem; margin-left: 5px; }
-        .gt-display { cursor: pointer; border-bottom: 1px dashed var(--text-secondary); display: inline-block;}
-        .delete-btn { position: absolute; top: 5px; right: 10px; font-size: 1.5rem; color: var(--text-secondary); cursor: pointer; line-height: 1; transition: var(--transition-speed); }
-        .delete-btn:hover { color: var(--color-primary); transform: scale(1.2); }
+        input[type="text"], select { width: 100%; padding: 0.75rem; margin-bottom: 0.5rem; border-radius: var(--radius-md); border: 1px solid var(--border-color); background-color: var(--bg-main); color: var(--text-primary); box-sizing: border-box;}
+        label { display: block; margin-bottom: 0.5rem; font-size: 0.85rem; font-weight: 600; text-transform: uppercase; color: var(--text-secondary); }
 
-        /* Tabelas (Histórico e Gerenciador) */
-        table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
-        th, td { border: 1px solid var(--border-color); padding: 8px; text-align: left; font-size: 0.9rem; }
-        th { background-color: var(--bg-main); font-weight: 600; }
-        td input { width: 95%; background-color: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border-color); padding: 6px; border-radius: var(--radius-md); }
-        .manager-table-actions { display: flex; gap: 0.5rem; }
-        .manager-table-actions .btn { padding: 0.4rem 0.8rem; font-size: 0.8rem; }
+        /* --- ARRANJO DRAG & DROP --- */
+        .arranjo-container { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+        .arranjo-coluna { min-height: 200px; padding: 1rem; border: 2px dashed var(--border-color); border-radius: var(--radius-md); }
+        .arranjo-coluna h3 { margin-top: 0; font-size: 1rem; color: var(--text-secondary); text-align: center; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; }
+        
+        .item-card { background-color: var(--bg-card); padding: 0.8rem; margin-bottom: 0.8rem; border-radius: var(--radius-md); border-left: 4px solid var(--color-primary); box-shadow: 0 1px 3px rgba(0,0,0,0.2); cursor: grab; position: relative; }
+        .item-card p { margin: 3px 0; font-size: 0.9rem; }
+        .delete-btn { position: absolute; top: 5px; right: 10px; cursor: pointer; color: var(--text-secondary); font-size: 1.2rem; }
+        .delete-btn:hover { color: var(--color-primary); }
+        .gt-input { width: 60px !important; padding: 2px !important; margin: 0 !important; display: inline-block; }
 
-        /* Modais */
-        .modal-backdrop {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background-color: rgba(0, 0, 0, 0.7); backdrop-filter: blur(4px);
-            z-index: 100; display: flex; justify-content: center; align-items: center;
-            animation: fadeIn 0.3s;
-        }
-        .modal-content {
-            background-color: var(--bg-card); color: var(--text-primary);
-            padding: 2rem; border-radius: var(--radius-lg); box-shadow: var(--shadow-md);
-            width: 90%; max-width: 1024px; max-height: 90vh; overflow-y: auto;
-            position: relative;
-        }
-        .modal-close { position: absolute; top: 1rem; right: 1.5rem; font-size: 2rem; color: var(--text-secondary); cursor: pointer; line-height: 1; }
-        .details-params { background-color: var(--bg-main); padding: 1rem; border-radius: var(--radius-md); margin-bottom: 1.5rem; font-size: 0.9rem; color: var(--text-secondary); }
+        /* --- TABELAS --- */
+        table { width: 100%; border-collapse: collapse; margin-top: 1rem; font-size: 0.9rem; }
+        th, td { border: 1px solid var(--border-color); padding: 0.75rem; text-align: left; }
+        th { background-color: var(--bg-main); }
+        
+        /* --- MODAL --- */
+        .modal-backdrop { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; display: flex; justify-content: center; align-items: center; }
+        .modal-content { background: var(--bg-card); width: 90%; max-width: 1100px; max-height: 90vh; overflow-y: auto; padding: 2rem; border-radius: var(--radius-lg); position: relative; }
+        .modal-close { position: absolute; top: 1rem; right: 1.5rem; font-size: 2rem; cursor: pointer; }
+        
+        /* --- UTILS --- */
+        .spinner { width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 1s infinite linear; display: inline-block; margin-right: 5px; }
+        @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 </head>
 <body class="dark-theme">
 
     <header>
-        <div class="header-actions">
-            <button id="main-app-btn" class="btn btn-primary">Gerar Arranjo</button>
-            <button id="manager-btn" class="btn btn-secondary">Gerenciar Itens Mestre</button>
-            <button id="history-btn" class="btn btn-secondary">Histórico</button>
+        <div class="header-left">
+            <button id="nav-gerar" class="btn btn-primary">Gerar Arranjo</button>
+            <button id="nav-mestre" class="btn btn-secondary">Gerenciar Itens Mestre</button>
+            <button id="nav-historico" class="btn btn-secondary">Histórico</button>
         </div>
-        <img id="logo-fama" src="https://ctfamadobrasil.com.br/wp-content/uploads/2025/12/Gemini_Generated_Image_v8cib8v8cib8v8ci-removebg-preview.png" alt="Logo Molas Fama">
-        <div class="theme-switcher">
-            ☀️ <input type="checkbox" id="theme-toggle" checked> 🌙
+        <div class="header-center">
+            <img id="logo-fama" src="https://ctfamadobrasil.com.br/wp-content/uploads/2025/12/Gemini_Generated_Image_v8cib8v8cib8v8ci-removebg-preview.png" alt="Logo Fama">
+        </div>
+        <div class="header-right">
+            <span>☀️</span> <input type="checkbox" id="theme-toggle" checked> <span>🌙</span>
         </div>
     </header>
 
-    <main class="container">
-        <!-- O CONTEÚDO SERÁ INJETADO DINAMICAMENTE AQUI -->
+    <main id="app-container" class="container">
+        <!-- Conteúdo injetado via JS -->
     </main>
+
+    <!-- TEMPLATES (Escondidos, usados pelo JS) -->
     
-    <!-- MODAL DE HISTÓRICO -->
-    <div id="history-modal" class="modal-backdrop hidden">
-        <div class="modal-content">
-            <span id="history-modal-close" class="modal-close">&times;</span>
-            <h2>Histórico de Arranjos Gerados</h2>
-            <div id="history-loading" class="hidden" style="text-align: center; padding: 2rem;">
-                <div class="spinner" style="margin: 0 auto; border-top-color: var(--text-primary);"></div><p>Buscando histórico...</p>
+    <!-- Template: Gerar Arranjo -->
+    <template id="tpl-gerar">
+        <div class="stepper">
+            <div id="step-nav-1" class="step active"><span class="step-number">1</span>Configuração</div>
+            <div id="step-nav-2" class="step"><span class="step-number">2</span>Organização</div>
+            <div id="step-nav-3" class="step"><span class="step-number">3</span>Finalização</div>
+        </div>
+
+        <div id="view-step-1" class="card">
+            <h2>1. Configuração do Forno</h2>
+            <div class="config-grid">
+                <div>
+                    <label>Selecione o Forno</label>
+                    <div class="btn-group">
+                        <button id="btn-forno-grande" class="active">Forno Grande (1001)</button>
+                        <button id="btn-forno-pequeno">Forno Pequeno (1002)</button>
+                    </div>
+                </div>
+                <div>
+                    <label id="lbl-config-forno">GTs para Forno Grande</label>
+                    <select id="sel-qtde-gts">
+                        <option value="1">1 GT</option>
+                        <option value="2">2 GTs</option>
+                        <option value="3">3 GTs</option>
+                    </select>
+                    <div id="container-gts-inputs"></div>
+                </div>
             </div>
-            <table id="history-table">
-                <thead><tr><th>ID</th><th>Data e Hora</th><th>Usuário</th><th>Parâmetros</th><th>Ações</th></tr></thead>
+            <div style="margin-top: 2rem; display: flex; gap: 1rem; align-items: center;">
+                <input type="file" id="input-csv" accept=".csv" style="display: none;">
+                <button id="btn-upload" class="btn btn-secondary">📂 Carregar CSV</button>
+                <span id="file-name" style="color: var(--text-secondary); font-size: 0.9rem;">Nenhum arquivo</span>
+                <button id="btn-processar" class="btn btn-primary" style="margin-left: auto;">🚀 Gerar Arranjo</button>
+            </div>
+        </div>
+
+        <div id="view-step-2" class="card hidden">
+            <h2>2. Resultado do Arranjo</h2>
+            <div class="arranjo-container">
+                <div class="arranjo-coluna" id="col-producao">
+                    <h3>Arranjo de Produção</h3>
+                    <div class="lista-itens" id="lista-producao"></div>
+                </div>
+                <div class="arranjo-coluna" id="col-pendente">
+                    <h3>Itens Pendentes</h3>
+                    <div class="lista-itens" id="lista-pendente"></div>
+                </div>
+            </div>
+            <div style="margin-top: 1rem; text-align: right;">
+                <button id="btn-avancar" class="btn btn-primary">Avançar para Exportação</button>
+            </div>
+        </div>
+
+        <div id="view-step-3" class="card hidden">
+            <h2>3. Exportar</h2>
+            <div style="display: flex; gap: 1rem; justify-content: center;">
+                <button id="btn-export-excel" class="btn btn-success">Baixar Excel</button>
+                <button class="btn btn-info" onclick="window.print()">Imprimir / PDF</button>
+                <button class="btn btn-secondary" onclick="location.reload()">Novo Arranjo</button>
+            </div>
+        </div>
+    </template>
+
+    <!-- Template: Gerenciador -->
+    <template id="tpl-mestre">
+        <div class="card">
+            <h2>Gerenciador de Itens Mestre</h2>
+            <div style="display: flex; gap: 1rem; margin-bottom: 1rem;">
+                <input type="text" id="busca-mestre" placeholder="Buscar código, bitola ou GT...">
+                <button id="btn-add-novo" class="btn btn-success">+ Novo Item</button>
+            </div>
+            <div style="max-height: 60vh; overflow-y: auto;">
+                <table id="tabela-mestre">
+                    <thead><tr><th>Código</th><th>Bitola</th><th>GT</th><th>Ações</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </template>
+
+    <!-- Template: Histórico -->
+    <template id="tpl-historico">
+        <div class="card">
+            <h2>Histórico de Produção</h2>
+            <table id="tabela-historico">
+                <thead><tr><th>ID</th><th>Data</th><th>Usuário</th><th>Detalhes</th><th>Ações</th></tr></thead>
                 <tbody></tbody>
             </table>
         </div>
-    </div>
-    
-    <!-- MODAL DE DETALHES DO HISTÓRICO -->
-    <div id="details-modal" class="modal-backdrop hidden">
+    </template>
+
+    <!-- MODAL DETALHES -->
+    <div id="modal-detalhes" class="modal-backdrop hidden">
         <div class="modal-content">
-            <span id="details-modal-close" class="modal-close">&times;</span>
-            <h2 id="details-title">Detalhes do Arranjo</h2>
-            <div id="details-params" class="details-params"></div>
-            <div id="details-container" class="arranjo-container">
-                <div class="arranjo-coluna"><h3>ARRANJO DE PRODUÇÃO</h3><div id="details-arranjo-lista"></div></div>
-                <div class="arranjo-coluna"><h3>ITENS PENDENTES</h3><div id="details-pendentes-lista"></div></div>
+            <span class="modal-close" onclick="document.getElementById('modal-detalhes').classList.add('hidden')">&times;</span>
+            <h2>Detalhes do Arranjo</h2>
+            <p id="modal-params" style="color: var(--text-secondary); margin-bottom: 1rem;"></p>
+            <div class="arranjo-container">
+                <div class="arranjo-coluna"><h3>Produção</h3><div id="modal-lista-prod"></div></div>
+                <div class="arranjo-coluna"><h3>Pendentes</h3><div id="modal-lista-pend"></div></div>
             </div>
         </div>
     </div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            // --- CREDENCIAIS E URLS ---
-            const SUPABASE_URL = 'https://mqzrlzywqgylffwvtlmg.supabase.co';
-            const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1xenJsenl3cWd5bGZmd3Z0bG1nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAxNzExNDcsImV4cCI6MjA3NTc0NzE0N30.YghplsFD3T1Xv0yuLYTdD9Ib5kenXitDMnXAud7TjSY';
-            const n8nGerarArranjoUrl = 'https://n8n-n8n.znxk1t.easypanel.host/webhook/gerar-arranjo';
-            const n8nAtualizarGTUrl = 'https://n8n-n8n.znxk1t.easypanel.host/webhook/atualizar-itens-mestre';
+        // --- CONFIGURAÇÃO ---
+        const SUPABASE_URL = 'https://mqzrlzywqgylffwvtlmg.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1xenJsenl3cWd5bGZmd3Z0bG1nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAxNzExNDcsImV4cCI6MjA3NTc0NzE0N30.YghplsFD3T1Xv0yuLYTdD9Ib5kenXitDMnXAud7TjSY';
+        const URL_N8N_GERAR = 'https://n8n-n8n.znxk1t.easypanel.host/webhook/gerar-arranjo';
+        const URL_N8N_UPDATE = 'https://n8n-n8n.znxk1t.easypanel.host/webhook/atualizar-itens-mestre';
 
-            // Inicializa Supabase
-            const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-            // Elementos Globais
-            const mainContainer = document.querySelector('main.container');
-            const mainAppBtn = document.getElementById('main-app-btn');
-            const managerBtn = document.getElementById('manager-btn');
-            const historyBtn = document.getElementById('history-btn');
-            const themeToggle = document.getElementById('theme-toggle');
-            const logo = document.getElementById('logo-fama');
-            
-            // Variáveis de Estado
-            let elements = {};
-            let gtsAtuais = [];
-            
-            // --- TEMPLATES HTML ---
-            const mainAppTemplate = `
-                <div class="stepper">
-                    <div id="step-nav-1" class="step active"><span class="step-number">1</span>Configuração</div>
-                    <div id="step-nav-2" class="step"><span class="step-number">2</span>Organize a Sequência</div>
-                    <div id="step-nav-3" class="step"><span class="step-number">3</span>Ações Finais</div>
-                </div>
-                <div id="step-1" class="card">
-                    <h2>Passo 1: Configuração</h2>
-                    <div class="config-grid">
-                        <div>
-                            <label class="config-label">Seleção de Forno</label>
-                            <div class="btn-group" style="display: flex; gap: 1rem;"><button id="btn-forno-grande" class="active"><span>Forno Grande (1001)</span></button><button id="btn-forno-pequeno"><span>Forno Pequeno (1002)</span></button></div>
-                        </div>
-                        <div>
-                            <label id="config-titulo" class="config-label">Configuração do Forno Grande</label>
-                            <div class="form-group"><label for="qtde-gts-dinamico" style="font-size: 0.8rem; color: var(--text-secondary);">Quantidade</label><select id="qtde-gts-dinamico"></select></div>
-                            <div id="inputs-gts-dinamico"></div>
-                        </div>
-                    </div>
-                    <div class="actions">
-                        <input type="file" id="csv-file-input" class="hidden" accept=".csv"><button id="btn-carregar-csv" class="btn btn-secondary">Carregar Lista de Produção (.CSV)</button><button id="btn-gerar-arranjo" class="btn btn-primary">Gerar Arranjo Inteligente</button>
-                    </div>
-                </div>
-                <div id="step-2" class="card hidden">
-                    <h2>Passo 2: Organize a Sequência</h2>
-                    <div class="arranjo-container">
-                        <div class="arranjo-coluna"><h3>ARRANJO DE PRODUÇÃO</h3><div id="arranjo-producao-lista"></div></div>
-                        <div class="arranjo-coluna"><h3>ITENS PENDENTES</h3><div id="itens-pendentes-lista"></div></div>
-                    </div>
-                </div>
-                <div id="step-3" class="card hidden">
-                     <h2>Passo 3: Ações Finais</h2>
-                     <div class="actions-final"><button id="btn-export-excel" class="btn btn-success">Exportar para Excel</button><button id="btn-export-pdf" class="btn btn-primary">Exportar para PDF</button><button id="btn-send-email" class="btn btn-info">Enviar por E-mail</button></div>
-                </div>`;
-            
-            const managerTemplate = `
-                <div class="card">
-                    <h2>Gerenciador de Itens Mestre</h2>
-                    <p style="color: var(--text-secondary); margin-bottom: 1rem;">Edite os itens diretamente no banco de dados.</p>
-                    <div style="display: flex; gap: 1rem; margin-bottom: 1rem;">
-                        <input type="text" id="search-mestre" placeholder="Buscar por código, bitola ou GT..." style="flex: 1;">
-                        <button id="add-mestre-btn" class="btn btn-success">Adicionar Novo Item</button>
-                    </div>
-                    <div style="max-height: 65vh; overflow-y: auto;">
-                        <table id="mestre-table">
-                            <thead><tr><th>Código do Item</th><th>Bitola</th><th>GT</th><th>Ações</th></tr></thead>
-                            <tbody><tr><td colspan="4" style="text-align:center;">Carregando...</td></tr></tbody>
-                        </table>
-                    </div>
-                </div>`;
+        // --- NAVEGAÇÃO ---
+        const appContainer = document.getElementById('app-container');
+        const navBtns = {
+            gerar: document.getElementById('nav-gerar'),
+            mestre: document.getElementById('nav-mestre'),
+            historico: document.getElementById('nav-historico')
+        };
 
-            // --- NAVEGAÇÃO ---
-            function showMainApp() {
-                mainContainer.innerHTML = mainAppTemplate;
-                setActiveButton(mainAppBtn);
-                initializeMainApp(); 
-            }
-
-            function showManager() {
-                mainContainer.innerHTML = managerTemplate;
-                setActiveButton(managerBtn);
-                initializeManager();
-            }
-
-            function setActiveButton(activeBtn) {
-                [mainAppBtn, managerBtn, historyBtn].forEach(btn => {
-                    btn.classList.remove('btn-primary');
-                    btn.classList.add('btn-secondary');
-                });
-                activeBtn.classList.remove('btn-secondary');
-                activeBtn.classList.add('btn-primary');
-            }
-
-            // --- LÓGICA DO APP PRINCIPAL ---
-            function initializeMainApp() {
-                elements = {
-                    stepNav1: document.getElementById('step-nav-1'), stepNav2: document.getElementById('step-nav-2'), stepNav3: document.getElementById('step-nav-3'),
-                    step1: document.getElementById('step-1'), step2: document.getElementById('step-2'), step3: document.getElementById('step-3'),
-                    btnFornoGrande: document.getElementById('btn-forno-grande'), btnFornoPequeno: document.getElementById('btn-forno-pequeno'),
-                    configTitulo: document.getElementById('config-titulo'), qtdeGtsDinamico: document.getElementById('qtde-gts-dinamico'), inputsGtsDinamico: document.getElementById('inputs-gts-dinamico'),
-                    btnCarregarCsv: document.getElementById('btn-carregar-csv'), csvFileInput: document.getElementById('csv-file-input'), btnGerarArranjo: document.getElementById('btn-gerar-arranjo'),
-                    arranjoProducaoLista: document.getElementById('arranjo-producao-lista'), itensPendentesLista: document.getElementById('itens-pendentes-lista'),
-                    btnExportExcel: document.getElementById('btn-export-excel'),
-                };
-                attachMainEventListeners();
-                atualizarConfiguracaoForno('grande');
-            }
-
-            const fornosConfig = { grande: { titulo: 'Configuração do Forno Grande', opcoes: [ { value: '1', text: '1 GT' }, { value: '2', text: '2 GTs' }, { value: '3', text: '3 GTs' } ] }, pequeno: { titulo: 'Configuração do Forno Pequeno', opcoes: [ { value: '1', text: '1 GT' }, { value: '2', text: '2 GTs' } ] } };
-            const updateStepper = (currentStep) => { elements.stepNav1?.classList.toggle('active', currentStep >= 1); elements.stepNav2?.classList.toggle('active', currentStep >= 2); elements.stepNav3?.classList.toggle('active', currentStep >= 3); };
-            const gerarInputs = (qtde, container) => { container.innerHTML = ''; for (let i = 1; i <= qtde; i++) { const input = document.createElement('input'); input.type = 'text'; input.placeholder = `Código GT ${i}`; input.style.marginTop = '0.5rem'; container.appendChild(input); } };
-            const atualizarConfiguracaoForno = (tipoForno) => { const config = fornosConfig[tipoForno]; const isGrande = tipoForno === 'grande'; elements.btnFornoGrande.classList.toggle('active', isGrande); elements.btnFornoPequeno.classList.toggle('active', !isGrande); elements.configTitulo.textContent = config.titulo; elements.qtdeGtsDinamico.innerHTML = ''; config.opcoes.forEach(opt => { const optionEl = document.createElement('option'); optionEl.value = opt.value; optionEl.textContent = opt.text; elements.qtdeGtsDinamico.appendChild(optionEl); }); gerarInputs(elements.qtdeGtsDinamico.value, elements.inputsGtsDinamico); };
-            
-            function attachMainEventListeners() { 
-                elements.btnFornoGrande.addEventListener('click', () => atualizarConfiguracaoForno('grande')); 
-                elements.btnFornoPequeno.addEventListener('click', () => atualizarConfiguracaoForno('pequeno')); 
-                elements.qtdeGtsDinamico.addEventListener('change', (e) => gerarInputs(e.target.value, elements.inputsGtsDinamico)); 
-                elements.btnCarregarCsv.addEventListener('click', () => elements.csvFileInput.click()); 
-                elements.csvFileInput.addEventListener('change', () => { if (elements.csvFileInput.files.length > 0) { elements.btnCarregarCsv.textContent = `Arquivo: ${elements.csvFileInput.files[0].name}`; } }); 
-                elements.btnGerarArranjo.addEventListener('click', gerarArranjo); 
-                elements.btnExportExcel.addEventListener('click', exportarParaExcel); 
-                attachDropZoneListeners(); 
-            }
-
-            async function gerarArranjo() { 
-                if (!elements.csvFileInput.files[0]) { alert('Por favor, carregue um arquivo CSV primeiro.'); return; } 
-                const originalButtonText = elements.btnGerarArranjo.innerHTML; 
-                elements.btnGerarArranjo.innerHTML = '<div class="spinner"></div> Gerando...'; 
-                elements.btnGerarArranjo.disabled = true; 
-                const formData = new FormData(); 
-                formData.append('file', elements.csvFileInput.files[0], 'data.csv'); 
-                const fornoAtivo = elements.btnFornoGrande.classList.contains('active') ? 'grande' : 'pequeno'; 
-                formData.append('forno', fornoAtivo); 
-                gtsAtuais = Array.from(elements.inputsGtsDinamico.querySelectorAll('input')).map(input => input.value).filter(Boolean); 
-                formData.append('gts_selecionados', JSON.stringify(gtsAtuais)); 
-                try { 
-                    const response = await fetch(n8nGerarArranjoUrl, { method: 'POST', body: formData }); 
-                    if (!response.ok) { const errorText = await response.text(); throw new Error(`Erro: ${errorText}`); } 
-                    const data = await response.json(); 
-                    elements.step1.classList.add('hidden'); elements.step2.classList.remove('hidden'); elements.step3.classList.remove('hidden'); updateStepper(2); 
-                    popularLista(elements.arranjoProducaoLista, data.arranjo_producao, false); 
-                    popularLista(elements.itensPendentesLista, data.itens_pendentes, true); 
-                } catch (error) { alert('Ocorreu um erro: ' + error.message); } finally { elements.btnGerarArranjo.innerHTML = originalButtonText; elements.btnGerarArranjo.disabled = false; } 
-            }
-
-            function popularLista(container, items, isPendente) { 
-                if (!container) { console.error("Container inválido em popularLista"); return; }
-                container.innerHTML = ''; 
-                if (!items || items.length === 0) { container.innerHTML = '<p style="color: var(--text-secondary);">Nenhum item.</p>'; return; } 
-                items.forEach((item, index) => { 
-                    const card = document.createElement('div'); card.className = 'item-card'; 
-                    if (!container.id.startsWith('details-')) { card.draggable = true; } 
-                    card.id = `${container.id}-item-${Date.now()}-${index}`; 
-                    card.dataset.ordemProducao = item.ordemProducao || 'N/A'; 
-                    card.dataset.codigo = item.codigo || 'N/A'; 
-                    card.dataset.descricao = item.descricao || 'N/A'; 
-                    card.dataset.dimensao = item.dimensao || 'N/A'; 
-                    card.dataset.gt = item.gt || ''; 
-                    
-                    let gtHtml = `<b>GT:</b> ${item.gt || 'N/A'}`; 
-                    // Se for pendente e sem GT, ou se estiver no modo edição
-                    if (isPendente && (!item.gt || item.gt.trim() === '')) { 
-                        gtHtml = `<b>GT:</b> <input type="text" class="gt-input" placeholder="N/A" onkeydown="reavaliarItem(event, this.parentElement.parentElement)" onblur="cancelarEdicao(event, this.parentElement.parentElement)">`; 
-                    }
-                    
-                    const deleteBtn = !container.id.startsWith('details-') ? '<span class="delete-btn" onclick="this.parentElement.remove()">×</span>' : '';
-                    const editAction = !container.id.startsWith('details-') ? 'onclick="editarGT(event, this.parentElement)"' : '';
-
-                    card.innerHTML = `${deleteBtn}<p><b>Ordem de Produção:</b> ${item.ordemProducao || 'N/A'}</p><p><b>Código:</b> ${item.codigo || 'N/A'}</p><p>${item.descricao || 'N/A'}</p><p><b>Bitola:</b> ${item.dimensao || 'N/A'}</p><p class="gt-display" ${editAction}>${gtHtml}</p>`; 
-                    
-                    if (!container.id.startsWith('details-')) { 
-                        card.addEventListener('dragstart', handleDragStart); card.addEventListener('dragend', handleDragEnd); 
-                    } 
-                    container.appendChild(card); 
-                }); 
-            }
-
-            // --- LÓGICA DE EDIÇÃO NO CARD ---
-            window.editarGT = function(event, cardElement) {
-                if (event.target.tagName === 'INPUT') return;
-                const gtDisplayElement = cardElement.querySelector('.gt-display');
-                const currentGT = cardElement.dataset.gt;
-                gtDisplayElement.innerHTML = `<b>GT:</b> <input type="text" class="gt-input" value="${currentGT}" onkeydown="reavaliarItem(event, this.parentElement.parentElement)" onblur="cancelarEdicao(event, this.parentElement.parentElement)">`;
-                const inputField = gtDisplayElement.querySelector('.gt-input');
-                if (inputField) { inputField.focus(); inputField.select(); }
-            }
-
-            window.cancelarEdicao = function(event, cardElement) {
-                // Pequeno delay para permitir que o onkeydown processe primeiro se foi Enter
-                setTimeout(() => {
-                    const currentGT = cardElement.dataset.gt;
-                    const gtDisplayElement = cardElement.querySelector('.gt-display');
-                    if(gtDisplayElement.querySelector('input')) { // Só restaura se ainda tiver input
-                         gtDisplayElement.innerHTML = `<b>GT:</b> ${currentGT || 'N/A'}`;
-                    }
-                }, 100);
-            }
-
-            window.reavaliarItem = async function(event, cardElement) {
-                if (event.key === 'Enter') {
-                    const input = event.target;
-                    const novoGT = input.value.trim();
-                    const codigoItem = cardElement.dataset.codigo;
-                    
-                    // Se não mudou nada
-                    if (novoGT === cardElement.dataset.gt) { 
-                        const gtDisplayElement = cardElement.querySelector('.gt-display');
-                        gtDisplayElement.innerHTML = `<b>GT:</b> ${novoGT || 'N/A'}`;
-                        return; 
-                    }
-
-                    input.disabled = true; input.value = "Salvando...";
-
-                    try {
-                        const response = await fetch(n8nAtualizarGTUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ codigo: codigoItem, gt: novoGT }) });
-                        if (!response.ok) throw new Error('Falha ao atualizar.');
-
-                        cardElement.dataset.gt = novoGT;
-                        const gtDisplayElement = cardElement.querySelector('.gt-display');
-                        gtDisplayElement.innerHTML = `<b>GT:</b> ${novoGT || 'N/A'}`;
-
-                        const corresponde = gtsAtuais.some(gtSelecionado => novoGT.includes(gtSelecionado));
-
-                        if (corresponde && cardElement.parentElement.id !== 'arranjo-producao-lista') {
-                            elements.arranjoProducaoLista.appendChild(cardElement);
-                            reordenarArranjo();
-                        } else if (!corresponde && cardElement.parentElement.id !== 'itens-pendentes-lista') {
-                            elements.itensPendentesLista.appendChild(cardElement);
-                        }
-                    } catch (error) {
-                        alert(error.message);
-                        input.disabled = false; input.value = novoGT;
-                        input.focus();
-                    }
-                } else if (event.key === 'Escape') {
-                    const currentGT = cardElement.dataset.gt;
-                    const gtDisplayElement = cardElement.querySelector('.gt-display');
-                    gtDisplayElement.innerHTML = `<b>GT:</b> ${currentGT || 'N/A'}`;
-                }
-            }
-
-            function reordenarArranjo() {
-                const lista = elements.arranjoProducaoLista;
-                const items = Array.from(lista.querySelectorAll('.item-card'));
-                items.sort((a, b) => {
-                    try {
-                        const espessuraA = parseFloat(a.dataset.dimensao.split('X')[1].trim().replace(',', '.'));
-                        const espessuraB = parseFloat(b.dataset.dimensao.split('X')[1].trim().replace(',', '.'));
-                        if (isNaN(espessuraA) || isNaN(espessuraB)) return 0;
-                        return espessuraA - espessuraB;
-                    } catch (e) { return 0; }
-                });
-                items.forEach(item => lista.appendChild(item));
-            }
-            
-            function handleDragStart(e) { e.target.classList.add('dragging'); e.dataTransfer.setData('text/plain', e.target.id); }
-            function handleDragEnd(e) { e.target.classList.remove('dragging'); }
-            function attachDropZoneListeners() {
-                const dropZones = [elements.arranjoProducaoLista?.parentElement, elements.itensPendentesLista?.parentElement].filter(Boolean);
-                dropZones.forEach(zone => {
-                    zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
-                    zone.addEventListener('dragleave', () => { zone.classList.remove('drag-over'); });
-                    zone.addEventListener('drop', e => {
-                        e.preventDefault(); zone.classList.remove('drag-over');
-                        const id = e.dataTransfer.getData('text');
-                        const draggableElement = document.getElementById(id);
-                        const targetList = zone.querySelector('div[id$="-lista"]');
-                        targetList.appendChild(draggableElement);
-                        if (targetList.id === 'arranjo-producao-lista') { reordenarArranjo(); }
-                    });
-                });
-            }
-            
-            function exportarParaExcel() {
-                const originalText = elements.btnExportExcel.innerHTML;
-                elements.btnExportExcel.innerHTML = '<div class="spinner"></div> Exportando...';
-                elements.btnExportExcel.disabled = true;
-                try {
-                    const itemsParaExportar = [];
-                    const itemCards = elements.arranjoProducaoLista.querySelectorAll('.item-card');
-                    if (itemCards.length === 0) { alert("Não há itens para exportar."); return; }
-                    itemsParaExportar.push([ "Ordem de Produção", "Código", "Descrição", "Bitola", "GT" ]);
-                    itemCards.forEach(card => {
-                        itemsParaExportar.push([ card.dataset.ordemProducao, card.dataset.codigo, card.dataset.descricao, card.dataset.dimensao, card.dataset.gt ]);
-                    });
-                    const wb = XLSX.utils.book_new();
-                    const ws = XLSX.utils.aoa_to_sheet(itemsParaExportar);
-                    XLSX.utils.book_append_sheet(wb, ws, "Arranjo de Produção");
-                    XLSX.writeFile(wb, "Arranjo_Producao.xlsx");
-                } catch (error) { alert(`Erro: ${error.message}`); } finally { elements.btnExportExcel.innerHTML = originalText; elements.btnExportExcel.disabled = false; }
-            }
-
-            // --- LÓGICA DO GERENCIADOR (SUPABASE DIRETO) ---
-            async function initializeManager() {
-                const mestreTableBody = document.getElementById('mestre-table').querySelector('tbody');
-                const searchInput = document.getElementById('search-mestre');
-                const addBtn = document.getElementById('add-mestre-btn');
-
-                async function loadItems(searchTerm = '') {
-                    mestreTableBody.innerHTML = '<tr><td colspan="4" style="text-align:center;">Carregando...</td></tr>';
-                    let query = supabase.from('itens_mestre').select().order('codigo_item', { ascending: true });
-                    if (searchTerm) {
-                        query = query.or(`codigo_item.ilike.%${searchTerm}%,bitola.ilike.%${searchTerm}%,gt.ilike.%${searchTerm}%`);
-                    }
-                    const { data, error } = await query.limit(100);
-
-                    if (error) {
-                        mestreTableBody.innerHTML = '<tr><td colspan="4" style="text-align:center;">Erro ao carregar.</td></tr>';
-                        console.error(error); return;
-                    }
-                    
-                    mestreTableBody.innerHTML = '';
-                    if (data.length === 0) { mestreTableBody.innerHTML = '<tr><td colspan="4" style="text-align:center;">Nenhum item.</td></tr>'; }
-
-                    data.forEach(item => {
-                        const tr = document.createElement('tr');
-                        tr.dataset.id = item.id;
-                        tr.innerHTML = `
-                            <td><input type="text" value="${item.codigo_item || ''}" data-field="codigo_item"></td>
-                            <td><input type="text" value="${item.bitola || ''}" data-field="bitola"></td>
-                            <td><input type="text" value="${item.gt || ''}" data-field="gt"></td>
-                            <td class="manager-table-actions"><button class="btn btn-info save-btn">Salvar</button><button class="btn btn-primary delete-btn">Excluir</button></td>`;
-                        mestreTableBody.appendChild(tr);
-
-                        tr.querySelector('.save-btn').addEventListener('click', async () => {
-                            const updatedItem = {
-                                codigo_item: tr.querySelector('[data-field="codigo_item"]').value,
-                                bitola: tr.querySelector('[data-field="bitola"]').value,
-                                gt: tr.querySelector('[data-field="gt"]').value
-                            };
-                            const { error } = await supabase.from('itens_mestre').update(updatedItem).eq('id', item.id);
-                            if (error) { alert('Erro ao salvar!'); } else { alert('Salvo!'); tr.style.backgroundColor = 'rgba(16, 185, 129, 0.2)'; setTimeout(()=> tr.style.backgroundColor = '', 2000)}
-                        });
-
-                        tr.querySelector('.delete-btn').addEventListener('click', async () => {
-                            if (confirm(`Excluir item ${item.codigo_item}?`)) {
-                                const { error } = await supabase.from('itens_mestre').delete().eq('id', item.id);
-                                if (error) { alert('Erro ao excluir!'); } else { tr.remove(); }
-                            }
-                        });
-                    });
-                }
-                
-                addBtn.addEventListener('click', () => {
-                    const tr = document.createElement('tr');
-                    tr.innerHTML = `<td><input type="text" placeholder="Código" data-field="codigo_item"></td><td><input type="text" placeholder="Bitola" data-field="bitola"></td><td><input type="text" placeholder="GT" data-field="gt"></td><td class="manager-table-actions"><button class="btn btn-success create-btn">Criar</button></td>`;
-                    mestreTableBody.prepend(tr);
-                    tr.querySelector('.create-btn').addEventListener('click', async () => {
-                        const newItem = {
-                            codigo_item: tr.querySelector('[data-field="codigo_item"]').value,
-                            bitola: tr.querySelector('[data-field="bitola"]').value,
-                            gt: tr.querySelector('[data-field="gt"]').value
-                        };
-                        if (!newItem.codigo_item) { alert('Código obrigatório.'); return; }
-                        const { error } = await supabase.from('itens_mestre').insert(newItem);
-                        if (error) { alert('Erro ao criar!'); } else { loadItems(searchInput.value); }
-                    });
-                });
-                
-                let searchTimeout;
-                searchInput.addEventListener('input', () => {
-                    clearTimeout(searchTimeout);
-                    searchTimeout = setTimeout(() => loadItems(searchInput.value), 300);
-                });
-                loadItems();
-            }
-
-            // --- LÓGICA DO HISTÓRICO (SUPABASE DIRETO) ---
-            const historyModal = document.getElementById('history-modal');
-            const historyTableBody = document.querySelector('#history-table tbody');
-            const historyLoading = document.getElementById('history-loading');
-            const historyBtn = document.getElementById('history-btn');
-            const historyModalClose = document.getElementById('history-modal-close');
-            const detailsModal = document.getElementById('details-modal');
-            const detailsModalClose = document.getElementById('details-modal-close');
-            const detailsTitle = document.getElementById('details-title');
-            const detailsParams = document.getElementById('details-params');
-            const detailsArranjoLista = document.getElementById('details-arranjo-lista');
-            const detailsPendentesLista = document.getElementById('details-pendentes-lista');
-
-            async function fetchHistory() {
-                historyTableBody.innerHTML = '';
-                historyLoading.classList.remove('hidden');
-                historyModal.classList.remove('hidden');
-                
-                // Busca direta no Supabase
-                const { data, error } = await supabase
-                    .from('arranjos_gerados')
-                    .select('*')
-                    .order('created_at', { ascending: false })
-                    .limit(50);
-
-                historyLoading.classList.add('hidden');
-
-                if (error) { alert('Erro ao buscar histórico.'); return; }
-                
-                if (data.length === 0) {
-                    historyTableBody.innerHTML = `<tr><td colspan="5" style="text-align:center;">Nenhum histórico.</td></tr>`;
-                    return;
-                }
-
-                data.forEach(record => {
-                    const tr = document.createElement('tr');
-                    const params = record.parametros_usados || {};
-                    let gts = 'Nenhum';
-                    try { 
-                        if(params.gts_selecionados) gts = JSON.parse(params.gts_selecionados).join(', ');
-                    } catch(e) {}
-                    const paramText = `Forno: ${params.forno || 'N/A'}, GTs: ${gts}`;
-                    
-                    tr.innerHTML = `
-                        <td>${record.id}</td>
-                        <td>${new Date(record.created_at).toLocaleString('pt-BR')}</td>
-                        <td>${record.usuario || 'N/A'}</td>
-                        <td>${paramText}</td>
-                        <td><button class="btn btn-secondary details-btn">Detalhes</button></td>
-                    `;
-                    tr.querySelector('.details-btn').addEventListener('click', () => showDetailsModal(record.id, paramText, record.arranjo_resultado));
-                    historyTableBody.appendChild(tr);
-                });
-            }
-
-            function showDetailsModal(id, paramText, rawData) {
-                console.log("Processando detalhes...", rawData);
-                
-                // 1. Tentar fazer o parse do JSON se for string
-                let data = rawData;
-                if (typeof data === 'string') {
-                    try { data = JSON.parse(data); } catch(e) { console.error("Erro parse JSON", e); }
-                }
-
-                // 2. Se o n8n retornou um array de objetos [ {json: ...} ]
-                if (Array.isArray(data) && data.length > 0) {
-                    data = data[0];
-                }
-
-                // 3. Se estiver dentro da propriedade 'json'
-                if (data && data.json) {
-                    data = data.json;
-                }
-
-                // 4. Extrair os arrays com segurança
-                const arranjo = Array.isArray(data?.arranjo_producao) ? data.arranjo_producao : [];
-                const pendentes = Array.isArray(data?.itens_pendentes) ? data.itens_pendentes : [];
-
-                // 5. Preencher a tela (USANDO AS VARIÁVEIS DIRETAS, SEM 'elements.')
-                detailsTitle.textContent = `Detalhes do Arranjo #${id}`;
-                detailsParams.textContent = `Parâmetros: ${paramText}`;
-                
-                popularLista(detailsArranjoLista, arranjo, false);
-                popularLista(detailsPendentesLista, pendentes, false);
-                
-                detailsModal.classList.remove('hidden');
-            }
-
-            // Event Listeners Histórico
-            historyBtn.addEventListener('click', fetchHistory);
-            historyModalClose.addEventListener('click', () => historyModal.classList.add('hidden'));
-            historyModal.addEventListener('click', (e) => { if(e.target === historyModal) historyModal.classList.add('hidden'); });
-            detailsModalClose.addEventListener('click', () => detailsModal.classList.add('hidden'));
-            detailsModal.addEventListener('click', (e) => { if(e.target === detailsModal) detailsModal.classList.add('hidden'); });
-
-            // Event Listeners Globais
-            mainAppBtn.addEventListener('click', showMainApp);
-            managerBtn.addEventListener('click', showManager);
-            themeToggle.addEventListener('change', () => {
-                const isDark = themeToggle.checked;
-                document.body.classList.toggle('dark-theme', isDark);
-                document.body.classList.toggle('light-theme', !isDark);
-                logo.src = isDark 
-                    ? 'https://ctfamadobrasil.com.br/wp-content/uploads/2025/12/Gemini_Generated_Image_v8cib8v8cib8v8ci-removebg-preview.png' 
-                    : 'https://ctfamadobrasil.com.br/wp-content/uploads/2025/09/logo.png';
+        function setView(viewName) {
+            // Atualiza botões
+            Object.values(navBtns).forEach(btn => {
+                btn.classList.remove('btn-primary');
+                btn.classList.add('btn-secondary');
             });
+            navBtns[viewName].classList.remove('btn-secondary');
+            navBtns[viewName].classList.add('btn-primary');
+
+            // Limpa e injeta template
+            appContainer.innerHTML = '';
+            const tpl = document.getElementById(`tpl-${viewName}`);
+            appContainer.appendChild(tpl.content.cloneNode(true));
+
+            // Inicializa lógica da view
+            if(viewName === 'gerar') initGerarArranjo();
+            if(viewName === 'mestre') initMestre();
+            if(viewName === 'historico') initHistorico();
+        }
+
+        // --- LÓGICA: GERAR ARRANJO ---
+        function initGerarArranjo() {
+            const btnGrande = document.getElementById('btn-forno-grande');
+            const btnPequeno = document.getElementById('btn-forno-pequeno');
+            const selQtde = document.getElementById('sel-qtde-gts');
+            const divInputs = document.getElementById('container-gts-inputs');
+            const btnUpload = document.getElementById('btn-upload');
+            const inputFile = document.getElementById('input-csv');
+            const btnProcessar = document.getElementById('btn-processar');
+
+            let fornoAtual = 'grande';
+
+            function renderInputs() {
+                divInputs.innerHTML = '';
+                const qtde = parseInt(selQtde.value);
+                for(let i=0; i<qtde; i++) {
+                    const inp = document.createElement('input');
+                    inp.type = 'text';
+                    inp.placeholder = `Código GT ${i+1}`;
+                    divInputs.appendChild(inp);
+                }
+            }
+
+            // Eventos de Configuração
+            btnGrande.onclick = () => { 
+                fornoAtual = 'grande'; 
+                btnGrande.classList.add('active'); btnPequeno.classList.remove('active'); 
+                selQtde.innerHTML = '<option value="1">1 GT</option><option value="2">2 GTs</option><option value="3">3 GTs</option>';
+                renderInputs();
+            };
+            btnPequeno.onclick = () => { 
+                fornoAtual = 'pequeno'; 
+                btnPequeno.classList.add('active'); btnGrande.classList.remove('active'); 
+                selQtde.innerHTML = '<option value="1">1 GT</option><option value="2">2 GTs</option>';
+                renderInputs();
+            };
+            selQtde.onchange = renderInputs;
+
+            // Upload
+            btnUpload.onclick = () => inputFile.click();
+            inputFile.onchange = () => {
+                if(inputFile.files[0]) document.getElementById('file-name').textContent = inputFile.files[0].name;
+            };
+
+            // Processar
+            btnProcessar.onclick = async () => {
+                if(!inputFile.files[0]) return alert('Selecione um arquivo CSV!');
+                
+                const originalText = btnProcessar.innerHTML;
+                btnProcessar.innerHTML = '<div class="spinner"></div> Processando...';
+                btnProcessar.disabled = true;
+
+                const gts = Array.from(divInputs.querySelectorAll('input')).map(i => i.value).filter(v => v.trim() !== '');
+                const formData = new FormData();
+                formData.append('file', inputFile.files[0]);
+                formData.append('forno', fornoAtual);
+                formData.append('gts_selecionados', JSON.stringify(gts));
+
+                try {
+                    const res = await fetch(URL_N8N_GERAR, { method: 'POST', body: formData });
+                    if(!res.ok) throw new Error('Erro no servidor');
+                    const data = await res.json();
+                    
+                    // Exibir Resultado
+                    document.getElementById('view-step-1').classList.add('hidden');
+                    document.getElementById('view-step-2').classList.remove('hidden');
+                    document.getElementById('step-nav-2').classList.add('active');
+
+                    renderListaItens(document.getElementById('lista-producao'), data.arranjo_producao, false);
+                    renderListaItens(document.getElementById('lista-pendente'), data.itens_pendentes, true);
+                    
+                    // Configurar exportação
+                    document.getElementById('btn-avancar').onclick = () => {
+                        document.getElementById('view-step-2').classList.add('hidden');
+                        document.getElementById('view-step-3').classList.remove('hidden');
+                        document.getElementById('step-nav-3').classList.add('active');
+                    };
+
+                    document.getElementById('btn-export-excel').onclick = () => {
+                        const wb = XLSX.utils.book_new();
+                        const wsData = [["OP", "Código", "Descrição", "Bitola", "GT"]];
+                        // Coleta dados DOM (simplificado)
+                        document.querySelectorAll('#lista-producao .item-card').forEach(card => {
+                            wsData.push([card.dataset.op, card.dataset.cod, card.dataset.desc, card.dataset.bitola, card.dataset.gt]);
+                        });
+                        const ws = XLSX.utils.aoa_to_sheet(wsData);
+                        XLSX.utils.book_append_sheet(wb, ws, "Arranjo");
+                        XLSX.writeFile(wb, "Arranjo_Producao.xlsx");
+                    };
+
+                } catch (err) {
+                    alert('Erro: ' + err.message);
+                } finally {
+                    btnProcessar.innerHTML = originalText;
+                    btnProcessar.disabled = false;
+                }
+            };
+
+            // Inicializa inputs
+            renderInputs();
+        }
+
+        // --- HELPER: RENDERIZAR ITENS ---
+        function renderListaItens(container, itens, editavel) {
+            container.innerHTML = '';
+            if(!itens || !itens.length) { container.innerHTML = '<p style="text-align:center; color:gray;">Nenhum item.</p>'; return; }
+
+            itens.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'item-card';
+                div.draggable = true;
+                
+                // Dados para Excel
+                div.dataset.op = item.ordemProducao || '';
+                div.dataset.cod = item.codigo || '';
+                div.dataset.desc = item.descricao || '';
+                div.dataset.bitola = item.dimensao || '';
+                div.dataset.gt = item.gt || '';
+
+                let gtDisplay = `GT: <b>${item.gt || 'N/A'}</b>`;
+                if(editavel) {
+                    gtDisplay = `GT: <input type="text" class="gt-input" value="${item.gt || ''}" placeholder="N/A" onkeydown="salvarGt(event, '${item.codigo}', this)">`;
+                }
+
+                div.innerHTML = `
+                    <span class="delete-btn" onclick="this.parentElement.remove()">×</span>
+                    <p><strong>OP:</strong> ${item.ordemProducao || '-'}</p>
+                    <p><strong>Cód:</strong> ${item.codigo || '-'}</p>
+                    <p>${item.descricao || ''}</p>
+                    <p>Bitola: ${item.dimensao || '-'}</p>
+                    <p style="margin-top:5px;">${gtDisplay}</p>
+                `;
+
+                // Drag Events simples
+                div.ondragstart = (e) => { e.dataTransfer.setData('text/plain', 'dragging'); window.draggedItem = div; div.style.opacity = '0.5'; };
+                div.ondragend = () => { div.style.opacity = '1'; window.draggedItem = null; };
+                
+                container.appendChild(div);
+            });
+
+            // Drop Zone Logic
+            container.parentElement.ondragover = (e) => { e.preventDefault(); container.parentElement.style.borderColor = 'var(--color-primary)'; };
+            container.parentElement.ondragleave = () => { container.parentElement.style.borderColor = 'var(--border-color)'; };
+            container.parentElement.ondrop = (e) => {
+                e.preventDefault();
+                container.parentElement.style.borderColor = 'var(--border-color)';
+                if(window.draggedItem) container.appendChild(window.draggedItem);
+            };
+        }
+
+        // Função Global para salvar GT inline
+        window.salvarGt = async (e, codigo, input) => {
+            if(e.key === 'Enter') {
+                input.disabled = true;
+                input.style.backgroundColor = '#e8f0fe';
+                try {
+                    await fetch(URL_N8N_UPDATE, {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({ codigo, gt: input.value })
+                    });
+                    input.style.backgroundColor = '#d1fae5'; // Verde sucesso
+                } catch(err) {
+                    alert('Erro ao salvar');
+                    input.style.backgroundColor = '#fee2e2'; // Vermelho erro
+                } finally {
+                    input.disabled = false;
+                }
+            }
+        };
+
+        // --- LÓGICA: GERENCIADOR MESTRE ---
+        async function initMestre() {
+            const tbody = document.querySelector('#tabela-mestre tbody');
+            const busca = document.getElementById('busca-mestre');
+            const btnAdd = document.getElementById('btn-add-novo');
+
+            async function carregar(filtro = '') {
+                tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">Carregando...</td></tr>';
+                let query = supabase.from('itens_mestre').select('*').order('codigo_item', {ascending: true}).limit(50);
+                if(filtro) query = query.ilike('codigo_item', `%${filtro}%`);
+                
+                const { data, error } = await query;
+                tbody.innerHTML = '';
+                
+                if(error || !data.length) { tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">Sem dados.</td></tr>'; return; }
+
+                data.forEach(row => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${row.codigo_item}</td>
+                        <td><input type="text" value="${row.bitola || ''}"></td>
+                        <td><input type="text" value="${row.gt || ''}"></td>
+                        <td>
+                            <button class="btn btn-info btn-sm" onclick="salvarItemMestre(${row.id}, this)">💾</button>
+                            <button class="btn btn-primary btn-sm" onclick="deletarItemMestre(${row.id}, this)">🗑️</button>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            }
+
+            // Funções globais para botões da tabela
+            window.salvarItemMestre = async (id, btn) => {
+                const tr = btn.closest('tr');
+                const inputs = tr.querySelectorAll('input');
+                await supabase.from('itens_mestre').update({ bitola: inputs[0].value, gt: inputs[1].value }).eq('id', id);
+                alert('Atualizado!');
+            };
+
+            window.deletarItemMestre = async (id, btn) => {
+                if(confirm('Excluir?')) {
+                    await supabase.from('itens_mestre').delete().eq('id', id);
+                    btn.closest('tr').remove();
+                }
+            };
+
+            btnAdd.onclick = async () => {
+                const cod = prompt('Código do novo item:');
+                if(cod) {
+                    await supabase.from('itens_mestre').insert({ codigo_item: cod });
+                    carregar();
+                }
+            };
+
+            busca.onkeyup = (e) => { if(e.key === 'Enter') carregar(busca.value); };
+            carregar();
+        }
+
+        // --- LÓGICA: HISTÓRICO ---
+        async function initHistorico() {
+            const tbody = document.querySelector('#tabela-historico tbody');
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">Carregando...</td></tr>';
             
-            // Inicialização
-            document.body.classList.add('dark-theme');
-            showMainApp();
-        });
+            const { data } = await supabase.from('arranjos_gerados').select('*').order('created_at', {ascending: false}).limit(20);
+            tbody.innerHTML = '';
+
+            data.forEach(row => {
+                const tr = document.createElement('tr');
+                const dt = new Date(row.created_at).toLocaleString();
+                // Tenta extrair parâmetros
+                let params = 'N/A';
+                if(row.parametros_usados && row.parametros_usados.forno) {
+                    params = `Forno: ${row.parametros_usados.forno}`;
+                }
+
+                tr.innerHTML = `
+                    <td>${row.id}</td>
+                    <td>${dt}</td>
+                    <td>${row.usuario || '-'}</td>
+                    <td>${params}</td>
+                    <td><button class="btn btn-secondary" onclick='abrirDetalhes(${JSON.stringify(row.id)}, ${JSON.stringify(params)}, ${JSON.stringify(row.arranjo_resultado)})'>Ver</button></td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        window.abrirDetalhes = (id, params, jsonRaw) => {
+            const modal = document.getElementById('modal-detalhes');
+            document.getElementById('modal-params').textContent = params;
+            
+            // Tratamento robusto do JSON
+            let data = jsonRaw;
+            if(typeof data === 'string') { try { data = JSON.parse(data); } catch(e){} }
+            // Se veio do n8n pode estar dentro de 'json' ou array
+            if(Array.isArray(data) && data[0]?.json) data = data[0].json;
+            else if(data?.json) data = data.json;
+
+            renderListaItens(document.getElementById('modal-lista-prod'), data?.arranjo_producao || [], false);
+            renderListaItens(document.getElementById('modal-lista-pend'), data?.itens_pendentes || [], false);
+            
+            modal.classList.remove('hidden');
+        };
+
+        // --- EVENTOS INICIAIS ---
+        navBtns.gerar.onclick = () => setView('gerar');
+        navBtns.mestre.onclick = () => setView('mestre');
+        navBtns.historico.onclick = () => setView('historico');
+
+        document.getElementById('theme-toggle').onchange = (e) => {
+            document.body.className = e.target.checked ? 'dark-theme' : 'light-theme';
+            const logo = document.getElementById('logo-fama');
+            logo.src = e.target.checked 
+                ? 'https://ctfamadobrasil.com.br/wp-content/uploads/2025/12/Gemini_Generated_Image_v8cib8v8cib8v8ci-removebg-preview.png' 
+                : 'https://ctfamadobrasil.com.br/wp-content/uploads/2025/09/logo.png';
+        };
+
+        // Inicia na tela principal
+        setView('gerar');
+
     </script>
 </body>
 </html>
