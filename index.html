@@ -76,6 +76,8 @@
             --text-secondary: var(--color-text-light-secondary);
             --border-color: var(--color-border-light);
             --input-bg: #ffffff;
+            --autocomplete-bg: #ffffff;
+            --autocomplete-hover: #f3f4f6;
         }
 
         .dark-theme {
@@ -85,6 +87,8 @@
             --text-secondary: var(--color-text-dark-secondary);
             --border-color: var(--color-border-dark);
             --input-bg: #111827;
+            --autocomplete-bg: #1f2937;
+            --autocomplete-hover: #374151;
         }
 
         /* Aplicação do Tema Base */
@@ -762,7 +766,7 @@
             min-width: 100px; 
         }
 
-        /* --- MODAL ESPECÍFICO PARA ADIÇÃO MANUAL --- */
+        /* --- MODAL ESPECÍFICO PARA ADIÇÃO MANUAL & AUTOCOMPLETE --- */
         .modal-manual-grid {
             display: grid;
             gap: 1rem;
@@ -777,6 +781,64 @@
             margin-bottom: 0.25rem;
             display: block;
         }
+
+        /* Estilos do Autocomplete */
+        .autocomplete-container {
+            position: relative;
+            width: 100%;
+        }
+
+        .autocomplete-list {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            border: 1px solid var(--border-color);
+            border-top: none;
+            border-radius: 0 0 var(--radius-md) var(--radius-md);
+            background-color: var(--autocomplete-bg);
+            z-index: 1050;
+            max-height: 200px;
+            overflow-y: auto;
+            box-shadow: var(--shadow-md);
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            display: none; /* Escondido por padrão */
+        }
+
+        .autocomplete-list.visible {
+            display: block;
+        }
+
+        .autocomplete-item {
+            padding: 0.75rem 1rem;
+            cursor: pointer;
+            border-bottom: 1px solid var(--border-color);
+            color: var(--text-primary);
+            font-size: 0.9rem;
+            transition: background-color 0.2s;
+        }
+
+        .autocomplete-item:last-child {
+            border-bottom: none;
+        }
+
+        .autocomplete-item:hover {
+            background-color: var(--autocomplete-hover);
+            color: var(--color-primary);
+        }
+
+        .autocomplete-item strong {
+            color: var(--color-primary);
+        }
+        
+        .autocomplete-item small {
+            display: block;
+            color: var(--text-secondary);
+            font-size: 0.75rem;
+        }
+
 
         /* --- Responsividade --- */
         @media (max-width: 768px) {
@@ -1075,7 +1137,7 @@
         </div>
     </main>
 
-    <!-- MODAL DE ADIÇÃO MANUAL -->
+    <!-- MODAL DE ADIÇÃO MANUAL COM AUTOCOMPLETE -->
     <div id="modal-adicionar-manual-overlay" class="custom-dialog-overlay">
         <div class="custom-dialog-box">
             <h3 class="custom-dialog-title" style="margin-bottom: 1.5rem;">Adicionar Manualmente</h3>
@@ -1083,7 +1145,13 @@
             <div class="modal-manual-grid">
                 <div>
                     <label>Código da Mola</label>
-                    <input type="text" id="manual-input-codigo" placeholder="Digite o código e tecle Tab...">
+                    <!-- Container relativo para o autocomplete -->
+                    <div class="autocomplete-container">
+                        <input type="text" id="manual-input-codigo" placeholder="Digite o código (ex: MT...) para buscar" autocomplete="off">
+                        <ul id="autocomplete-list" class="autocomplete-list">
+                            <!-- Itens gerados via JS -->
+                        </ul>
+                    </div>
                 </div>
                 <div>
                     <label>Ordem de Produção (OP)</label>
@@ -1224,6 +1292,9 @@
             
             // Estado Atual
             let gtsAtuais = [];
+            
+            // Autocomplete State
+            let autocompleteTimeout = null;
 
             // --- Referências ao DOM ---
             const elements = {
@@ -1299,9 +1370,10 @@
                 gtDisplay: document.getElementById('filter-history-gt-display'),
                 gtDropdown: document.getElementById('filter-history-gt-dropdown'),
 
-                // Modal Manual
+                // Modal Manual & Autocomplete
                 modalManualOverlay: document.getElementById('modal-adicionar-manual-overlay'),
                 modalInputCodigo: document.getElementById('manual-input-codigo'),
+                autocompleteList: document.getElementById('autocomplete-list'),
                 modalInputOp: document.getElementById('manual-input-op'),
                 modalInputQtd: document.getElementById('manual-input-qtd'),
                 modalInputBitola: document.getElementById('manual-input-bitola'),
@@ -1852,13 +1924,17 @@
                 }
             }
 
-            // --- ADIÇÃO MANUAL (NOVA) ---
+            // --- ADIÇÃO MANUAL E AUTOCOMPLETE (NOVO) ---
+            
             elements.btnAddManual.addEventListener('click', () => {
                 elements.modalInputCodigo.value = '';
                 elements.modalInputOp.value = '';
                 elements.modalInputQtd.value = '';
                 elements.modalInputBitola.value = '';
                 elements.modalInputGt.value = '';
+                elements.autocompleteList.innerHTML = '';
+                elements.autocompleteList.classList.remove('visible');
+                
                 elements.modalManualOverlay.classList.add('open');
                 setTimeout(() => elements.modalInputCodigo.focus(), 100);
             });
@@ -1867,32 +1943,58 @@
                 elements.modalManualOverlay.classList.remove('open');
             });
 
-            // Busca automática ao sair do campo Código
-            elements.modalInputCodigo.addEventListener('blur', async () => {
-                const codigo = elements.modalInputCodigo.value.trim();
-                if (!codigo) return;
-
-                elements.modalInputBitola.placeholder = "Buscando...";
-                elements.modalInputGt.placeholder = "Buscando...";
+            // Lógica do Autocomplete
+            elements.modalInputCodigo.addEventListener('input', (e) => {
+                const val = e.target.value.trim();
                 
-                try {
-                    const { data, error } = await _supabase
-                        .from('itens_mestre')
-                        .select('dimensao, gt')
-                        .ilike('codigo_item', codigo)
-                        .maybeSingle();
+                clearTimeout(autocompleteTimeout);
+                elements.autocompleteList.innerHTML = '';
+                elements.autocompleteList.classList.remove('visible');
 
-                    if (data) {
-                        elements.modalInputBitola.value = data.dimensao || '';
-                        elements.modalInputGt.value = data.gt || '';
-                    } else {
-                        elements.modalInputBitola.value = '';
-                        elements.modalInputGt.value = '';
-                        elements.modalInputBitola.placeholder = "Não encontrado";
-                        elements.modalInputGt.placeholder = "Não encontrado";
+                if (val.length < 2) return; // Só busca com 2+ caracteres
+
+                autocompleteTimeout = setTimeout(async () => {
+                    try {
+                        const { data, error } = await _supabase
+                            .from('itens_mestre')
+                            .select('codigo_item, dimensao, gt')
+                            .ilike('codigo_item', `${val}%`) // Busca com wildcard para prefixo
+                            .limit(5); // Limita a 5 sugestões
+
+                        if (error) throw error;
+
+                        if (data && data.length > 0) {
+                            elements.autocompleteList.innerHTML = '';
+                            data.forEach(item => {
+                                const li = document.createElement('li');
+                                li.className = 'autocomplete-item';
+                                li.innerHTML = `<strong>${item.codigo_item}</strong><small>${item.dimensao || 'S/D'} - GT ${item.gt || '?'}</small>`;
+                                
+                                // Ao clicar na sugestão
+                                li.addEventListener('click', () => {
+                                    elements.modalInputCodigo.value = item.codigo_item;
+                                    elements.modalInputBitola.value = item.dimensao || '';
+                                    elements.modalInputGt.value = item.gt || '';
+                                    
+                                    // Limpa lista
+                                    elements.autocompleteList.innerHTML = '';
+                                    elements.autocompleteList.classList.remove('visible');
+                                });
+
+                                elements.autocompleteList.appendChild(li);
+                            });
+                            elements.autocompleteList.classList.add('visible');
+                        }
+                    } catch (err) {
+                        console.error("Erro no autocomplete:", err);
                     }
-                } catch (e) {
-                    console.error("Erro na busca automática:", e);
+                }, 300); // 300ms debounce
+            });
+
+            // Fechar autocomplete se clicar fora
+            document.addEventListener('click', (e) => {
+                if (e.target !== elements.modalInputCodigo) {
+                    elements.autocompleteList.classList.remove('visible');
                 }
             });
 
@@ -1920,19 +2022,16 @@
                 // Cria o card e adiciona na lista de Pendentes
                 criarCard('itens-pendentes-lista', novoItem, true);
                 elements.modalManualOverlay.classList.remove('open');
-                atualizarTotalizador(); // Caso adicione algo (embora seja em pendentes, boa prática)
+                atualizarTotalizador();
             });
 
 
             // --- Funções Auxiliares de Lista e DragDrop ---
             
-            // Refatorado para usar uma função única de criação
             function popularLista(containerId, items, isPendente) {
                 const container = document.getElementById(containerId);
                 container.innerHTML = '';
                 if (!items || items.length === 0) {
-                    // Se for vazio, não adiciona texto placeholder se for manual, mas a logica original tinha.
-                    // Mantendo limpo para drag and drop funcionar melhor.
                     return;
                 }
                 items.forEach(item => {
