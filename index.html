@@ -531,7 +531,15 @@
             align-items: center; 
         }
         
-        .search-bar input { 
+        /* Grupo de filtros para alinhar Selects e Inputs */
+        .filter-group {
+            flex: 1;
+            min-width: 200px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .search-bar input, .search-bar select { 
             margin-bottom: 0; 
         }
         
@@ -888,9 +896,24 @@
         </div>
 
         <div class="card">
+            <!-- FILTROS CORRIGIDOS PARA EVITAR CRASH DE JSONB -->
             <div class="search-bar">
-                <input type="text" id="search-history-text" class="search-input-text" placeholder="Filtrar por GT, Forno (ex: 'pequeno') ou Usuário...">
-                <input type="date" id="search-history-date" class="search-input-date" title="Filtrar por data específica">
+                <div class="filter-group">
+                    <label for="filter-history-forno" style="font-size: 0.8rem; margin-bottom: 2px; color: var(--text-secondary);">Filtrar por Forno:</label>
+                    <select id="filter-history-forno">
+                        <option value="all">Todos os Fornos</option>
+                        <option value="grande">Forno Grande</option>
+                        <option value="pequeno">Forno Pequeno</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="filter-history-user" style="font-size: 0.8rem; margin-bottom: 2px; color: var(--text-secondary);">Filtrar por Usuário:</label>
+                    <input type="text" id="filter-history-user" placeholder="Nome do usuário...">
+                </div>
+                <div class="filter-group">
+                    <label for="filter-history-date" style="font-size: 0.8rem; margin-bottom: 2px; color: var(--text-secondary);">Filtrar por Data:</label>
+                    <input type="date" id="filter-history-date">
+                </div>
             </div>
 
             <div class="pagination-toolbar">
@@ -1101,10 +1124,11 @@
                 btnNextPage: document.getElementById('btn-next-page'),
                 pageInfo: document.getElementById('page-info'),
 
-                // Histórico
+                // Histórico (Elementos de Filtro Atualizados)
                 tableHistoryBody: document.querySelector('#table-history tbody'),
-                searchHistoryText: document.getElementById('search-history-text'),
-                searchHistoryDate: document.getElementById('search-history-date'),
+                filterHistoryForno: document.getElementById('filter-history-forno'),
+                filterHistoryUser: document.getElementById('filter-history-user'),
+                filterHistoryDate: document.getElementById('filter-history-date'),
                 historyItemsPerPageSelect: document.getElementById('history-items-per-page'),
                 btnHistoryPrev: document.getElementById('btn-history-prev'),
                 btnHistoryNext: document.getElementById('btn-history-next'),
@@ -1253,8 +1277,13 @@
                 return `<b>Forno:</b> ${forno} <span style="margin: 0 10px; color: var(--border-color);">|</span> <b>GTs:</b> ${gtsDisplay}`;
             }
 
-            // Filtros de Histórico
-            elements.searchHistoryText.addEventListener('input', (e) => {
+            // Event Listeners para Filtros do Histórico
+            elements.filterHistoryForno.addEventListener('change', () => {
+                currentHistoryPage = 1;
+                fetchHistory();
+            });
+
+            elements.filterHistoryUser.addEventListener('input', (e) => {
                 clearTimeout(historySearchTimeout);
                 historySearchTimeout = setTimeout(() => {
                     currentHistoryPage = 1;
@@ -1262,7 +1291,7 @@
                 }, 500);
             });
 
-            elements.searchHistoryDate.addEventListener('change', () => {
+            elements.filterHistoryDate.addEventListener('change', () => {
                 currentHistoryPage = 1;
                 fetchHistory();
             });
@@ -1288,6 +1317,7 @@
                 }
             });
 
+            // Função principal de busca do histórico
             async function fetchHistory() {
                 elements.tableHistoryBody.innerHTML = '<tr><td colspan="4" style="text-align:center;">Carregando histórico...</td></tr>';
                 elements.btnHistoryPrev.disabled = true;
@@ -1296,15 +1326,23 @@
                 try {
                     let query = _supabase.from('arranjos_gerados').select('*', { count: 'exact' });
 
-                    // Filtro de Texto
-                    const term = elements.searchHistoryText.value.trim();
-                    if (term) {
-                        query = query.or(`usuario.ilike.%${term}%,parametros_usados.ilike.%${term}%`);
+                    // 1. Filtro de Forno (Usando contains JSONB - corrige o erro de operador)
+                    const fornoVal = elements.filterHistoryForno.value;
+                    if (fornoVal !== 'all') {
+                        // Busca dentro do JSONB "parametros_usados" onde a chave "forno" iguala o valor
+                        query = query.contains('parametros_usados', { forno: fornoVal });
                     }
 
-                    // Filtro de Data
-                    const dateVal = elements.searchHistoryDate.value;
+                    // 2. Filtro de Usuário (Texto Simples)
+                    const userVal = elements.filterHistoryUser.value.trim();
+                    if (userVal) {
+                        query = query.ilike('usuario', `%${userVal}%`);
+                    }
+
+                    // 3. Filtro de Data
+                    const dateVal = elements.filterHistoryDate.value;
                     if (dateVal) {
+                        // Range do dia inteiro para timestamp
                         const start = new Date(dateVal).toISOString();
                         const end = new Date(new Date(dateVal).setHours(23,59,59,999)).toISOString();
                         query = query.gte('created_at', start).lte('created_at', end);
@@ -1329,7 +1367,7 @@
 
                 } catch (err) {
                     console.error(err);
-                    elements.tableHistoryBody.innerHTML = `<tr><td colspan="4" style="color:var(--color-danger)">Erro: ${err.message}</td></tr>`;
+                    elements.tableHistoryBody.innerHTML = `<tr><td colspan="4" style="color:var(--color-danger)">Erro ao carregar histórico: ${err.message}</td></tr>`;
                 }
             }
 
@@ -1381,6 +1419,7 @@
             function loadHistoryItemIntoView(jsonResultado) {
                 try {
                     let data = jsonResultado;
+                    // Double parse protection for escaped strings
                     if (typeof data === 'string') {
                         try { data = JSON.parse(data); } catch (e) {}
                     }
