@@ -46,6 +46,9 @@
             font-family: var(--font-main);
             margin: 0;
             transition: background-color 0.3s, color 0.3s;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
         }
         .light-theme {
             --bg-main: var(--color-bg-light);
@@ -64,25 +67,23 @@
         body { background-color: var(--bg-main); color: var(--text-primary); }
 
         /* Layout Principal e Header */
-        .container { max-width: 1200px; margin: 0 auto; padding: 2rem; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 2rem; flex: 1; width: 100%; box-sizing: border-box; }
+        
         header {
-            display: flex;
-            justify-content: space-between; 
+            display: grid;
+            grid-template-columns: 1fr auto 1fr; /* Três colunas para centralizar o logo */
             align-items: center;
             padding: 1rem 2rem;
             background-color: var(--bg-card);
             border-bottom: 1px solid var(--border-color);
-            position: relative; 
         }
-        header .logo-area { display: flex; align-items: center; gap: 1rem; }
+        
+        header .logo-area { text-align: center; }
+        header .left-actions { display: flex; gap: 10px; justify-content: flex-start; }
+        header .right-actions { display: flex; gap: 10px; justify-content: flex-end; align-items: center; }
+        
         header img { height: 48px; }
         
-        .header-actions {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-
         .nav-btn {
             background: transparent;
             border: 1px solid var(--border-color);
@@ -91,22 +92,33 @@
             border-radius: var(--radius-md);
             cursor: pointer;
             font-weight: 500;
+            font-size: 0.9rem;
             transition: var(--transition-speed);
+            display: inline-flex; align-items: center; gap: 0.5rem;
         }
         .nav-btn:hover { background-color: var(--color-bg-light); border-color: var(--text-secondary); }
         .dark-theme .nav-btn:hover { background-color: var(--color-border-dark); }
 
-        .theme-switcher {
-            display: flex;
-            align-items: center;
-            gap: 10px;
+        /* Footer */
+        footer {
+            background-color: var(--bg-card);
+            border-top: 1px solid var(--border-color);
+            padding: 2rem;
+            text-align: center;
+            margin-top: auto;
         }
+        footer p {
+            margin: 0.4rem 0;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+        }
+        footer strong { color: var(--color-primary); }
 
         /* Stepper de Progresso */
-        .stepper { display: flex; justify-content: space-between; margin-bottom: 2rem; padding: 1rem 0; border-bottom: 1px solid var(--border-color); }
+        .stepper { display: flex; justify-content: center; gap: 4rem; margin-bottom: 2rem; padding: 1rem 0; border-bottom: 1px solid var(--border-color); }
         .step { display: flex; align-items: center; color: var(--text-secondary); font-weight: 500; transition: var(--transition-speed); }
         .step.active { color: var(--text-primary); font-weight: 600; }
-        .step .step-number { width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--border-color); display: inline-flex; align-items: center; justify-content: center; margin-right: 0.5rem; transition: var(--transition-speed); }
+        .step .step-number { width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--border-color); display: inline-flex; align-items: center; justify-content: center; margin-right: 0.5rem; transition: var(--transition-speed); font-size: 0.9rem; }
         .step.active .step-number { border-color: var(--color-primary); background-color: var(--color-primary); color: white; }
 
         /* Componentes Gerais */
@@ -126,7 +138,7 @@
         select:focus, input[type="text"]:focus, input[type="search"]:focus { outline: none; border-color: var(--color-primary); box-shadow: 0 0 0 2px rgba(217, 45, 32, 0.2); }
 
         .actions { margin-top: 2rem; display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
-        .actions-final { display: flex; justify-content: space-around; gap: 1rem; }
+        
         .btn { padding: 0.75rem 1.5rem; border: none; border-radius: var(--radius-md); font-size: 1rem; font-weight: 600; cursor: pointer; transition: var(--transition-speed); display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; }
         .btn-sm { padding: 0.4rem 0.8rem; font-size: 0.875rem; }
         .btn-primary { background-color: var(--color-primary); color: white; }
@@ -143,7 +155,7 @@
 
         /* Estilos para Drag-and-Drop e Itens */
         .arranjo-container { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
-        .arranjo-coluna { min-height: 300px; padding: 1rem; border-radius: var(--radius-md); border: 2px dashed transparent; transition: var(--transition-speed); }
+        .arranjo-coluna { min-height: 400px; padding: 1rem; border-radius: var(--radius-md); border: 2px dashed transparent; transition: var(--transition-speed); }
         .arranjo-coluna.drag-over { border-color: var(--color-primary); background-color: rgba(217, 45, 32, 0.05); }
         .arranjo-coluna h3 { font-size: 1rem; font-weight: 600; color: var(--text-secondary); border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; margin-bottom: 1rem; }
         
@@ -218,40 +230,42 @@
             border-radius: var(--radius-md);
             border: 1px solid var(--border-color);
         }
-        .pagination-controls {
+        .pagination-controls { display: flex; align-items: center; gap: 10px; }
+        .pagination-select { width: auto; margin-bottom: 0; padding: 0.4rem 2rem 0.4rem 0.8rem; }
+        .page-info { font-size: 0.9rem; color: var(--text-secondary); font-weight: 500; }
+
+        /* Actions Finais dentro do Step 2 */
+        .export-bar {
+            margin-top: 2rem;
+            padding-top: 2rem;
+            border-top: 1px solid var(--border-color);
             display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        .pagination-select {
-            width: auto;
-            margin-bottom: 0;
-            padding: 0.4rem 2rem 0.4rem 0.8rem;
-        }
-        .page-info {
-            font-size: 0.9rem;
-            color: var(--text-secondary);
-            font-weight: 500;
+            justify-content: flex-end;
+            gap: 1rem;
         }
 
         /* Responsividade */
         @media (max-width: 768px) {
-            .config-grid, .arranjo-container, .add-item-grid, .actions, .actions-final { grid-template-columns: 1fr; }
+            header { grid-template-columns: 1fr; gap: 1rem; text-align: center; justify-items: center; }
+            header .left-actions, header .right-actions { justify-content: center; }
+            .config-grid, .arranjo-container, .add-item-grid, .actions, .export-bar { grid-template-columns: 1fr; flex-direction: column; }
             .add-item-grid > button { width: 100%; }
-            .pagination-toolbar { flex-direction: column; gap: 1rem; align-items: flex-start; }
-            .pagination-controls { width: 100%; justify-content: space-between; }
+            .stepper { gap: 1rem; }
+            .export-bar { align-items: stretch; }
         }
     </style>
 </head>
 <body class="dark-theme">
 
     <header>
+        <div class="left-actions">
+            <button id="btn-master-manager" class="nav-btn">🛠️ Itens Mestre</button>
+            <button id="btn-history" class="nav-btn">📜 Histórico</button>
+        </div>
         <div class="logo-area">
             <img id="logo-fama" src="https://ctfamadobrasil.com.br/wp-content/uploads/2025/12/Gemini_Generated_Image_v8cib8v8cib8v8ci-removebg-preview.png" alt="Logo Molas Fama">
         </div>
-        <div class="header-actions">
-            <button id="btn-master-manager" class="nav-btn">🛠️ Gerenciar Itens Mestre</button>
-            <button id="btn-history" class="nav-btn">📜 Histórico</button>
+        <div class="right-actions">
             <div class="theme-switcher">
                 ☀️ <input type="checkbox" id="theme-toggle" checked> 🌙
             </div>
@@ -263,7 +277,6 @@
         <div class="stepper">
             <div id="step-nav-1" class="step active"><span class="step-number">1</span>Configuração</div>
             <div id="step-nav-2" class="step"><span class="step-number">2</span>Organize a Sequência</div>
-            <div id="step-nav-3" class="step"><span class="step-number">3</span>Ações Finais</div>
         </div>
 
         <!-- PASSO 1 -->
@@ -293,11 +306,18 @@
             </div>
         </div>
 
-        <!-- PASSO 2 -->
+        <!-- PASSO 2 (Resultado e Exportação) -->
         <div id="step-2" class="card hidden">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                <h2>Passo 2: Organize a Sequência</h2>
-                <button onclick="resetarProducao()" class="btn btn-sm btn-secondary">↺ Reiniciar / Novo Arranjo</button>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                <h2 style="margin:0">Passo 2: Resultado</h2>
+                
+                <!-- Botões de navegação condicional -->
+                <button id="btn-reset-production" onclick="resetarProducao()" class="btn btn-sm btn-secondary">
+                    ↺ Novo Arranjo
+                </button>
+                <button id="btn-back-to-history" class="btn btn-sm btn-info hidden">
+                    ← Voltar para Histórico
+                </button>
             </div>
             
             <div class="arranjo-container">
@@ -310,16 +330,13 @@
                     <div id="itens-pendentes-lista"></div>
                 </div>
             </div>
-        </div>
 
-        <!-- PASSO 3 -->
-        <div id="step-3" class="card hidden">
-             <h2>Passo 3: Ações Finais</h2>
-             <div class="actions-final">
-                <button id="btn-export-excel" class="btn btn-success">Exportar para Excel</button>
-                <button id="btn-export-pdf" class="btn btn-primary">Exportar para PDF</button>
-                <button id="btn-send-email" class="btn btn-info">Enviar por E-mail</button>
-             </div>
+            <!-- Botões de Exportação Integrados -->
+            <div class="export-bar">
+                <button id="btn-export-excel" class="btn btn-success">Exportar Excel</button>
+                <button id="btn-export-pdf" class="btn btn-primary">Exportar PDF</button>
+                <button id="btn-send-email" class="btn btn-secondary">Enviar E-mail</button>
+            </div>
         </div>
     </main>
 
@@ -358,7 +375,6 @@
                 <input type="search" id="search-master-items" placeholder="Pesquisar por código, descrição ou GT...">
             </div>
             
-            <!-- PAGINATION TOOLBAR -->
             <div class="pagination-toolbar">
                 <div style="display: flex; align-items: center; gap: 10px;">
                     <span style="color: var(--text-secondary); font-size: 0.9rem;">Exibir:</span>
@@ -397,7 +413,7 @@
         </div>
     </main>
 
-    <!-- VIEW HISTÓRICO (Agora é uma tela, não um modal) -->
+    <!-- VIEW HISTÓRICO -->
     <main id="view-historico" class="container hidden">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
             <h2>Histórico de Arranjos Gerados</h2>
@@ -422,6 +438,12 @@
             </div>
         </div>
     </main>
+
+    <footer>
+        <p>Desenvolvido por <strong>Labor_AI</strong></p>
+        <p>AV BENTO MUNHOZ DA ROCHA NETTO 632 SL 1905-1908 - Torre Norte - 87030-010 - Maringá/PR</p>
+        <p>contato@laborai.com.br</p>
+    </footer>
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
@@ -453,16 +475,18 @@
                 btnVoltarProducaoMaster: document.getElementById('btn-voltar-producao-master'),
                 btnVoltarProducaoHistory: document.getElementById('btn-voltar-producao-history'),
                 
+                // Result Buttons Navigation
+                btnResetProduction: document.getElementById('btn-reset-production'),
+                btnBackToHistory: document.getElementById('btn-back-to-history'),
+
                 themeToggle: document.getElementById('theme-toggle'),
                 logo: document.getElementById('logo-fama'),
 
                 // Stepper & Steps
                 stepNav1: document.getElementById('step-nav-1'),
                 stepNav2: document.getElementById('step-nav-2'),
-                stepNav3: document.getElementById('step-nav-3'),
                 step1: document.getElementById('step-1'),
                 step2: document.getElementById('step-2'),
-                step3: document.getElementById('step-3'),
 
                 // Configuração Forno
                 btnFornoGrande: document.getElementById('btn-forno-grande'),
@@ -527,17 +551,26 @@
             // Botões de Voltar
             elements.btnVoltarProducaoMaster.addEventListener('click', () => showView('view-principal'));
             elements.btnVoltarProducaoHistory.addEventListener('click', () => showView('view-principal'));
+            
+            // Botão "Voltar para Histórico" dentro do Step 2
+            elements.btnBackToHistory.addEventListener('click', () => {
+                showView('view-historico');
+                loadHistory();
+            });
 
-            // Função global para resetar a tela de produção
+            // Função global para resetar a tela de produção (Novo Arranjo)
             window.resetarProducao = function() {
                 elements.step1.classList.remove('hidden');
                 elements.step2.classList.add('hidden');
-                elements.step3.classList.add('hidden');
                 updateStepper(1);
                 elements.csvFileInput.value = '';
                 elements.btnCarregarCsv.textContent = 'Carregar Lista de Produção (.CSV)';
                 elements.arranjoProducaoLista.innerHTML = '';
                 elements.itensPendentesLista.innerHTML = '';
+                
+                // Garante que o estado dos botões volte ao padrão
+                elements.btnResetProduction.classList.remove('hidden');
+                elements.btnBackToHistory.classList.add('hidden');
             };
 
             // --- CONFIGURAÇÃO FORNO ---
@@ -555,7 +588,6 @@
             const updateStepper = (currentStep) => {
                 elements.stepNav1.classList.toggle('active', currentStep >= 1);
                 elements.stepNav2.classList.toggle('active', currentStep >= 2);
-                elements.stepNav3.classList.toggle('active', currentStep >= 3);
             };
             
             const gerarInputs = (qtde, container) => {
@@ -599,29 +631,41 @@
 
             // --- SUPABASE: HISTÓRICO ---
             
-            // Função auxiliar para formatar a coluna de parâmetros
-            function formatarParametros(jsonParams) {
-                if (!jsonParams) return "N/A";
+            // Função para parsear e formatar parâmetros JSON aninhados
+            function formatarParametros(rawParams) {
+                if (!rawParams) return "N/A";
 
-                let params = jsonParams;
-                // Se vier como string, faz o parse
+                let params = rawParams;
+                // Tenta parsear se for string (primeiro nível)
                 if (typeof params === 'string') {
-                    try { params = JSON.parse(params); } catch (e) { return jsonParams; }
+                    try { params = JSON.parse(params); } catch (e) { return rawParams; }
+                }
+                
+                // Se ainda for string (caso de escape duplo), tenta de novo
+                if (typeof params === 'string') {
+                    try { params = JSON.parse(params); } catch (e) { }
                 }
 
                 // 1. Formata Forno
                 let forno = params.forno || '?';
                 forno = forno.charAt(0).toUpperCase() + forno.slice(1); // Capitalize
 
-                // 2. Formata GTs (Tratando o caso de array stringificado)
-                let gts = params.gts_selecionados || [];
-                if (typeof gts === 'string') {
-                    // O N8N às vezes manda "[ \"23\", \"03\" ]"
-                    try { gts = JSON.parse(gts); } catch (e) { gts = [gts]; }
+                // 2. Formata GTs (Tratando array stringificado dentro do objeto)
+                let gtsData = params.gts_selecionados;
+                let gtsList = [];
+
+                if (Array.isArray(gtsData)) {
+                    gtsList = gtsData;
+                } else if (typeof gtsData === 'string') {
+                    try {
+                        gtsList = JSON.parse(gtsData);
+                    } catch (e) {
+                        gtsList = [gtsData]; // Se falhar o parse, assume string única
+                    }
                 }
                 
-                let gtsDisplay = Array.isArray(gts) ? gts.join(', ') : gts;
-                if (!gtsDisplay) gtsDisplay = "Nenhum";
+                // Limpeza dos GTs (remover aspas extras se sobrarem)
+                const gtsDisplay = gtsList.map(g => g.replace(/['"]+/g, '')).join(', ') || "Nenhum";
 
                 return `<b>Forno:</b> ${forno} <span style="margin: 0 10px; color: var(--border-color);">|</span> <b>GTs:</b> ${gtsDisplay}`;
             }
@@ -647,7 +691,6 @@
                         const tr = document.createElement('tr');
                         const date = new Date(row.created_at).toLocaleString('pt-BR');
                         
-                        // Uso da função de formatação
                         const formattedParams = formatarParametros(row.parametros_usados);
                         
                         tr.innerHTML = `
@@ -674,16 +717,27 @@
 
             function loadHistoryItemIntoView(jsonResultado) {
                 try {
-                    const data = typeof jsonResultado === 'string' ? JSON.parse(jsonResultado) : jsonResultado;
-                    
+                    // Tenta parsear JSON se for string
+                    let data = jsonResultado;
+                    if (typeof data === 'string') {
+                        try { data = JSON.parse(data); } catch (e) {}
+                    }
+                    // Duplo parse check
+                    if (typeof data === 'string') {
+                         try { data = JSON.parse(data); } catch (e) {}
+                    }
+
                     // Voltar para view de produção
                     showView('view-principal');
                     
                     // Configurar steps (Pula passo 1, vai para 2)
                     elements.step1.classList.add('hidden');
                     elements.step2.classList.remove('hidden');
-                    elements.step3.classList.remove('hidden');
                     updateStepper(2);
+
+                    // ALTERAÇÃO IMPORTANTE: Troca os botões de controle
+                    elements.btnResetProduction.classList.add('hidden');
+                    elements.btnBackToHistory.classList.remove('hidden');
 
                     // Popular as listas
                     popularLista('arranjo-producao-lista', data.arranjo_producao || [], false);
@@ -691,6 +745,7 @@
 
                 } catch (e) {
                     alert('Erro ao processar os dados do histórico: ' + e.message);
+                    console.error(e);
                 }
             }
 
@@ -914,8 +969,11 @@
                     
                     elements.step1.classList.add('hidden');
                     elements.step2.classList.remove('hidden');
-                    elements.step3.classList.remove('hidden');
                     updateStepper(2);
+
+                    // Garante que mostre "Novo Arranjo" e esconda "Voltar para Histórico"
+                    elements.btnResetProduction.classList.remove('hidden');
+                    elements.btnBackToHistory.classList.add('hidden');
                     
                     popularLista('arranjo-producao-lista', data.arranjo_producao, false);
                     popularLista('itens-pendentes-lista', data.itens_pendentes, true);
