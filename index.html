@@ -178,23 +178,6 @@
             transform: scale(1.2);
         }
 
-        /* --- Estilos para Modal e Tabelas --- */
-        .modal {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.6); display: flex; justify-content: center; align-items: center;
-            z-index: 1000; opacity: 0; pointer-events: none; transition: opacity 0.3s;
-        }
-        .modal.open { opacity: 1; pointer-events: all; }
-        .modal-content {
-            background: var(--bg-card); width: 95%; max-width: 1100px; max-height: 85vh;
-            border-radius: var(--radius-lg); padding: 2rem; box-shadow: var(--shadow-md);
-            overflow-y: auto; position: relative;
-        }
-        .close-modal {
-            position: absolute; top: 1rem; right: 1.5rem; font-size: 1.5rem;
-            cursor: pointer; color: var(--text-secondary);
-        }
-        
         /* Tabelas */
         .table-container { overflow-x: auto; width: 100%; }
         table { width: 100%; border-collapse: collapse; margin-top: 1rem; font-size: 0.95rem; }
@@ -251,7 +234,7 @@
             font-weight: 500;
         }
 
-        /* Responsividade Básica */
+        /* Responsividade */
         @media (max-width: 768px) {
             .config-grid, .arranjo-container, .add-item-grid, .actions, .actions-final { grid-template-columns: 1fr; }
             .add-item-grid > button { width: 100%; }
@@ -275,7 +258,7 @@
         </div>
     </header>
 
-    <!-- CONTAINER DA VIEW PRINCIPAL (PRODUÇÃO) -->
+    <!-- VIEW PRINCIPAL (PRODUÇÃO) -->
     <main id="view-principal" class="container">
         <div class="stepper">
             <div id="step-nav-1" class="step active"><span class="step-number">1</span>Configuração</div>
@@ -312,7 +295,11 @@
 
         <!-- PASSO 2 -->
         <div id="step-2" class="card hidden">
-            <h2>Passo 2: Organize a Sequência</h2>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <h2>Passo 2: Organize a Sequência</h2>
+                <button onclick="resetarProducao()" class="btn btn-sm btn-secondary">↺ Reiniciar / Novo Arranjo</button>
+            </div>
+            
             <div class="arranjo-container">
                 <div class="arranjo-coluna">
                     <h3>ARRANJO DE PRODUÇÃO</h3>
@@ -336,11 +323,11 @@
         </div>
     </main>
 
-    <!-- CONTAINER DA VIEW DE GERENCIAMENTO (ITENS MESTRE) -->
+    <!-- VIEW GERENCIADOR (ITENS MESTRE) -->
     <main id="view-gerenciador" class="container hidden">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
             <h2>Gerenciador de Itens Mestre</h2>
-            <button id="btn-voltar-producao" class="btn btn-secondary">← Voltar para Produção</button>
+            <button id="btn-voltar-producao-master" class="btn btn-secondary">← Voltar para Produção</button>
         </div>
 
         <div class="add-item-form">
@@ -410,20 +397,22 @@
         </div>
     </main>
 
-    <!-- MODAL DE HISTÓRICO -->
-    <div id="modal-historico" class="modal">
-        <div class="modal-content">
-            <span class="close-modal">&times;</span>
+    <!-- VIEW HISTÓRICO (Agora é uma tela, não um modal) -->
+    <main id="view-historico" class="container hidden">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
             <h2>Histórico de Arranjos Gerados</h2>
+            <button id="btn-voltar-producao-history" class="btn btn-secondary">← Voltar para Produção</button>
+        </div>
+
+        <div class="card">
             <div class="table-container">
                 <table id="table-history">
                     <thead>
                         <tr>
-                            <th style="width: 50px;">ID</th>
                             <th>Data/Hora</th>
                             <th>Usuário</th>
                             <th>Parâmetros Usados</th>
-                            <th style="text-align: center;">Arranjo Resultado</th>
+                            <th style="text-align: center;">Ação</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -432,7 +421,7 @@
                 </table>
             </div>
         </div>
-    </div>
+    </main>
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
@@ -456,13 +445,14 @@
                 // Views
                 viewPrincipal: document.getElementById('view-principal'),
                 viewGerenciador: document.getElementById('view-gerenciador'),
-                modalHistorico: document.getElementById('modal-historico'),
-                btnCloseModal: document.querySelector('.close-modal'),
+                viewHistorico: document.getElementById('view-historico'),
 
-                // Buttons Header
+                // Navigation Buttons
                 btnMasterManager: document.getElementById('btn-master-manager'),
                 btnHistory: document.getElementById('btn-history'),
-                btnVoltarProducao: document.getElementById('btn-voltar-producao'),
+                btnVoltarProducaoMaster: document.getElementById('btn-voltar-producao-master'),
+                btnVoltarProducaoHistory: document.getElementById('btn-voltar-producao-history'),
+                
                 themeToggle: document.getElementById('theme-toggle'),
                 logo: document.getElementById('logo-fama'),
 
@@ -514,7 +504,43 @@
 
             let gtsAtuais = [];
 
-            // --- LÓGICA DE UI GERAL ---
+            // --- LÓGICA DE NAVEGAÇÃO ENTRE TELAS (SPA) ---
+            function showView(viewId) {
+                elements.viewPrincipal.classList.add('hidden');
+                elements.viewGerenciador.classList.add('hidden');
+                elements.viewHistorico.classList.add('hidden');
+                
+                document.getElementById(viewId).classList.remove('hidden');
+            }
+
+            elements.btnMasterManager.addEventListener('click', () => {
+                showView('view-gerenciador');
+                currentMasterPage = 1;
+                fetchMasterItems();
+            });
+
+            elements.btnHistory.addEventListener('click', () => {
+                showView('view-historico');
+                loadHistory();
+            });
+
+            // Botões de Voltar
+            elements.btnVoltarProducaoMaster.addEventListener('click', () => showView('view-principal'));
+            elements.btnVoltarProducaoHistory.addEventListener('click', () => showView('view-principal'));
+
+            // Função global para resetar a tela de produção
+            window.resetarProducao = function() {
+                elements.step1.classList.remove('hidden');
+                elements.step2.classList.add('hidden');
+                elements.step3.classList.add('hidden');
+                updateStepper(1);
+                elements.csvFileInput.value = '';
+                elements.btnCarregarCsv.textContent = 'Carregar Lista de Produção (.CSV)';
+                elements.arranjoProducaoLista.innerHTML = '';
+                elements.itensPendentesLista.innerHTML = '';
+            };
+
+            // --- CONFIGURAÇÃO FORNO ---
             const fornosConfig = {
                 grande: {
                     titulo: 'Configuração do Forno Grande',
@@ -571,39 +597,37 @@
                 }
             });
 
-            // --- NAVEGAÇÃO ENTRE VIEWS ---
-            elements.btnMasterManager.addEventListener('click', () => {
-                elements.viewPrincipal.classList.add('hidden');
-                elements.viewGerenciador.classList.remove('hidden');
-                currentMasterPage = 1;
-                fetchMasterItems();
-            });
-
-            elements.btnVoltarProducao.addEventListener('click', () => {
-                elements.viewGerenciador.classList.add('hidden');
-                elements.viewPrincipal.classList.remove('hidden');
-            });
-
-            // --- LÓGICA DO MODAL HISTÓRICO ---
-            elements.btnHistory.addEventListener('click', () => {
-                elements.modalHistorico.classList.add('open');
-                loadHistory();
-            });
-
-            elements.btnCloseModal.addEventListener('click', () => {
-                elements.modalHistorico.classList.remove('open');
-            });
-
-            // Fecha modal clicando fora
-            window.addEventListener('click', (e) => {
-                if (e.target === elements.modalHistorico) {
-                    elements.modalHistorico.classList.remove('open');
-                }
-            });
-
             // --- SUPABASE: HISTÓRICO ---
+            
+            // Função auxiliar para formatar a coluna de parâmetros
+            function formatarParametros(jsonParams) {
+                if (!jsonParams) return "N/A";
+
+                let params = jsonParams;
+                // Se vier como string, faz o parse
+                if (typeof params === 'string') {
+                    try { params = JSON.parse(params); } catch (e) { return jsonParams; }
+                }
+
+                // 1. Formata Forno
+                let forno = params.forno || '?';
+                forno = forno.charAt(0).toUpperCase() + forno.slice(1); // Capitalize
+
+                // 2. Formata GTs (Tratando o caso de array stringificado)
+                let gts = params.gts_selecionados || [];
+                if (typeof gts === 'string') {
+                    // O N8N às vezes manda "[ \"23\", \"03\" ]"
+                    try { gts = JSON.parse(gts); } catch (e) { gts = [gts]; }
+                }
+                
+                let gtsDisplay = Array.isArray(gts) ? gts.join(', ') : gts;
+                if (!gtsDisplay) gtsDisplay = "Nenhum";
+
+                return `<b>Forno:</b> ${forno} <span style="margin: 0 10px; color: var(--border-color);">|</span> <b>GTs:</b> ${gtsDisplay}`;
+            }
+
             async function loadHistory() {
-                elements.tableHistoryBody.innerHTML = '<tr><td colspan="5" style="text-align:center;">Carregando histórico...</td></tr>';
+                elements.tableHistoryBody.innerHTML = '<tr><td colspan="4" style="text-align:center;">Carregando histórico...</td></tr>';
                 try {
                     const { data, error } = await _supabase
                         .from('arranjos_gerados')
@@ -615,7 +639,7 @@
 
                     elements.tableHistoryBody.innerHTML = '';
                     if (data.length === 0) {
-                        elements.tableHistoryBody.innerHTML = '<tr><td colspan="5">Nenhum histórico encontrado.</td></tr>';
+                        elements.tableHistoryBody.innerHTML = '<tr><td colspan="4">Nenhum histórico encontrado.</td></tr>';
                         return;
                     }
 
@@ -623,24 +647,13 @@
                         const tr = document.createElement('tr');
                         const date = new Date(row.created_at).toLocaleString('pt-BR');
                         
-                        // Correção solicitada: Usar 'parametros_usados' do DB
-                        let paramsDisplay = "N/A";
-                        if (row.parametros_usados) {
-                             paramsDisplay = typeof row.parametros_usados === 'string' 
-                                ? row.parametros_usados 
-                                : JSON.stringify(row.parametros_usados);
-                        }
-
-                        // Formatação visual simples do JSON
-                        const formattedParams = paramsDisplay.length > 50 
-                            ? `<span title='${paramsDisplay}'>${paramsDisplay.substring(0, 50)}...</span>` 
-                            : paramsDisplay;
+                        // Uso da função de formatação
+                        const formattedParams = formatarParametros(row.parametros_usados);
                         
                         tr.innerHTML = `
-                            <td>${row.id}</td>
                             <td>${date}</td>
                             <td>${row.usuario || 'Sistema'}</td>
-                            <td style="font-size:0.85rem; color:var(--text-secondary);">${formattedParams}</td>
+                            <td>${formattedParams}</td>
                             <td style="text-align: center;">
                                 <button class="btn btn-sm btn-primary btn-load-history" title="Carregar este arranjo na tela principal">
                                     📂 Carregar Arranjo
@@ -655,7 +668,7 @@
 
                 } catch (err) {
                     console.error(err);
-                    elements.tableHistoryBody.innerHTML = `<tr><td colspan="5" style="color:var(--color-danger)">Erro ao carregar histórico: ${err.message}</td></tr>`;
+                    elements.tableHistoryBody.innerHTML = `<tr><td colspan="4" style="color:var(--color-danger)">Erro ao carregar histórico: ${err.message}</td></tr>`;
                 }
             }
 
@@ -663,12 +676,10 @@
                 try {
                     const data = typeof jsonResultado === 'string' ? JSON.parse(jsonResultado) : jsonResultado;
                     
-                    // Fechar modal e ir para view de produção
-                    elements.modalHistorico.classList.remove('open');
-                    elements.viewGerenciador.classList.add('hidden');
-                    elements.viewPrincipal.classList.remove('hidden');
+                    // Voltar para view de produção
+                    showView('view-principal');
                     
-                    // Ocultar passo 1, mostrar passos 2 e 3
+                    // Configurar steps (Pula passo 1, vai para 2)
                     elements.step1.classList.add('hidden');
                     elements.step2.classList.remove('hidden');
                     elements.step3.classList.remove('hidden');
@@ -685,7 +696,6 @@
 
             // --- SUPABASE: GERENCIADOR DE ITENS MESTRE COM PAGINAÇÃO ---
             
-            // Eventos de Paginação
             elements.itemsPerPageSelect.addEventListener('change', (e) => {
                 itemsPerPage = e.target.value === 'all' ? 'all' : parseInt(e.target.value);
                 currentMasterPage = 1;
@@ -707,13 +717,12 @@
                 }
             });
 
-            // Filtro de Pesquisa com Debounce e integração com servidor
             elements.searchMasterItems.addEventListener('input', (e) => {
                 clearTimeout(searchTimeout);
                 searchTimeout = setTimeout(() => {
                     currentMasterPage = 1;
                     fetchMasterItems(e.target.value);
-                }, 500); // Aguarda 500ms antes de buscar
+                }, 500); 
             });
 
             async function fetchMasterItems(searchTerm = '') {
@@ -721,23 +730,18 @@
                 elements.btnPrevPage.disabled = true;
                 elements.btnNextPage.disabled = true;
 
-                // Se não passou termo, tenta pegar do input atual
                 if(searchTerm === '') searchTerm = elements.searchMasterItems.value;
 
                 try {
-                    // Query base para contagem e dados
                     let query = _supabase.from('itens_mestre').select('*', { count: 'exact' });
 
-                    // Aplica filtro se houver busca
                     if (searchTerm) {
                         const term = `%${searchTerm}%`;
                         query = query.or(`codigo_item.ilike.${term},descricao.ilike.${term},gt.ilike.${term}`);
                     }
 
-                    // Ordenação
                     query = query.order('codigo_item', { ascending: true });
 
-                    // Aplica paginação se não for 'todos'
                     if (itemsPerPage !== 'all') {
                         const from = (currentMasterPage - 1) * itemsPerPage;
                         const to = from + itemsPerPage - 1;
@@ -795,11 +799,8 @@
                         </td>
                     `;
 
-                    // Eventos de Salvar e Excluir
                     const btnSave = tr.querySelector('.btn-save-row');
                     const btnDelete = tr.querySelector('.btn-delete-row');
-                    
-                    // Identificador único
                     const itemId = item.id; 
 
                     btnSave.addEventListener('click', async () => {
@@ -834,8 +835,6 @@
                                 .eq('id', itemId);
 
                             if (error) throw error;
-                            
-                            // Recarregar tabela mantendo a página atual
                             fetchMasterItems();
 
                         } catch (e) {
@@ -848,7 +847,6 @@
                 });
             }
 
-            // Adicionar Novo Item
             elements.btnAddMasterItem.addEventListener('click', async () => {
                 const codigo = elements.newItemCodigo.value.trim();
                 const descricao = elements.newItemDescricao.value.trim();
@@ -868,13 +866,11 @@
 
                     if (error) throw error;
 
-                    // Limpar form
                     elements.newItemCodigo.value = '';
                     elements.newItemDescricao.value = '';
                     elements.newItemDimensao.value = '';
                     elements.newItemGt.value = '';
 
-                    // Recarregar lista (volta pra página 1 para ver o novo item se ordenação permitir, ou apenas recarrega)
                     currentMasterPage = 1;
                     await fetchMasterItems();
                     alert('Item criado com sucesso!');
@@ -888,7 +884,7 @@
             });
 
 
-            // --- LÓGICA DE GERAÇÃO (INTEGRAÇÃO N8N MANTIDA) ---
+            // --- LÓGICA DE GERAÇÃO (N8N) ---
             elements.btnGerarArranjo.addEventListener('click', async () => {
                 if (!elements.csvFileInput.files[0]) {
                     alert('Por favor, carregue um arquivo CSV primeiro.');
@@ -916,7 +912,6 @@
                     }
                     const data = await response.json();
                     
-                    // Sucesso: Mudar UI
                     elements.step1.classList.add('hidden');
                     elements.step2.classList.remove('hidden');
                     elements.step3.classList.remove('hidden');
@@ -933,7 +928,7 @@
                 }
             });
 
-            // --- FUNÇÕES AUXILIARES DE RENDERIZAÇÃO E DRAG & DROP ---
+            // --- FUNÇÕES AUXILIARES ---
             function popularLista(containerId, items, isPendente) {
                 const container = document.getElementById(containerId);
                 container.innerHTML = '';
@@ -987,9 +982,7 @@
             }
 
             window.cancelarEdicao = function(event, cardElement) {
-                // Pequeno delay para permitir que o onkeydown dispare antes do onblur se for Enter
                 setTimeout(() => {
-                    // Verifica se ainda está em edição (pode ter sido salvo via Enter)
                     const input = cardElement.querySelector('.gt-input');
                     if (input && !input.disabled) {
                         const currentGT = cardElement.dataset.gt;
@@ -1029,7 +1022,6 @@
 
                         const corresponde = gtsAtuais.some(gtSelecionado => novoGT.includes(gtSelecionado));
 
-                        // Move o card dependendo se o novo GT corresponde aos selecionados
                         if (corresponde && cardElement.parentElement.id !== 'arranjo-producao-lista') {
                             elements.arranjoProducaoLista.appendChild(cardElement);
                             reordenarArranjo();
