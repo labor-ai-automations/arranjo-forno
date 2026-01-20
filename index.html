@@ -35,7 +35,6 @@
             /* Cards / Superfícies */
             --color-card-light: #FFFFFF;
             --color-card-dark: #1F2937;
-            --color-card-hover: #374151;
             
             /* Texto Light Mode */
             --color-text-light-primary: #111827;
@@ -585,6 +584,11 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            user-select: none; /* Importante para não selecionar texto */
+        }
+        
+        .multi-select-display * {
+            pointer-events: none; /* Garante que o clique vá para o container */
         }
         
         .multi-select-display::after {
@@ -828,7 +832,7 @@
             <button id="btn-history" class="nav-btn">📜 Histórico</button>
         </div>
         <div class="logo-area">
-            <img id="logo-fama" src="https://ctfamadobrasil.com.br/wp-content/uploads/2025/12/Gemini_Generated_Image_v8cib8v8cib8v8ci-removebg-preview.png" alt="Logo Molas Fama">
+            <img id="logo-fama" src="https://ctfamadobrasil.com.br/wp-content/uploads/2026/01/unnamed__51_-removebg-preview.png" alt="Logo Molas Fama">
         </div>
         <div class="right-actions">
             <div class="theme-switcher">
@@ -1286,9 +1290,6 @@
                         elements.gtDropdown.appendChild(label);
                     });
                 } catch (e) { console.error('Erro ao popular filtro de GTs:', e); }
-                elements.gtDisplay.addEventListener('click', (e) => { e.stopPropagation(); elements.gtDropdown.classList.toggle('open'); });
-                document.addEventListener('click', () => elements.gtDropdown.classList.remove('open'));
-                elements.gtDropdown.addEventListener('click', (e) => e.stopPropagation());
             }
 
             function updateSelectedGTs() {
@@ -1299,6 +1300,12 @@
                 else elements.gtDisplay.textContent = `${selectedGTsFilter.length} selecionados`;
                 currentHistoryPage = 1; fetchHistory();
             }
+            
+            // ATENÇÃO: Event Listeners do Dropdown movidos para o escopo global para evitar duplicação
+            elements.gtDisplay.addEventListener('click', (e) => { e.stopPropagation(); elements.gtDropdown.classList.toggle('open'); });
+            document.addEventListener('click', () => elements.gtDropdown.classList.remove('open'));
+            elements.gtDropdown.addEventListener('click', (e) => e.stopPropagation());
+
             initGtMultiSelect();
 
             // --- NAVEGAÇÃO SPA ---
@@ -1561,6 +1568,7 @@
                     
                     popularLista('arranjo-producao-lista', data.arranjo_producao || [], false);
                     popularLista('itens-pendentes-lista', data.itens_pendentes || [], true);
+                    atualizarTotalizador();
                 } catch (e) { showAlert('Erro ao processar dados do histórico: ' + e.message, 'Erro', 'error'); }
             }
 
@@ -1634,6 +1642,7 @@
                     
                     popularLista('arranjo-producao-lista', data.arranjo_producao, false);
                     popularLista('itens-pendentes-lista', data.itens_pendentes, true);
+                    atualizarTotalizador();
                 } catch (error) { showAlert('Ocorreu um erro ao gerar o arranjo: ' + error.message, 'Erro', 'error'); } finally { elements.btnGerarArranjo.innerHTML = originalButtonText; elements.btnGerarArranjo.disabled = false; }
             });
 
