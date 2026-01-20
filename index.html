@@ -134,8 +134,11 @@
         .btn-group button.active { border-color: var(--color-primary); background: rgba(217, 45, 32, 0.05); color: var(--color-primary); box-shadow: 0 0 0 1px var(--color-primary); }
 
         .form-group label, .config-label { display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-primary); font-size: 0.875rem; text-transform: uppercase; }
-        select, input[type="text"], input[type="search"] { width: 100%; box-sizing: border-box; padding: 0.75rem; border-radius: var(--radius-md); border: 1px solid var(--border-color); background-color: var(--bg-main); color: var(--text-primary); font-size: 1rem; transition: var(--transition-speed); margin-bottom: 0.5rem; }
-        select:focus, input[type="text"]:focus, input[type="search"]:focus { outline: none; border-color: var(--color-primary); box-shadow: 0 0 0 2px rgba(217, 45, 32, 0.2); }
+        select, input[type="text"], input[type="search"], input[type="date"] { width: 100%; box-sizing: border-box; padding: 0.75rem; border-radius: var(--radius-md); border: 1px solid var(--border-color); background-color: var(--bg-main); color: var(--text-primary); font-size: 1rem; transition: var(--transition-speed); margin-bottom: 0.5rem; }
+        select:focus, input[type="text"]:focus, input[type="search"]:focus, input[type="date"]:focus { outline: none; border-color: var(--color-primary); box-shadow: 0 0 0 2px rgba(217, 45, 32, 0.2); }
+        
+        /* Ajuste específico para input date em dark mode */
+        .dark-theme input[type="date"] { color-scheme: dark; }
 
         .actions { margin-top: 2rem; display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
         
@@ -202,8 +205,11 @@
         .table-input { padding: 0.4rem; margin: 0; font-size: 0.9rem; width: 100%; }
         .actions-cell { display: flex; gap: 0.5rem; }
 
-        .search-bar { display: flex; gap: 1rem; margin-bottom: 1rem; flex-wrap: wrap; }
-        .search-bar input { margin-bottom: 0; flex-grow: 1; }
+        /* Barra de pesquisa e filtros */
+        .search-bar { display: flex; gap: 1rem; margin-bottom: 1rem; flex-wrap: wrap; align-items: center; }
+        .search-bar input { margin-bottom: 0; }
+        .search-input-text { flex-grow: 2; }
+        .search-input-date { flex-grow: 1; max-width: 200px; }
 
         .add-item-form {
             background-color: var(--bg-main);
@@ -252,6 +258,10 @@
             .add-item-grid > button { width: 100%; }
             .stepper { gap: 1rem; }
             .export-bar { align-items: stretch; }
+            .search-bar { flex-direction: column; align-items: stretch; }
+            .search-input-date { max-width: 100%; }
+            .pagination-toolbar { flex-direction: column; gap: 1rem; align-items: flex-start; }
+            .pagination-controls { width: 100%; justify-content: space-between; }
         }
     </style>
 </head>
@@ -372,7 +382,7 @@
 
         <div class="card">
             <div class="search-bar">
-                <input type="search" id="search-master-items" placeholder="Pesquisar por código, descrição ou GT...">
+                <input type="search" id="search-master-items" class="search-input-text" placeholder="Pesquisar por código, descrição ou GT...">
             </div>
             
             <div class="pagination-toolbar">
@@ -421,6 +431,30 @@
         </div>
 
         <div class="card">
+            <div class="search-bar">
+                <input type="text" id="search-history-text" class="search-input-text" placeholder="Filtrar por GT, Forno (ex: 'pequeno') ou Usuário...">
+                <input type="date" id="search-history-date" class="search-input-date" title="Filtrar por data específica">
+            </div>
+
+            <div class="pagination-toolbar">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span style="color: var(--text-secondary); font-size: 0.9rem;">Exibir:</span>
+                    <select id="history-items-per-page" class="pagination-select">
+                        <option value="10" selected>10</option>
+                        <option value="15">15</option>
+                        <option value="25">25</option>
+                        <option value="50">50</option>
+                        <option value="all">Todos</option>
+                    </select>
+                </div>
+                
+                <div class="pagination-controls">
+                    <button id="btn-history-prev" class="btn btn-sm btn-secondary" disabled>Anterior</button>
+                    <span id="history-page-info" class="page-info">Página 1</span>
+                    <button id="btn-history-next" class="btn btn-sm btn-secondary">Próximo</button>
+                </div>
+            </div>
+
             <div class="table-container">
                 <table id="table-history">
                     <thead>
@@ -456,11 +490,18 @@
             const n8nGerarArranjoUrl = 'https://n8n-n8n.znxk1t.easypanel.host/webhook/gerar-arranjo';
             const n8nAtualizarGTUrl = 'https://n8n-n8n.znxk1t.easypanel.host/webhook/atualizar-itens-mestre'; 
 
-            // --- VARIÁVEIS DE ESTADO PAGINAÇÃO ---
+            // --- VARIÁVEIS DE ESTADO ---
+            // Master Items
             let currentMasterPage = 1;
             let itemsPerPage = 10;
             let totalItems = 0;
             let searchTimeout = null;
+            
+            // History
+            let currentHistoryPage = 1;
+            let historyItemsPerPage = 10;
+            let totalHistoryItems = 0;
+            let historySearchTimeout = null;
 
             // --- ELEMENTOS DOM ---
             const elements = {
@@ -515,15 +556,19 @@
                 newItemDescricao: document.getElementById('new-item-descricao'),
                 newItemDimensao: document.getElementById('new-item-dimensao'),
                 newItemGt: document.getElementById('new-item-gt'),
-                
-                // Paginação
                 itemsPerPageSelect: document.getElementById('items-per-page'),
                 btnPrevPage: document.getElementById('btn-prev-page'),
                 btnNextPage: document.getElementById('btn-next-page'),
                 pageInfo: document.getElementById('page-info'),
 
                 // Histórico
-                tableHistoryBody: document.querySelector('#table-history tbody')
+                tableHistoryBody: document.querySelector('#table-history tbody'),
+                searchHistoryText: document.getElementById('search-history-text'),
+                searchHistoryDate: document.getElementById('search-history-date'),
+                historyItemsPerPageSelect: document.getElementById('history-items-per-page'),
+                btnHistoryPrev: document.getElementById('btn-history-prev'),
+                btnHistoryNext: document.getElementById('btn-history-next'),
+                historyPageInfo: document.getElementById('history-page-info')
             };
 
             let gtsAtuais = [];
@@ -537,6 +582,7 @@
                 document.getElementById(viewId).classList.remove('hidden');
             }
 
+            // Ações do Menu
             elements.btnMasterManager.addEventListener('click', () => {
                 showView('view-gerenciador');
                 currentMasterPage = 1;
@@ -545,17 +591,27 @@
 
             elements.btnHistory.addEventListener('click', () => {
                 showView('view-historico');
-                loadHistory();
+                currentHistoryPage = 1;
+                fetchHistory();
             });
 
-            // Botões de Voltar
-            elements.btnVoltarProducaoMaster.addEventListener('click', () => showView('view-principal'));
-            elements.btnVoltarProducaoHistory.addEventListener('click', () => showView('view-principal'));
+            // Botões "Voltar para Produção" (RESETAM O ESTADO)
+            elements.btnVoltarProducaoMaster.addEventListener('click', () => {
+                resetarProducao(); // Garante que volta limpo
+                showView('view-principal');
+            });
             
-            // Botão "Voltar para Histórico" dentro do Step 2
+            elements.btnVoltarProducaoHistory.addEventListener('click', () => {
+                resetarProducao(); // Garante que volta limpo
+                showView('view-principal');
+            });
+            
+            // Botão "Voltar para Histórico" dentro do Step 2 (NÃO RESETA, APENAS NAVEGA)
             elements.btnBackToHistory.addEventListener('click', () => {
                 showView('view-historico');
-                loadHistory();
+                // Não chama fetchHistory aqui para manter o estado anterior se possível, 
+                // ou chame se quiser garantir dados frescos. Vamos chamar para garantir.
+                fetchHistory(); 
             });
 
             // Função global para resetar a tela de produção (Novo Arranjo)
@@ -568,7 +624,7 @@
                 elements.arranjoProducaoLista.innerHTML = '';
                 elements.itensPendentesLista.innerHTML = '';
                 
-                // Garante que o estado dos botões volte ao padrão
+                // Restaura botões padrão
                 elements.btnResetProduction.classList.remove('hidden');
                 elements.btnBackToHistory.classList.add('hidden');
             };
@@ -629,28 +685,23 @@
                 }
             });
 
-            // --- SUPABASE: HISTÓRICO ---
-            
-            // Função para parsear e formatar parâmetros JSON aninhados
+            // --- SUPABASE: HISTÓRICO COMPLETO (FILTROS + PAGINAÇÃO) ---
+
+            // Formatação de Parâmetros
             function formatarParametros(rawParams) {
                 if (!rawParams) return "N/A";
 
                 let params = rawParams;
-                // Tenta parsear se for string (primeiro nível)
                 if (typeof params === 'string') {
                     try { params = JSON.parse(params); } catch (e) { return rawParams; }
                 }
-                
-                // Se ainda for string (caso de escape duplo), tenta de novo
                 if (typeof params === 'string') {
                     try { params = JSON.parse(params); } catch (e) { }
                 }
 
-                // 1. Formata Forno
                 let forno = params.forno || '?';
-                forno = forno.charAt(0).toUpperCase() + forno.slice(1); // Capitalize
+                forno = forno.charAt(0).toUpperCase() + forno.slice(1);
 
-                // 2. Formata GTs (Tratando array stringificado dentro do objeto)
                 let gtsData = params.gts_selecionados;
                 let gtsList = [];
 
@@ -660,54 +711,94 @@
                     try {
                         gtsList = JSON.parse(gtsData);
                     } catch (e) {
-                        gtsList = [gtsData]; // Se falhar o parse, assume string única
+                        gtsList = [gtsData];
                     }
                 }
                 
-                // Limpeza dos GTs (remover aspas extras se sobrarem)
                 const gtsDisplay = gtsList.map(g => g.replace(/['"]+/g, '')).join(', ') || "Nenhum";
 
                 return `<b>Forno:</b> ${forno} <span style="margin: 0 10px; color: var(--border-color);">|</span> <b>GTs:</b> ${gtsDisplay}`;
             }
 
-            async function loadHistory() {
+            // Listeners de Filtros do Histórico
+            elements.searchHistoryText.addEventListener('input', (e) => {
+                clearTimeout(historySearchTimeout);
+                historySearchTimeout = setTimeout(() => {
+                    currentHistoryPage = 1;
+                    fetchHistory();
+                }, 500);
+            });
+
+            elements.searchHistoryDate.addEventListener('change', () => {
+                currentHistoryPage = 1;
+                fetchHistory();
+            });
+
+            elements.historyItemsPerPageSelect.addEventListener('change', (e) => {
+                historyItemsPerPage = e.target.value === 'all' ? 'all' : parseInt(e.target.value);
+                currentHistoryPage = 1;
+                fetchHistory();
+            });
+
+            elements.btnHistoryPrev.addEventListener('click', () => {
+                if (currentHistoryPage > 1) {
+                    currentHistoryPage--;
+                    fetchHistory();
+                }
+            });
+
+            elements.btnHistoryNext.addEventListener('click', () => {
+                const maxPages = historyItemsPerPage === 'all' ? 1 : Math.ceil(totalHistoryItems / historyItemsPerPage);
+                if (currentHistoryPage < maxPages) {
+                    currentHistoryPage++;
+                    fetchHistory();
+                }
+            });
+
+            async function fetchHistory() {
                 elements.tableHistoryBody.innerHTML = '<tr><td colspan="4" style="text-align:center;">Carregando histórico...</td></tr>';
+                elements.btnHistoryPrev.disabled = true;
+                elements.btnHistoryNext.disabled = true;
+
                 try {
-                    const { data, error } = await _supabase
-                        .from('arranjos_gerados')
-                        .select('*')
-                        .order('created_at', { ascending: false })
-                        .limit(50);
+                    let query = _supabase.from('arranjos_gerados').select('*', { count: 'exact' });
 
-                    if (error) throw error;
-
-                    elements.tableHistoryBody.innerHTML = '';
-                    if (data.length === 0) {
-                        elements.tableHistoryBody.innerHTML = '<tr><td colspan="4">Nenhum histórico encontrado.</td></tr>';
-                        return;
+                    // Filtro de Texto (Busca em usuario e parametros_usados)
+                    // Nota: para buscar em JSONB via ilike, o ideal é converter para text. 
+                    // Como o Supabase JS tem limitações de sintaxe direta, usaremos o filtro or com cast se possível,
+                    // ou filter genérico. Tentando a abordagem mais compatível:
+                    const term = elements.searchHistoryText.value.trim();
+                    if (term) {
+                        // Tenta buscar no usuário OU nos parâmetros (assumindo que parametros_usados seja convertível em string na busca)
+                        // A sintaxe abaixo força a busca textual na coluna JSON
+                        query = query.or(`usuario.ilike.%${term}%,parametros_usados.ilike.%${term}%`);
                     }
 
-                    data.forEach(row => {
-                        const tr = document.createElement('tr');
-                        const date = new Date(row.created_at).toLocaleString('pt-BR');
-                        
-                        const formattedParams = formatarParametros(row.parametros_usados);
-                        
-                        tr.innerHTML = `
-                            <td>${date}</td>
-                            <td>${row.usuario || 'Sistema'}</td>
-                            <td>${formattedParams}</td>
-                            <td style="text-align: center;">
-                                <button class="btn btn-sm btn-primary btn-load-history" title="Carregar este arranjo na tela principal">
-                                    📂 Carregar Arranjo
-                                </button>
-                            </td>
-                        `;
-                        
-                        const btnLoad = tr.querySelector('.btn-load-history');
-                        btnLoad.addEventListener('click', () => loadHistoryItemIntoView(row.arranjo_resultado));
-                        elements.tableHistoryBody.appendChild(tr);
-                    });
+                    // Filtro de Data
+                    const dateVal = elements.searchHistoryDate.value;
+                    if (dateVal) {
+                        // Cria range do dia inteiro (UTC consideration might apply, using simple ISO strings)
+                        const start = new Date(dateVal).toISOString();
+                        const end = new Date(new Date(dateVal).setHours(23,59,59,999)).toISOString();
+                        query = query.gte('created_at', start).lte('created_at', end);
+                    }
+
+                    query = query.order('created_at', { ascending: false });
+
+                    // Paginação
+                    if (historyItemsPerPage !== 'all') {
+                        const from = (currentHistoryPage - 1) * historyItemsPerPage;
+                        const to = from + historyItemsPerPage - 1;
+                        query = query.range(from, to);
+                    }
+
+                    const { data, count, error } = await query;
+
+                    if (error) throw error;
+                    
+                    totalHistoryItems = count || 0;
+                    renderHistoryTable(data);
+                    updateHistoryPaginationControls();
 
                 } catch (err) {
                     console.error(err);
@@ -715,19 +806,62 @@
                 }
             }
 
+            function updateHistoryPaginationControls() {
+                if (historyItemsPerPage === 'all') {
+                    elements.historyPageInfo.textContent = `Mostrando todos (${totalHistoryItems})`;
+                    elements.btnHistoryPrev.disabled = true;
+                    elements.btnHistoryNext.disabled = true;
+                } else {
+                    const totalPages = Math.ceil(totalHistoryItems / historyItemsPerPage);
+                    if (totalPages === 0) currentHistoryPage = 1;
+                    
+                    elements.historyPageInfo.textContent = `Página ${currentHistoryPage} de ${totalPages || 1} (Total: ${totalHistoryItems})`;
+                    
+                    elements.btnHistoryPrev.disabled = currentHistoryPage <= 1;
+                    elements.btnHistoryNext.disabled = currentHistoryPage >= totalPages;
+                }
+            }
+
+            function renderHistoryTable(data) {
+                elements.tableHistoryBody.innerHTML = '';
+                if (data.length === 0) {
+                    elements.tableHistoryBody.innerHTML = '<tr><td colspan="4">Nenhum histórico encontrado.</td></tr>';
+                    return;
+                }
+
+                data.forEach(row => {
+                    const tr = document.createElement('tr');
+                    const date = new Date(row.created_at).toLocaleString('pt-BR');
+                    const formattedParams = formatarParametros(row.parametros_usados);
+                    
+                    tr.innerHTML = `
+                        <td>${date}</td>
+                        <td>${row.usuario || 'Sistema'}</td>
+                        <td>${formattedParams}</td>
+                        <td style="text-align: center;">
+                            <button class="btn btn-sm btn-primary btn-load-history" title="Carregar este arranjo na tela principal">
+                                📂 Carregar Arranjo
+                            </button>
+                        </td>
+                    `;
+                    
+                    const btnLoad = tr.querySelector('.btn-load-history');
+                    btnLoad.addEventListener('click', () => loadHistoryItemIntoView(row.arranjo_resultado));
+                    elements.tableHistoryBody.appendChild(tr);
+                });
+            }
+
             function loadHistoryItemIntoView(jsonResultado) {
                 try {
-                    // Tenta parsear JSON se for string
                     let data = jsonResultado;
                     if (typeof data === 'string') {
                         try { data = JSON.parse(data); } catch (e) {}
                     }
-                    // Duplo parse check
                     if (typeof data === 'string') {
                          try { data = JSON.parse(data); } catch (e) {}
                     }
 
-                    // Voltar para view de produção
+                    // Ir para view de produção
                     showView('view-principal');
                     
                     // Configurar steps (Pula passo 1, vai para 2)
@@ -735,11 +869,10 @@
                     elements.step2.classList.remove('hidden');
                     updateStepper(2);
 
-                    // ALTERAÇÃO IMPORTANTE: Troca os botões de controle
+                    // ATIVA MODO "VISUALIZAÇÃO DE HISTÓRICO"
                     elements.btnResetProduction.classList.add('hidden');
                     elements.btnBackToHistory.classList.remove('hidden');
 
-                    // Popular as listas
                     popularLista('arranjo-producao-lista', data.arranjo_producao || [], false);
                     popularLista('itens-pendentes-lista', data.itens_pendentes || [], true);
 
@@ -749,7 +882,7 @@
                 }
             }
 
-            // --- SUPABASE: GERENCIADOR DE ITENS MESTRE COM PAGINAÇÃO ---
+            // --- SUPABASE: GERENCIADOR DE ITENS MESTRE (CÓDIGO ANTERIOR MANTIDO) ---
             
             elements.itemsPerPageSelect.addEventListener('change', (e) => {
                 itemsPerPage = e.target.value === 'all' ? 'all' : parseInt(e.target.value);
@@ -842,7 +975,6 @@
 
                 items.forEach(item => {
                     const tr = document.createElement('tr');
-                    
                     tr.innerHTML = `
                         <td><input type="text" class="table-input inp-codigo" value="${item.codigo_item || ''}" disabled title="Código não pode ser alterado aqui"></td>
                         <td><input type="text" class="table-input inp-descricao" value="${item.descricao || ''}"></td>
