@@ -7,8 +7,13 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <!-- Adiciona a biblioteca SheetJS para exportação em Excel -->
+    
+    <!-- Biblioteca SheetJS para exportação em Excel -->
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+    
+    <!-- Biblioteca Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
     <style>
         :root {
             /* Design System Tokens */
@@ -16,6 +21,8 @@
             --color-primary-hover: #B42318;
             --color-success: #10B981;
             --color-info: #3B82F6;
+            --color-warning: #F59E0B;
+            --color-danger: #EF4444;
             --color-bg-light: #F9FAFB;
             --color-bg-dark: #111827;
             --color-card-light: #FFFFFF;
@@ -57,23 +64,42 @@
         body { background-color: var(--bg-main); color: var(--text-primary); }
 
         /* Layout Principal e Header */
-        .container { max-width: 960px; margin: 0 auto; padding: 2rem; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 2rem; } /* Aumentado para acomodar tabelas */
         header {
             display: flex;
-            justify-content: center; 
+            justify-content: space-between; 
             align-items: center;
             padding: 1rem 2rem;
             background-color: var(--bg-card);
             border-bottom: 1px solid var(--border-color);
             position: relative; 
         }
+        header .logo-area { display: flex; align-items: center; gap: 1rem; }
         header img { height: 48px; }
+        
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .nav-btn {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 0.5rem 1rem;
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            font-weight: 500;
+            transition: var(--transition-speed);
+        }
+        .nav-btn:hover { background-color: var(--color-bg-light); border-color: var(--text-secondary); }
+        .dark-theme .nav-btn:hover { background-color: var(--color-border-dark); }
+
         .theme-switcher {
             display: flex;
             align-items: center;
             gap: 10px;
-            position: absolute;
-            right: 2rem;
         }
 
         /* Stepper de Progresso */
@@ -83,9 +109,9 @@
         .step .step-number { width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--border-color); display: inline-flex; align-items: center; justify-content: center; margin-right: 0.5rem; transition: var(--transition-speed); }
         .step.active .step-number { border-color: var(--color-primary); background-color: var(--color-primary); color: white; }
 
-        /* Componentes */
+        /* Componentes Gerais */
         .card { background-color: var(--bg-card); border-radius: var(--radius-lg); padding: 1.5rem 2rem; margin-bottom: 2rem; box-shadow: var(--shadow-md); animation: fadeIn 0.5s var(--transition-speed) both; }
-        .hidden { display: none; }
+        .hidden { display: none !important; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
         h2 { font-size: 1.25rem; margin-top: 0; margin-bottom: 1.5rem; }
@@ -96,12 +122,13 @@
         .btn-group button.active { border-color: var(--color-primary); background: rgba(217, 45, 32, 0.05); color: var(--color-primary); box-shadow: 0 0 0 1px var(--color-primary); }
 
         .form-group label, .config-label { display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-primary); font-size: 0.875rem; text-transform: uppercase; }
-        select, input[type="text"] { width: 100%; box-sizing: border-box; padding: 0.75rem; border-radius: var(--radius-md); border: 1px solid var(--border-color); background-color: var(--bg-main); color: var(--text-primary); font-size: 1rem; transition: var(--transition-speed); margin-bottom: 0.5rem; }
-        select:focus, input[type="text"]:focus { outline: none; border-color: var(--color-primary); box-shadow: 0 0 0 2px rgba(217, 45, 32, 0.2); }
+        select, input[type="text"], input[type="search"] { width: 100%; box-sizing: border-box; padding: 0.75rem; border-radius: var(--radius-md); border: 1px solid var(--border-color); background-color: var(--bg-main); color: var(--text-primary); font-size: 1rem; transition: var(--transition-speed); margin-bottom: 0.5rem; }
+        select:focus, input[type="text"]:focus, input[type="search"]:focus { outline: none; border-color: var(--color-primary); box-shadow: 0 0 0 2px rgba(217, 45, 32, 0.2); }
 
         .actions { margin-top: 2rem; display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
         .actions-final { display: flex; justify-content: space-around; gap: 1rem; }
         .btn { padding: 0.75rem 1.5rem; border: none; border-radius: var(--radius-md); font-size: 1rem; font-weight: 600; cursor: pointer; transition: var(--transition-speed); display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; }
+        .btn-sm { padding: 0.4rem 0.8rem; font-size: 0.875rem; }
         .btn-primary { background-color: var(--color-primary); color: white; }
         .btn-primary:hover { background-color: var(--color-primary-hover); }
         .btn-secondary { border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary); }
@@ -109,6 +136,7 @@
         .btn:disabled { opacity: 0.6; cursor: not-allowed; }
         .btn-success { background-color: var(--color-success); color: white; }
         .btn-info { background-color: var(--color-info); color: white; }
+        .btn-danger { background-color: var(--color-danger); color: white; }
 
         .spinner { width: 16px; height: 16px; border: 2px solid rgba(255, 255, 255, 0.3); border-radius: 50%; border-top-color: #fff; animation: spin 1s ease-in-out infinite; }
         @keyframes spin { to { transform: rotate(360deg); } }
@@ -149,18 +177,71 @@
             color: var(--color-primary);
             transform: scale(1.2);
         }
+
+        /* --- Estilos para Modal e Tabelas (Novos) --- */
+        .modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6); display: flex; justify-content: center; align-items: center;
+            z-index: 1000; opacity: 0; pointer-events: none; transition: opacity 0.3s;
+        }
+        .modal.open { opacity: 1; pointer-events: all; }
+        .modal-content {
+            background: var(--bg-card); width: 90%; max-width: 900px; max-height: 85vh;
+            border-radius: var(--radius-lg); padding: 2rem; box-shadow: var(--shadow-md);
+            overflow-y: auto; position: relative;
+        }
+        .close-modal {
+            position: absolute; top: 1rem; right: 1.5rem; font-size: 1.5rem;
+            cursor: pointer; color: var(--text-secondary);
+        }
+        
+        /* Tabelas */
+        .table-container { overflow-x: auto; width: 100%; }
+        table { width: 100%; border-collapse: collapse; margin-top: 1rem; font-size: 0.95rem; }
+        th, td { padding: 0.75rem 1rem; text-align: left; border-bottom: 1px solid var(--border-color); }
+        th { background-color: var(--bg-main); font-weight: 600; color: var(--text-secondary); }
+        tr:hover { background-color: rgba(0,0,0,0.02); }
+        .dark-theme tr:hover { background-color: rgba(255,255,255,0.05); }
+        
+        /* Inputs na tabela de gerenciamento */
+        .table-input { padding: 0.4rem; margin: 0; font-size: 0.9rem; width: 100%; }
+        .actions-cell { display: flex; gap: 0.5rem; }
+
+        .search-bar { display: flex; gap: 1rem; margin-bottom: 1.5rem; }
+        .search-bar input { margin-bottom: 0; flex-grow: 1; }
+
+        .add-item-form {
+            background-color: var(--bg-main);
+            padding: 1.5rem;
+            border-radius: var(--radius-md);
+            margin-bottom: 2rem;
+            border: 1px solid var(--border-color);
+        }
+        .add-item-grid {
+            display: grid;
+            grid-template-columns: 1fr 2fr 1fr 1fr auto;
+            gap: 1rem;
+            align-items: end;
+        }
     </style>
 </head>
 <body class="dark-theme">
 
     <header>
-        <img id="logo-fama" src="https://ctfamadobrasil.com.br/wp-content/uploads/2025/12/Gemini_Generated_Image_v8cib8v8cib8v8ci-removebg-preview.png" alt="Logo Molas Fama">
-        <div class="theme-switcher">
-            ☀️ <input type="checkbox" id="theme-toggle" checked> 🌙
+        <div class="logo-area">
+            <img id="logo-fama" src="https://ctfamadobrasil.com.br/wp-content/uploads/2025/12/Gemini_Generated_Image_v8cib8v8cib8v8ci-removebg-preview.png" alt="Logo Molas Fama">
+        </div>
+        <div class="header-actions">
+            <button id="btn-master-manager" class="nav-btn">🛠️ Gerenciar Itens Mestre</button>
+            <button id="btn-history" class="nav-btn">📜 Histórico</button>
+            <div class="theme-switcher">
+                ☀️ <input type="checkbox" id="theme-toggle" checked> 🌙
+            </div>
         </div>
     </header>
 
-    <main class="container">
+    <!-- CONTAINER DA VIEW PRINCIPAL (PRODUÇÃO) -->
+    <main id="view-principal" class="container">
         <div class="stepper">
             <div id="step-nav-1" class="step active"><span class="step-number">1</span>Configuração</div>
             <div id="step-nav-2" class="step"><span class="step-number">2</span>Organize a Sequência</div>
@@ -220,35 +301,152 @@
         </div>
     </main>
 
+    <!-- CONTAINER DA VIEW DE GERENCIAMENTO (ITENS MESTRE) -->
+    <main id="view-gerenciador" class="container hidden">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+            <h2>Gerenciador de Itens Mestre</h2>
+            <button id="btn-voltar-producao" class="btn btn-secondary">← Voltar para Produção</button>
+        </div>
+
+        <div class="add-item-form">
+            <h3 style="margin-top:0">Adicionar Novo Item</h3>
+            <div class="add-item-grid">
+                <div>
+                    <label class="config-label">Código</label>
+                    <input type="text" id="new-item-codigo" placeholder="Ex: 12345">
+                </div>
+                <div>
+                    <label class="config-label">Descrição</label>
+                    <input type="text" id="new-item-descricao" placeholder="Descrição do item">
+                </div>
+                <div>
+                    <label class="config-label">Dimensão/Bitola</label>
+                    <input type="text" id="new-item-dimensao" placeholder="Ex: 50.8 X 500">
+                </div>
+                <div>
+                    <label class="config-label">GT Padrão</label>
+                    <input type="text" id="new-item-gt" placeholder="GT01">
+                </div>
+                <button id="btn-add-master-item" class="btn btn-primary btn-sm" style="height: 48px;">+ Criar</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="search-bar">
+                <input type="search" id="search-master-items" placeholder="Pesquisar por código, descrição ou GT...">
+            </div>
+            <div class="table-container">
+                <table id="table-master-items">
+                    <thead>
+                        <tr>
+                            <th>Código</th>
+                            <th>Descrição</th>
+                            <th>Dimensão</th>
+                            <th>GT</th>
+                            <th style="width: 150px;">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Linhas geradas via JS -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <!-- MODAL DE HISTÓRICO -->
+    <div id="modal-historico" class="modal">
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <h2>Histórico de Arranjos Gerados</h2>
+            <div class="table-container">
+                <table id="table-history">
+                    <thead>
+                        <tr>
+                            <th>Data/Hora</th>
+                            <th>Usuário</th>
+                            <th>Parâmetros (Fornos/GTs)</th>
+                            <th>Ação</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Linhas geradas via JS -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
     <script>
         document.addEventListener('DOMContentLoaded', () => {
+            // --- CONFIGURAÇÃO SUPABASE ---
+            const SUPABASE_URL = 'https://mqzrlzywqgylffwvtlmg.supabase.co';
+            const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1xenJsenl3cWd5bGZmd3Z0bG1nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAxNzExNDcsImV4cCI6MjA3NTc0NzE0N30.YghplsFD3T1Xv0yuLYTdD9Ib5kenXitDMnXAud7TjSY';
+            const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+            // --- CONFIGURAÇÃO N8N (LEGADO MANTIDO) ---
             const n8nGerarArranjoUrl = 'https://n8n-n8n.znxk1t.easypanel.host/webhook/gerar-arranjo';
             const n8nAtualizarGTUrl = 'https://n8n-n8n.znxk1t.easypanel.host/webhook/atualizar-itens-mestre'; 
 
+            // --- ELEMENTOS DOM ---
             const elements = {
+                // Views
+                viewPrincipal: document.getElementById('view-principal'),
+                viewGerenciador: document.getElementById('view-gerenciador'),
+                modalHistorico: document.getElementById('modal-historico'),
+                btnCloseModal: document.querySelector('.close-modal'),
+
+                // Buttons Header
+                btnMasterManager: document.getElementById('btn-master-manager'),
+                btnHistory: document.getElementById('btn-history'),
+                btnVoltarProducao: document.getElementById('btn-voltar-producao'),
+                themeToggle: document.getElementById('theme-toggle'),
+                logo: document.getElementById('logo-fama'),
+
+                // Stepper & Steps
                 stepNav1: document.getElementById('step-nav-1'),
                 stepNav2: document.getElementById('step-nav-2'),
                 stepNav3: document.getElementById('step-nav-3'),
                 step1: document.getElementById('step-1'),
                 step2: document.getElementById('step-2'),
                 step3: document.getElementById('step-3'),
+
+                // Configuração Forno
                 btnFornoGrande: document.getElementById('btn-forno-grande'),
-                btnFornoPequeno: document.getElementById('btn-forno-pequeno'),
+                btnFornoPequeno: document.getElementById('btn-forno-pequeno'), // Corrigido
                 configTitulo: document.getElementById('config-titulo'),
                 qtdeGtsDinamico: document.getElementById('qtde-gts-dinamico'),
                 inputsGtsDinamico: document.getElementById('inputs-gts-dinamico'),
+
+                // Ações Principais
                 btnCarregarCsv: document.getElementById('btn-carregar-csv'),
                 csvFileInput: document.getElementById('csv-file-input'),
                 btnGerarArranjo: document.getElementById('btn-gerar-arranjo'),
-                themeToggle: document.getElementById('theme-toggle'),
-                logo: document.getElementById('logo-fama'),
+                
+                // Listas Drag & Drop
                 arranjoProducaoLista: document.getElementById('arranjo-producao-lista'),
                 itensPendentesLista: document.getElementById('itens-pendentes-lista'),
+                
+                // Exportação
                 btnExportExcel: document.getElementById('btn-export-excel'),
+
+                // Gerenciador Mestre
+                searchMasterItems: document.getElementById('search-master-items'),
+                tableMasterItemsBody: document.querySelector('#table-master-items tbody'),
+                btnAddMasterItem: document.getElementById('btn-add-master-item'),
+                newItemCodigo: document.getElementById('new-item-codigo'),
+                newItemDescricao: document.getElementById('new-item-descricao'),
+                newItemDimensao: document.getElementById('new-item-dimensao'),
+                newItemGt: document.getElementById('new-item-gt'),
+
+                // Histórico
+                tableHistoryBody: document.querySelector('#table-history tbody')
             };
 
             let gtsAtuais = [];
+            let masterItemsCache = [];
 
+            // --- LÓGICA DE UI GERAL ---
             const fornosConfig = {
                 grande: {
                     titulo: 'Configuração do Forno Grande',
@@ -293,6 +491,7 @@
                 gerarInputs(elements.qtdeGtsDinamico.value, elements.inputsGtsDinamico);
             };
 
+            // --- EVENT LISTENERS BÁSICOS ---
             elements.btnFornoGrande.addEventListener('click', () => atualizarConfiguracaoForno('grande'));
             elements.btnFornoPequeno.addEventListener('click', () => atualizarConfiguracaoForno('pequeno'));
             elements.qtdeGtsDinamico.addEventListener('change', (e) => gerarInputs(e.target.value, elements.inputsGtsDinamico));
@@ -303,7 +502,246 @@
                     elements.btnCarregarCsv.textContent = `Arquivo: ${elements.csvFileInput.files[0].name}`;
                 }
             });
-            
+
+            // --- NAVEGAÇÃO ENTRE VIEWS ---
+            elements.btnMasterManager.addEventListener('click', () => {
+                elements.viewPrincipal.classList.add('hidden');
+                elements.viewGerenciador.classList.remove('hidden');
+                loadMasterItems();
+            });
+
+            elements.btnVoltarProducao.addEventListener('click', () => {
+                elements.viewGerenciador.classList.add('hidden');
+                elements.viewPrincipal.classList.remove('hidden');
+            });
+
+            // --- LÓGICA DO MODAL HISTÓRICO ---
+            elements.btnHistory.addEventListener('click', () => {
+                elements.modalHistorico.classList.add('open');
+                loadHistory();
+            });
+
+            elements.btnCloseModal.addEventListener('click', () => {
+                elements.modalHistorico.classList.remove('open');
+            });
+
+            // Fecha modal clicando fora
+            window.addEventListener('click', (e) => {
+                if (e.target === elements.modalHistorico) {
+                    elements.modalHistorico.classList.remove('open');
+                }
+            });
+
+            // --- SUPABASE: HISTÓRICO ---
+            async function loadHistory() {
+                elements.tableHistoryBody.innerHTML = '<tr><td colspan="4" style="text-align:center;">Carregando...</td></tr>';
+                try {
+                    const { data, error } = await _supabase
+                        .from('arranjos_gerados')
+                        .select('*')
+                        .order('created_at', { ascending: false })
+                        .limit(50);
+
+                    if (error) throw error;
+
+                    elements.tableHistoryBody.innerHTML = '';
+                    if (data.length === 0) {
+                        elements.tableHistoryBody.innerHTML = '<tr><td colspan="4">Nenhum histórico encontrado.</td></tr>';
+                        return;
+                    }
+
+                    data.forEach(row => {
+                        const tr = document.createElement('tr');
+                        const date = new Date(row.created_at).toLocaleString('pt-BR');
+                        const params = typeof row.parametros === 'string' ? row.parametros : JSON.stringify(row.parametros);
+                        
+                        tr.innerHTML = `
+                            <td>${date}</td>
+                            <td>${row.usuario || 'Sistema'}</td>
+                            <td style="font-size:0.85rem; color:var(--text-secondary); max-width:300px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${params}</td>
+                            <td><button class="btn btn-sm btn-primary btn-load-history">Carregar</button></td>
+                        `;
+                        
+                        const btnLoad = tr.querySelector('.btn-load-history');
+                        btnLoad.addEventListener('click', () => loadHistoryItemIntoView(row.arranjo_resultado));
+                        elements.tableHistoryBody.appendChild(tr);
+                    });
+
+                } catch (err) {
+                    console.error(err);
+                    elements.tableHistoryBody.innerHTML = `<tr><td colspan="4" style="color:var(--color-danger)">Erro ao carregar histórico: ${err.message}</td></tr>`;
+                }
+            }
+
+            function loadHistoryItemIntoView(jsonResultado) {
+                try {
+                    const data = typeof jsonResultado === 'string' ? JSON.parse(jsonResultado) : jsonResultado;
+                    
+                    // Fechar modal e ir para view de produção
+                    elements.modalHistorico.classList.remove('open');
+                    elements.viewGerenciador.classList.add('hidden');
+                    elements.viewPrincipal.classList.remove('hidden');
+                    
+                    // Ocultar passo 1, mostrar passos 2 e 3
+                    elements.step1.classList.add('hidden');
+                    elements.step2.classList.remove('hidden');
+                    elements.step3.classList.remove('hidden');
+                    updateStepper(2);
+
+                    // Popular as listas
+                    popularLista('arranjo-producao-lista', data.arranjo_producao || [], false);
+                    popularLista('itens-pendentes-lista', data.itens_pendentes || [], true);
+
+                } catch (e) {
+                    alert('Erro ao processar os dados do histórico: ' + e.message);
+                }
+            }
+
+            // --- SUPABASE: GERENCIADOR DE ITENS MESTRE ---
+            async function loadMasterItems() {
+                elements.tableMasterItemsBody.innerHTML = '<tr><td colspan="5" style="text-align:center;">Carregando...</td></tr>';
+                try {
+                    const { data, error } = await _supabase
+                        .from('itens_mestre')
+                        .select('*')
+                        .order('codigo_item', { ascending: true }); // Assumindo 'codigo_item'
+
+                    if (error) throw error;
+                    
+                    masterItemsCache = data;
+                    renderMasterTable(data);
+                } catch (err) {
+                    console.error(err);
+                    elements.tableMasterItemsBody.innerHTML = `<tr><td colspan="5" style="color:var(--color-danger)">Erro: ${err.message}</td></tr>`;
+                }
+            }
+
+            function renderMasterTable(items) {
+                elements.tableMasterItemsBody.innerHTML = '';
+                if (items.length === 0) {
+                    elements.tableMasterItemsBody.innerHTML = '<tr><td colspan="5">Nenhum item encontrado.</td></tr>';
+                    return;
+                }
+
+                items.forEach(item => {
+                    const tr = document.createElement('tr');
+                    // Usamos data-attributes para referenciar o ID original (assumindo que seja 'id' ou 'codigo_item' como PK)
+                    // Vou assumir que 'id' é a chave primária única gerada pelo Supabase, ou usar 'codigo_item' se for único.
+                    // Para segurança, usarei os valores originais nos inputs.
+                    
+                    tr.innerHTML = `
+                        <td><input type="text" class="table-input inp-codigo" value="${item.codigo_item || ''}" disabled title="Código não pode ser alterado aqui"></td>
+                        <td><input type="text" class="table-input inp-descricao" value="${item.descricao || ''}"></td>
+                        <td><input type="text" class="table-input inp-dimensao" value="${item.dimensao || ''}"></td>
+                        <td><input type="text" class="table-input inp-gt" value="${item.gt || ''}"></td>
+                        <td class="actions-cell">
+                            <button class="btn btn-sm btn-success btn-save-row">💾</button>
+                            <button class="btn btn-sm btn-danger btn-delete-row">🗑️</button>
+                        </td>
+                    `;
+
+                    // Eventos de Salvar e Excluir
+                    const btnSave = tr.querySelector('.btn-save-row');
+                    const btnDelete = tr.querySelector('.btn-delete-row');
+                    
+                    // Identificador único (preferencia ID interno se existir, senão codigo_item)
+                    const itemId = item.id; 
+
+                    btnSave.addEventListener('click', async () => {
+                        const newDesc = tr.querySelector('.inp-descricao').value;
+                        const newDim = tr.querySelector('.inp-dimensao').value;
+                        const newGt = tr.querySelector('.inp-gt').value;
+
+                        btnSave.disabled = true;
+                        try {
+                            const { error } = await _supabase
+                                .from('itens_mestre')
+                                .update({ descricao: newDesc, dimensao: newDim, gt: newGt })
+                                .eq('id', itemId); // Usa ID para update seguro
+
+                            if (error) throw error;
+                            alert('Item atualizado com sucesso!');
+                        } catch (e) {
+                            alert('Erro ao atualizar: ' + e.message);
+                        } finally {
+                            btnSave.disabled = false;
+                        }
+                    });
+
+                    btnDelete.addEventListener('click', async () => {
+                        if(!confirm(`Tem certeza que deseja excluir o item ${item.codigo_item}?`)) return;
+                        
+                        btnDelete.disabled = true;
+                        try {
+                            const { error } = await _supabase
+                                .from('itens_mestre')
+                                .delete()
+                                .eq('id', itemId);
+
+                            if (error) throw error;
+                            tr.remove(); // Remove do DOM
+                            masterItemsCache = masterItemsCache.filter(x => x.id !== itemId); // Atualiza cache
+                        } catch (e) {
+                            alert('Erro ao excluir: ' + e.message);
+                            btnDelete.disabled = false;
+                        }
+                    });
+
+                    elements.tableMasterItemsBody.appendChild(tr);
+                });
+            }
+
+            // Filtro de Pesquisa
+            elements.searchMasterItems.addEventListener('input', (e) => {
+                const term = e.target.value.toLowerCase();
+                const filtered = masterItemsCache.filter(item => 
+                    (item.codigo_item && item.codigo_item.toLowerCase().includes(term)) ||
+                    (item.descricao && item.descricao.toLowerCase().includes(term)) ||
+                    (item.gt && item.gt.toLowerCase().includes(term))
+                );
+                renderMasterTable(filtered);
+            });
+
+            // Adicionar Novo Item
+            elements.btnAddMasterItem.addEventListener('click', async () => {
+                const codigo = elements.newItemCodigo.value.trim();
+                const descricao = elements.newItemDescricao.value.trim();
+                const dimensao = elements.newItemDimensao.value.trim();
+                const gt = elements.newItemGt.value.trim();
+
+                if (!codigo) { alert('Código é obrigatório.'); return; }
+
+                elements.btnAddMasterItem.innerHTML = '<div class="spinner"></div>';
+                elements.btnAddMasterItem.disabled = true;
+
+                try {
+                    const { data, error } = await _supabase
+                        .from('itens_mestre')
+                        .insert([{ codigo_item: codigo, descricao, dimensao, gt }])
+                        .select();
+
+                    if (error) throw error;
+
+                    // Limpar form
+                    elements.newItemCodigo.value = '';
+                    elements.newItemDescricao.value = '';
+                    elements.newItemDimensao.value = '';
+                    elements.newItemGt.value = '';
+
+                    // Recarregar lista
+                    await loadMasterItems();
+                    alert('Item criado com sucesso!');
+
+                } catch (e) {
+                    alert('Erro ao criar item: ' + e.message);
+                } finally {
+                    elements.btnAddMasterItem.innerHTML = '+ Criar';
+                    elements.btnAddMasterItem.disabled = false;
+                }
+            });
+
+
+            // --- LÓGICA DE GERAÇÃO (INTEGRAÇÃO N8N MANTIDA) ---
             elements.btnGerarArranjo.addEventListener('click', async () => {
                 if (!elements.csvFileInput.files[0]) {
                     alert('Por favor, carregue um arquivo CSV primeiro.');
@@ -330,12 +768,16 @@
                          throw new Error(`Erro na comunicação com o servidor: ${response.statusText}. Detalhes: ${errorText}`);
                     }
                     const data = await response.json();
+                    
+                    // Sucesso: Mudar UI
                     elements.step1.classList.add('hidden');
                     elements.step2.classList.remove('hidden');
                     elements.step3.classList.remove('hidden');
                     updateStepper(2);
+                    
                     popularLista('arranjo-producao-lista', data.arranjo_producao, false);
                     popularLista('itens-pendentes-lista', data.itens_pendentes, true);
+
                 } catch (error) {
                     alert('Ocorreu um erro ao gerar o arranjo: ' + error.message);
                 } finally {
@@ -344,6 +786,7 @@
                 }
             });
 
+            // --- FUNÇÕES AUXILIARES DE RENDERIZAÇÃO E DRAG & DROP ---
             function popularLista(containerId, items, isPendente) {
                 const container = document.getElementById(containerId);
                 container.innerHTML = '';
@@ -397,9 +840,16 @@
             }
 
             window.cancelarEdicao = function(event, cardElement) {
-                const currentGT = cardElement.dataset.gt;
-                const gtDisplayElement = cardElement.querySelector('.gt-display');
-                gtDisplayElement.innerHTML = `<b>GT:</b> ${currentGT || 'N/A'}`;
+                // Pequeno delay para permitir que o onkeydown dispare antes do onblur se for Enter
+                setTimeout(() => {
+                    // Verifica se ainda está em edição (pode ter sido salvo via Enter)
+                    const input = cardElement.querySelector('.gt-input');
+                    if (input && !input.disabled) {
+                        const currentGT = cardElement.dataset.gt;
+                        const gtDisplayElement = cardElement.querySelector('.gt-display');
+                        gtDisplayElement.innerHTML = `<b>GT:</b> ${currentGT || 'N/A'}`;
+                    }
+                }, 100);
             }
 
             window.reavaliarItem = async function(event, cardElement) {
@@ -409,7 +859,8 @@
                     const codigoItem = cardElement.dataset.codigo;
                     
                     if (novoGT === cardElement.dataset.gt) {
-                        cancelarEdicao(event, cardElement);
+                        const gtDisplayElement = cardElement.querySelector('.gt-display');
+                        gtDisplayElement.innerHTML = `<b>GT:</b> ${novoGT || 'N/A'}`;
                         return;
                     }
 
@@ -431,6 +882,7 @@
 
                         const corresponde = gtsAtuais.some(gtSelecionado => novoGT.includes(gtSelecionado));
 
+                        // Move o card dependendo se o novo GT corresponde aos selecionados
                         if (corresponde && cardElement.parentElement.id !== 'arranjo-producao-lista') {
                             elements.arranjoProducaoLista.appendChild(cardElement);
                             reordenarArranjo();
@@ -441,9 +893,12 @@
                         alert(error.message);
                         input.disabled = false;
                         input.value = novoGT;
+                        input.focus();
                     }
                 } else if (event.key === 'Escape') {
-                    cancelarEdicao(event, cardElement);
+                    const currentGT = cardElement.dataset.gt;
+                    const gtDisplayElement = cardElement.querySelector('.gt-display');
+                    gtDisplayElement.innerHTML = `<b>GT:</b> ${currentGT || 'N/A'}`;
                 }
             }
 
@@ -482,6 +937,8 @@
                     zone.classList.remove('drag-over');
                     const id = e.dataTransfer.getData('text');
                     const draggableElement = document.getElementById(id);
+                    if (!draggableElement) return;
+                    
                     const targetList = zone.querySelector('div[id$="-lista"]');
                     targetList.appendChild(draggableElement);
 
