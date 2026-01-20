@@ -40,7 +40,7 @@
 
         /* Cards & Layout */
         .card { background-color: var(--bg-card); border-radius: var(--radius-lg); padding: 1.5rem 2rem; margin-bottom: 2rem; box-shadow: var(--shadow-md); animation: fadeIn 0.5s var(--transition-speed) both; }
-        .hidden { display: none; }
+        .hidden { display: none !important; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         h2 { font-size: 1.25rem; margin-top: 0; margin-bottom: 1.5rem; }
         
@@ -304,6 +304,7 @@
             }
 
             function popularLista(container, items, isPendente) { 
+                if (!container) { console.error("Container inválido em popularLista"); return; }
                 container.innerHTML = ''; 
                 if (!items || items.length === 0) { container.innerHTML = '<p style="color: var(--text-secondary);">Nenhum item.</p>'; return; } 
                 items.forEach((item, index) => { 
@@ -579,20 +580,30 @@
                 });
             }
 
-            function showDetailsModal(id, paramText, detailsJson) {
-                // 1. Converte string para objeto se necessário
-                let details = (typeof detailsJson === 'string') ? JSON.parse(detailsJson) : detailsJson;
+            function showDetailsModal(id, paramText, rawData) {
+                console.log("Processando detalhes...", rawData);
                 
-                // 2. CORREÇÃO: Verifica se os dados estão dentro de uma propriedade 'json' (comum no n8n)
-                if (details && details.json && !details.arranjo_producao) {
-                    details = details.json;
+                // 1. Tentar fazer o parse do JSON se for string
+                let data = rawData;
+                if (typeof data === 'string') {
+                    try { data = JSON.parse(data); } catch(e) { console.error("Erro parse JSON", e); }
                 }
 
-                // 3. Garante que os arrays existam para não quebrar a tela
-                const arranjo = Array.isArray(details?.arranjo_producao) ? details.arranjo_producao : [];
-                const pendentes = Array.isArray(details?.itens_pendentes) ? details.itens_pendentes : [];
+                // 2. Se o n8n retornou um array de objetos [ {json: ...} ]
+                if (Array.isArray(data) && data.length > 0) {
+                    data = data[0];
+                }
 
-                // 4. Preenche a tela
+                // 3. Se estiver dentro da propriedade 'json'
+                if (data && data.json) {
+                    data = data.json;
+                }
+
+                // 4. Extrair os arrays com segurança
+                const arranjo = Array.isArray(data?.arranjo_producao) ? data.arranjo_producao : [];
+                const pendentes = Array.isArray(data?.itens_pendentes) ? data.itens_pendentes : [];
+
+                // 5. Preencher a tela (USANDO AS VARIÁVEIS DIRETAS, SEM 'elements.')
                 detailsTitle.textContent = `Detalhes do Arranjo #${id}`;
                 detailsParams.textContent = `Parâmetros: ${paramText}`;
                 
