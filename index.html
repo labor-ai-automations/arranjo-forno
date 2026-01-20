@@ -3,7 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Arranjo de Forno Inteligente</title>
+    <title>Arranjo de Forno Inteligente - FAMA</title>
+    
+    <!-- Fontes Google -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -16,32 +18,48 @@
 
     <style>
         :root {
-            /* Design System Tokens */
+            /* --- Design System Tokens --- */
+            
+            /* Cores Principais */
             --color-primary: #D92D20;
             --color-primary-hover: #B42318;
             --color-success: #10B981;
             --color-info: #3B82F6;
             --color-warning: #F59E0B;
             --color-danger: #EF4444;
+            
+            /* Backgrounds */
             --color-bg-light: #F9FAFB;
             --color-bg-dark: #111827;
+            
+            /* Cards / Superfícies */
             --color-card-light: #FFFFFF;
             --color-card-dark: #1F2937;
+            
+            /* Texto Light Mode */
             --color-text-light-primary: #111827;
-            --color-text-dark-primary: #F9FAFB;
             --color-text-light-secondary: #6B7280;
+            
+            /* Texto Dark Mode */
+            --color-text-dark-primary: #F9FAFB;
             --color-text-dark-secondary: #9CA3AF;
+            
+            /* Bordas */
             --color-border-light: #E5E7EB;
             --color-border-dark: #374151;
+            
+            /* Sombras e Raios */
             --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
             --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
             --radius-md: 8px;
             --radius-lg: 12px;
+            
+            /* Tipografia e Animação */
             --font-main: 'Inter', sans-serif;
             --transition-speed: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        /* Base e Tema */
+        /* --- Configuração de Tema (Light/Dark) --- */
         body {
             font-family: var(--font-main);
             margin: 0;
@@ -50,6 +68,7 @@
             flex-direction: column;
             min-height: 100vh;
         }
+
         .light-theme {
             --bg-main: var(--color-bg-light);
             --bg-card: var(--color-card-light);
@@ -57,6 +76,7 @@
             --text-secondary: var(--color-text-light-secondary);
             --border-color: var(--color-border-light);
         }
+
         .dark-theme {
             --bg-main: var(--color-bg-dark);
             --bg-card: var(--color-card-dark);
@@ -64,26 +84,46 @@
             --text-secondary: var(--color-text-dark-secondary);
             --border-color: var(--color-border-dark);
         }
-        body { background-color: var(--bg-main); color: var(--text-primary); }
 
-        /* Layout Principal e Header */
-        .container { max-width: 1200px; margin: 0 auto; padding: 2rem; flex: 1; width: 100%; box-sizing: border-box; }
-        
+        /* Aplicação do Tema Base */
+        body { 
+            background-color: var(--bg-main); 
+            color: var(--text-primary); 
+        }
+
+        /* --- Layout: Header --- */
         header {
             display: grid;
-            grid-template-columns: 1fr auto 1fr; /* Três colunas para centralizar o logo */
+            grid-template-columns: 1fr auto 1fr; 
             align-items: center;
             padding: 1rem 2rem;
             background-color: var(--bg-card);
             border-bottom: 1px solid var(--border-color);
+            position: relative;
         }
         
-        header .logo-area { text-align: center; }
-        header .left-actions { display: flex; gap: 10px; justify-content: flex-start; }
-        header .right-actions { display: flex; gap: 10px; justify-content: flex-end; align-items: center; }
+        header .logo-area { 
+            text-align: center; 
+        }
         
-        header img { height: 48px; }
+        header .left-actions { 
+            display: flex; 
+            gap: 10px; 
+            justify-content: flex-start; 
+        }
         
+        header .right-actions { 
+            display: flex; 
+            gap: 10px; 
+            justify-content: flex-end; 
+            align-items: center; 
+        }
+        
+        header img { 
+            height: 48px; 
+        }
+        
+        /* Botões de Navegação do Header */
         .nav-btn {
             background: transparent;
             border: 1px solid var(--border-color);
@@ -94,12 +134,31 @@
             font-weight: 500;
             font-size: 0.9rem;
             transition: var(--transition-speed);
-            display: inline-flex; align-items: center; gap: 0.5rem;
+            display: inline-flex; 
+            align-items: center; 
+            gap: 0.5rem;
         }
-        .nav-btn:hover { background-color: var(--color-bg-light); border-color: var(--text-secondary); }
-        .dark-theme .nav-btn:hover { background-color: var(--color-border-dark); }
+        
+        .nav-btn:hover { 
+            background-color: var(--color-bg-light); 
+            border-color: var(--text-secondary); 
+        }
+        
+        .dark-theme .nav-btn:hover { 
+            background-color: var(--color-border-dark); 
+        }
 
-        /* Footer */
+        /* --- Layout: Container Principal --- */
+        .container { 
+            max-width: 1200px; 
+            margin: 0 auto; 
+            padding: 2rem; 
+            flex: 1; 
+            width: 100%; 
+            box-sizing: border-box; 
+        }
+
+        /* --- Layout: Footer --- */
         footer {
             background-color: var(--bg-card);
             border-top: 1px solid var(--border-color);
@@ -107,61 +166,265 @@
             text-align: center;
             margin-top: auto;
         }
+        
         footer p {
             margin: 0.4rem 0;
             color: var(--text-secondary);
             font-size: 0.85rem;
         }
-        footer strong { color: var(--color-primary); }
-
-        /* Stepper de Progresso */
-        .stepper { display: flex; justify-content: center; gap: 4rem; margin-bottom: 2rem; padding: 1rem 0; border-bottom: 1px solid var(--border-color); }
-        .step { display: flex; align-items: center; color: var(--text-secondary); font-weight: 500; transition: var(--transition-speed); }
-        .step.active { color: var(--text-primary); font-weight: 600; }
-        .step .step-number { width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--border-color); display: inline-flex; align-items: center; justify-content: center; margin-right: 0.5rem; transition: var(--transition-speed); font-size: 0.9rem; }
-        .step.active .step-number { border-color: var(--color-primary); background-color: var(--color-primary); color: white; }
-
-        /* Componentes Gerais */
-        .card { background-color: var(--bg-card); border-radius: var(--radius-lg); padding: 1.5rem 2rem; margin-bottom: 2rem; box-shadow: var(--shadow-md); animation: fadeIn 0.5s var(--transition-speed) both; }
-        .hidden { display: none !important; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-
-        h2 { font-size: 1.25rem; margin-top: 0; margin-bottom: 1.5rem; }
-        .config-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; align-items: start; }
         
-        .btn-group button { background: var(--bg-main); border: 1px solid var(--border-color); color: var(--text-secondary); padding: 1rem; width: 100%; border-radius: var(--radius-md); cursor: pointer; font-size: 1rem; font-weight: 600; transition: var(--transition-speed); display: flex; flex-direction: column; align-items: center; gap: 0.5rem; }
-        .btn-group button:hover { border-color: var(--text-secondary); }
-        .btn-group button.active { border-color: var(--color-primary); background: rgba(217, 45, 32, 0.05); color: var(--color-primary); box-shadow: 0 0 0 1px var(--color-primary); }
+        footer strong { 
+            color: var(--color-primary); 
+        }
 
-        .form-group label, .config-label { display: block; margin-bottom: 0.5rem; font-weight: 500; color: var(--text-primary); font-size: 0.875rem; text-transform: uppercase; }
-        select, input[type="text"], input[type="search"], input[type="date"] { width: 100%; box-sizing: border-box; padding: 0.75rem; border-radius: var(--radius-md); border: 1px solid var(--border-color); background-color: var(--bg-main); color: var(--text-primary); font-size: 1rem; transition: var(--transition-speed); margin-bottom: 0.5rem; }
-        select:focus, input[type="text"]:focus, input[type="search"]:focus, input[type="date"]:focus { outline: none; border-color: var(--color-primary); box-shadow: 0 0 0 2px rgba(217, 45, 32, 0.2); }
+        /* --- Componente: Stepper (Progresso) --- */
+        .stepper { 
+            display: flex; 
+            justify-content: center; 
+            gap: 4rem; 
+            margin-bottom: 2rem; 
+            padding: 1rem 0; 
+            border-bottom: 1px solid var(--border-color); 
+        }
         
-        /* Ajuste específico para input date em dark mode */
-        .dark-theme input[type="date"] { color-scheme: dark; }
-
-        .actions { margin-top: 2rem; display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+        .step { 
+            display: flex; 
+            align-items: center; 
+            color: var(--text-secondary); 
+            font-weight: 500; 
+            transition: var(--transition-speed); 
+        }
         
-        .btn { padding: 0.75rem 1.5rem; border: none; border-radius: var(--radius-md); font-size: 1rem; font-weight: 600; cursor: pointer; transition: var(--transition-speed); display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; }
-        .btn-sm { padding: 0.4rem 0.8rem; font-size: 0.875rem; }
-        .btn-primary { background-color: var(--color-primary); color: white; }
-        .btn-primary:hover { background-color: var(--color-primary-hover); }
-        .btn-secondary { border: 1px solid var(--border-color); background: var(--bg-card); color: var(--text-primary); }
-        .btn-secondary:hover { background-color: var(--bg-main); }
-        .btn:disabled { opacity: 0.6; cursor: not-allowed; }
-        .btn-success { background-color: var(--color-success); color: white; }
-        .btn-info { background-color: var(--color-info); color: white; }
-        .btn-danger { background-color: var(--color-danger); color: white; }
-
-        .spinner { width: 16px; height: 16px; border: 2px solid rgba(255, 255, 255, 0.3); border-radius: 50%; border-top-color: #fff; animation: spin 1s ease-in-out infinite; }
-        @keyframes spin { to { transform: rotate(360deg); } }
-
-        /* Estilos para Drag-and-Drop e Itens */
-        .arranjo-container { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
-        .arranjo-coluna { min-height: 400px; padding: 1rem; border-radius: var(--radius-md); border: 2px dashed transparent; transition: var(--transition-speed); }
-        .arranjo-coluna.drag-over { border-color: var(--color-primary); background-color: rgba(217, 45, 32, 0.05); }
-        .arranjo-coluna h3 { font-size: 1rem; font-weight: 600; color: var(--text-secondary); border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; margin-bottom: 1rem; }
+        .step.active { 
+            color: var(--text-primary); 
+            font-weight: 600; 
+        }
         
+        .step .step-number { 
+            width: 28px; 
+            height: 28px; 
+            border-radius: 50%; 
+            border: 2px solid var(--border-color); 
+            display: inline-flex; 
+            align-items: center; 
+            justify-content: center; 
+            margin-right: 0.5rem; 
+            transition: var(--transition-speed); 
+            font-size: 0.9rem; 
+        }
+        
+        .step.active .step-number { 
+            border-color: var(--color-primary); 
+            background-color: var(--color-primary); 
+            color: white; 
+        }
+
+        /* --- Componente: Cards --- */
+        .card { 
+            background-color: var(--bg-card); 
+            border-radius: var(--radius-lg); 
+            padding: 1.5rem 2rem; 
+            margin-bottom: 2rem; 
+            box-shadow: var(--shadow-md); 
+            animation: fadeIn 0.5s var(--transition-speed) both; 
+        }
+        
+        .hidden { 
+            display: none !important; 
+        }
+        
+        @keyframes fadeIn { 
+            from { opacity: 0; transform: translateY(10px); } 
+            to { opacity: 1; transform: translateY(0); } 
+        }
+
+        h2 { 
+            font-size: 1.25rem; 
+            margin-top: 0; 
+            margin-bottom: 1.5rem; 
+        }
+
+        /* --- Grid de Configuração --- */
+        .config-grid { 
+            display: grid; 
+            grid-template-columns: 1fr 1fr; 
+            gap: 2rem; 
+            align-items: start; 
+        }
+        
+        /* Botões de Seleção de Forno */
+        .btn-group button { 
+            background: var(--bg-main); 
+            border: 1px solid var(--border-color); 
+            color: var(--text-secondary); 
+            padding: 1rem; 
+            width: 100%; 
+            border-radius: var(--radius-md); 
+            cursor: pointer; 
+            font-size: 1rem; 
+            font-weight: 600; 
+            transition: var(--transition-speed); 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            gap: 0.5rem; 
+        }
+        
+        .btn-group button:hover { 
+            border-color: var(--text-secondary); 
+        }
+        
+        .btn-group button.active { 
+            border-color: var(--color-primary); 
+            background: rgba(217, 45, 32, 0.05); 
+            color: var(--color-primary); 
+            box-shadow: 0 0 0 1px var(--color-primary); 
+        }
+
+        /* --- Formulários e Inputs --- */
+        .form-group label, .config-label { 
+            display: block; 
+            margin-bottom: 0.5rem; 
+            font-weight: 500; 
+            color: var(--text-primary); 
+            font-size: 0.875rem; 
+            text-transform: uppercase; 
+        }
+        
+        select, input[type="text"], input[type="search"], input[type="date"] { 
+            width: 100%; 
+            box-sizing: border-box; 
+            padding: 0.75rem; 
+            border-radius: var(--radius-md); 
+            border: 1px solid var(--border-color); 
+            background-color: var(--bg-main); 
+            color: var(--text-primary); 
+            font-size: 1rem; 
+            transition: var(--transition-speed); 
+            margin-bottom: 0.5rem; 
+        }
+        
+        select:focus, input[type="text"]:focus, input[type="search"]:focus, input[type="date"]:focus { 
+            outline: none; 
+            border-color: var(--color-primary); 
+            box-shadow: 0 0 0 2px rgba(217, 45, 32, 0.2); 
+        }
+        
+        /* Ajuste do calendário nativo no modo escuro */
+        .dark-theme input[type="date"] { 
+            color-scheme: dark; 
+        }
+
+        /* --- Botões Gerais --- */
+        .actions { 
+            margin-top: 2rem; 
+            display: grid; 
+            grid-template-columns: 1fr 1fr; 
+            gap: 1rem; 
+        }
+        
+        .btn { 
+            padding: 0.75rem 1.5rem; 
+            border: none; 
+            border-radius: var(--radius-md); 
+            font-size: 1rem; 
+            font-weight: 600; 
+            cursor: pointer; 
+            transition: var(--transition-speed); 
+            display: inline-flex; 
+            align-items: center; 
+            justify-content: center; 
+            gap: 0.5rem; 
+        }
+        
+        .btn-sm { 
+            padding: 0.4rem 0.8rem; 
+            font-size: 0.875rem; 
+        }
+        
+        .btn-primary { 
+            background-color: var(--color-primary); 
+            color: white; 
+        }
+        
+        .btn-primary:hover { 
+            background-color: var(--color-primary-hover); 
+        }
+        
+        .btn-secondary { 
+            border: 1px solid var(--border-color); 
+            background: var(--bg-card); 
+            color: var(--text-primary); 
+        }
+        
+        .btn-secondary:hover { 
+            background-color: var(--bg-main); 
+        }
+        
+        .btn:disabled { 
+            opacity: 0.6; 
+            cursor: not-allowed; 
+        }
+        
+        .btn-success { 
+            background-color: var(--color-success); 
+            color: white; 
+        }
+        
+        .btn-info { 
+            background-color: var(--color-info); 
+            color: white; 
+        }
+        
+        .btn-danger { 
+            background-color: var(--color-danger); 
+            color: white; 
+        }
+
+        /* --- Loader / Spinner --- */
+        .spinner { 
+            width: 16px; 
+            height: 16px; 
+            border: 2px solid rgba(255, 255, 255, 0.3); 
+            border-radius: 50%; 
+            border-top-color: #fff; 
+            animation: spin 1s ease-in-out infinite; 
+        }
+        
+        @keyframes spin { 
+            to { transform: rotate(360deg); } 
+        }
+
+        /* --- Área de Drag-and-Drop --- */
+        .arranjo-container { 
+            display: grid; 
+            grid-template-columns: 1fr 1fr; 
+            gap: 1.5rem; 
+        }
+        
+        .arranjo-coluna { 
+            min-height: 400px; 
+            padding: 1rem; 
+            border-radius: var(--radius-md); 
+            border: 2px dashed transparent; 
+            transition: var(--transition-speed); 
+        }
+        
+        .arranjo-coluna.drag-over { 
+            border-color: var(--color-primary); 
+            background-color: rgba(217, 45, 32, 0.05); 
+        }
+        
+        .arranjo-coluna h3 { 
+            font-size: 1rem; 
+            font-weight: 600; 
+            color: var(--text-secondary); 
+            border-bottom: 1px solid var(--border-color); 
+            padding-bottom: 0.5rem; 
+            margin-bottom: 1rem; 
+        }
+        
+        /* Card do Item de Produção */
         .item-card { 
             position: relative; 
             background-color: var(--bg-main); 
@@ -173,10 +436,26 @@
             box-shadow: var(--shadow-sm); 
             cursor: grab; 
         }
-        .item-card p { margin: 2px 0; font-size: 0.9rem; }
-        .item-card.dragging { opacity: 0.5; }
-        .item-card .gt-input { padding: 4px; width: 60px; font-size: 0.9rem; margin-left: 5px; }
-        .gt-display { cursor: pointer; } 
+        
+        .item-card p { 
+            margin: 2px 0; 
+            font-size: 0.9rem; 
+        }
+        
+        .item-card.dragging { 
+            opacity: 0.5; 
+        }
+        
+        .item-card .gt-input { 
+            padding: 4px; 
+            width: 60px; 
+            font-size: 0.9rem; 
+            margin-left: 5px; 
+        }
+        
+        .gt-display { 
+            cursor: pointer; 
+        } 
         
         .delete-btn {
             position: absolute;
@@ -188,80 +467,258 @@
             transition: var(--transition-speed);
             line-height: 1;
         }
+        
         .delete-btn:hover {
             color: var(--color-primary);
             transform: scale(1.2);
         }
 
-        /* Tabelas */
-        .table-container { overflow-x: auto; width: 100%; }
-        table { width: 100%; border-collapse: collapse; margin-top: 1rem; font-size: 0.95rem; }
-        th, td { padding: 0.75rem 1rem; text-align: left; border-bottom: 1px solid var(--border-color); vertical-align: middle; }
-        th { background-color: var(--bg-main); font-weight: 600; color: var(--text-secondary); text-transform: uppercase; font-size: 0.8rem; letter-spacing: 0.5px; }
-        tr:hover { background-color: rgba(0,0,0,0.02); }
-        .dark-theme tr:hover { background-color: rgba(255,255,255,0.05); }
-        
-        /* Inputs na tabela de gerenciamento */
-        .table-input { padding: 0.4rem; margin: 0; font-size: 0.9rem; width: 100%; }
-        .actions-cell { display: flex; gap: 0.5rem; }
-
-        /* Barra de pesquisa e filtros */
-        .search-bar { display: flex; gap: 1rem; margin-bottom: 1rem; flex-wrap: wrap; align-items: center; }
-        .search-bar input { margin-bottom: 0; }
-        .search-input-text { flex-grow: 2; }
-        .search-input-date { flex-grow: 1; max-width: 200px; }
-
-        .add-item-form {
-            background-color: var(--bg-main);
-            padding: 1.5rem;
-            border-radius: var(--radius-md);
-            margin-bottom: 2rem;
-            border: 1px solid var(--border-color);
-        }
-        .add-item-grid {
-            display: grid;
-            grid-template-columns: 1fr 2fr 1fr 1fr auto;
-            gap: 1rem;
-            align-items: end;
+        /* --- Tabelas --- */
+        .table-container { 
+            overflow-x: auto; 
+            width: 100%; 
         }
         
-        /* Estilos de Paginação */
-        .pagination-toolbar {
-            display: flex;
-            justify-content: space-between;
+        table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            margin-top: 1rem; 
+            font-size: 0.95rem; 
+        }
+        
+        th, td { 
+            padding: 0.75rem 1rem; 
+            text-align: left; 
+            border-bottom: 1px solid var(--border-color); 
+            vertical-align: middle; 
+        }
+        
+        th { 
+            background-color: var(--bg-main); 
+            font-weight: 600; 
+            color: var(--text-secondary); 
+            text-transform: uppercase; 
+            font-size: 0.8rem; 
+            letter-spacing: 0.5px; 
+        }
+        
+        tr:hover { 
+            background-color: rgba(0,0,0,0.02); 
+        }
+        
+        .dark-theme tr:hover { 
+            background-color: rgba(255,255,255,0.05); 
+        }
+        
+        .table-input { 
+            padding: 0.4rem; 
+            margin: 0; 
+            font-size: 0.9rem; 
+            width: 100%; 
+        }
+        
+        .actions-cell { 
+            display: flex; 
+            gap: 0.5rem; 
+        }
+
+        /* --- Barra de Filtros e Paginação --- */
+        .search-bar { 
+            display: flex; 
+            gap: 1rem; 
+            margin-bottom: 1rem; 
+            flex-wrap: wrap; 
+            align-items: center; 
+        }
+        
+        .search-bar input { 
+            margin-bottom: 0; 
+        }
+        
+        .search-input-text { 
+            flex-grow: 2; 
+        }
+        
+        .search-input-date { 
+            flex-grow: 1; 
+            max-width: 200px; 
+        }
+
+        /* Formulário de Adicionar Item */
+        .add-item-form { 
+            background-color: var(--bg-main); 
+            padding: 1.5rem; 
+            border-radius: var(--radius-md); 
+            margin-bottom: 2rem; 
+            border: 1px solid var(--border-color); 
+        }
+        
+        .add-item-grid { 
+            display: grid; 
+            grid-template-columns: 1fr 2fr 1fr 1fr auto; 
+            gap: 1rem; 
+            align-items: end; 
+        }
+        
+        /* Toolbar de Paginação */
+        .pagination-toolbar { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            margin-bottom: 1rem; 
+            padding: 0.5rem; 
+            background-color: var(--bg-main); 
+            border-radius: var(--radius-md); 
+            border: 1px solid var(--border-color); 
+        }
+        
+        .pagination-controls { 
+            display: flex; 
+            align-items: center; 
+            gap: 10px; 
+        }
+        
+        .pagination-select { 
+            width: auto; 
+            margin-bottom: 0; 
+            padding: 0.4rem 2rem 0.4rem 0.8rem; 
+        }
+        
+        .page-info { 
+            font-size: 0.9rem; 
+            color: var(--text-secondary); 
+            font-weight: 500; 
+        }
+
+        /* Barra de Exportação (Final do Step 2) */
+        .export-bar { 
+            margin-top: 2rem; 
+            padding-top: 2rem; 
+            border-top: 1px solid var(--border-color); 
+            display: flex; 
+            justify-content: flex-end; 
+            gap: 1rem; 
+        }
+
+        /* --- CUSTOM ALERT / DIALOG STYLES --- */
+        .custom-dialog-overlay {
+            position: fixed; 
+            top: 0; 
+            left: 0; 
+            width: 100%; 
+            height: 100%;
+            background: rgba(0,0,0,0.6); 
+            display: flex; 
+            justify-content: center; 
             align-items: center;
-            margin-bottom: 1rem;
-            padding: 0.5rem;
-            background-color: var(--bg-main);
-            border-radius: var(--radius-md);
+            z-index: 2000; 
+            opacity: 0; 
+            pointer-events: none; 
+            transition: opacity 0.3s;
+            backdrop-filter: blur(2px);
+        }
+        
+        .custom-dialog-overlay.open { 
+            opacity: 1; 
+            pointer-events: all; 
+        }
+        
+        .custom-dialog-box {
+            background: var(--bg-card);
+            border-radius: var(--radius-lg);
+            padding: 2rem;
+            width: 90%; 
+            max-width: 450px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            transform: scale(0.9); 
+            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             border: 1px solid var(--border-color);
+            text-align: center;
         }
-        .pagination-controls { display: flex; align-items: center; gap: 10px; }
-        .pagination-select { width: auto; margin-bottom: 0; padding: 0.4rem 2rem 0.4rem 0.8rem; }
-        .page-info { font-size: 0.9rem; color: var(--text-secondary); font-weight: 500; }
-
-        /* Actions Finais dentro do Step 2 */
-        .export-bar {
-            margin-top: 2rem;
-            padding-top: 2rem;
-            border-top: 1px solid var(--border-color);
-            display: flex;
-            justify-content: flex-end;
-            gap: 1rem;
+        
+        .custom-dialog-overlay.open .custom-dialog-box { 
+            transform: scale(1); 
+        }
+        
+        .custom-dialog-icon { 
+            font-size: 2.5rem; 
+            margin-bottom: 1rem; 
+            display: block; 
+        }
+        
+        .custom-dialog-title { 
+            margin: 0 0 0.5rem 0; 
+            color: var(--text-primary); 
+            font-size: 1.25rem; 
+            font-weight: 700; 
+        }
+        
+        .custom-dialog-msg { 
+            color: var(--text-secondary); 
+            margin-bottom: 1.5rem; 
+            line-height: 1.5; 
+            font-size: 1rem; 
+        }
+        
+        .custom-dialog-actions { 
+            display: flex; 
+            justify-content: center; 
+            gap: 1rem; 
+        }
+        
+        .custom-dialog-btn { 
+            min-width: 100px; 
         }
 
-        /* Responsividade */
+        /* --- Responsividade --- */
         @media (max-width: 768px) {
-            header { grid-template-columns: 1fr; gap: 1rem; text-align: center; justify-items: center; }
-            header .left-actions, header .right-actions { justify-content: center; }
-            .config-grid, .arranjo-container, .add-item-grid, .actions, .export-bar { grid-template-columns: 1fr; flex-direction: column; }
-            .add-item-grid > button { width: 100%; }
-            .stepper { gap: 1rem; }
-            .export-bar { align-items: stretch; }
-            .search-bar { flex-direction: column; align-items: stretch; }
-            .search-input-date { max-width: 100%; }
-            .pagination-toolbar { flex-direction: column; gap: 1rem; align-items: flex-start; }
-            .pagination-controls { width: 100%; justify-content: space-between; }
+            header { 
+                grid-template-columns: 1fr; 
+                gap: 1rem; 
+                text-align: center; 
+                justify-items: center; 
+            }
+            
+            header .left-actions, header .right-actions { 
+                justify-content: center; 
+            }
+            
+            .config-grid, .arranjo-container, .add-item-grid, .actions, .export-bar { 
+                grid-template-columns: 1fr; 
+                flex-direction: column; 
+            }
+            
+            .add-item-grid > button { 
+                width: 100%; 
+            }
+            
+            .stepper { 
+                gap: 1rem; 
+            }
+            
+            .export-bar { 
+                align-items: stretch; 
+            }
+            
+            .search-bar { 
+                flex-direction: column; 
+                align-items: stretch; 
+            }
+            
+            .search-input-date { 
+                max-width: 100%; 
+            }
+            
+            .pagination-toolbar { 
+                flex-direction: column; 
+                gap: 1rem; 
+                align-items: flex-start; 
+            }
+            
+            .pagination-controls { 
+                width: 100%; 
+                justify-content: space-between; 
+            }
         }
     </style>
 </head>
@@ -289,7 +746,6 @@
             <div id="step-nav-2" class="step"><span class="step-number">2</span>Organize a Sequência</div>
         </div>
 
-        <!-- PASSO 1 -->
         <div id="step-1" class="card">
             <h2>Passo 1: Configuração</h2>
             <div class="config-grid">
@@ -316,15 +772,16 @@
             </div>
         </div>
 
-        <!-- PASSO 2 (Resultado e Exportação) -->
         <div id="step-2" class="card hidden">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
                 <h2 style="margin:0">Passo 2: Resultado</h2>
                 
-                <!-- Botões de navegação condicional -->
+                <!-- Botão Padrão: Novo Arranjo -->
                 <button id="btn-reset-production" onclick="resetarProducao()" class="btn btn-sm btn-secondary">
                     ↺ Novo Arranjo
                 </button>
+                
+                <!-- Botão Condicional: Voltar para Histórico (Só aparece quando vem do histórico) -->
                 <button id="btn-back-to-history" class="btn btn-sm btn-info hidden">
                     ← Voltar para Histórico
                 </button>
@@ -341,7 +798,7 @@
                 </div>
             </div>
 
-            <!-- Botões de Exportação Integrados -->
+            <!-- Botões de Exportação -->
             <div class="export-bar">
                 <button id="btn-export-excel" class="btn btn-success">Exportar Excel</button>
                 <button id="btn-export-pdf" class="btn btn-primary">Exportar PDF</button>
@@ -366,7 +823,7 @@
                 </div>
                 <div>
                     <label class="config-label">Descrição</label>
-                    <input type="text" id="new-item-descricao" placeholder="Descrição do item">
+                    <input type="text" id="new-item-descricao" placeholder="Descrição">
                 </div>
                 <div>
                     <label class="config-label">Dimensão/Bitola</label>
@@ -473,6 +930,18 @@
         </div>
     </main>
 
+    <!-- ELEMENTO GLOBAL DE ALERT/CONFIRM CUSTOMIZADO -->
+    <div id="custom-dialog-overlay" class="custom-dialog-overlay">
+        <div class="custom-dialog-box">
+            <span id="custom-dialog-icon" class="custom-dialog-icon">⚠️</span>
+            <h3 id="custom-dialog-title" class="custom-dialog-title">Atenção</h3>
+            <p id="custom-dialog-msg" class="custom-dialog-msg">Mensagem aqui</p>
+            <div id="custom-dialog-actions" class="custom-dialog-actions">
+                <!-- Botões injetados via JS -->
+            </div>
+        </div>
+    </div>
+
     <footer>
         <p>Desenvolvido por <strong>Labor_AI</strong></p>
         <p>AV BENTO MUNHOZ DA ROCHA NETTO 632 SL 1905-1908 - Torre Norte - 87030-010 - Maringá/PR</p>
@@ -481,29 +950,101 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            // --- CONFIGURAÇÃO SUPABASE ---
+            // --- Credenciais e URLs ---
             const SUPABASE_URL = 'https://mqzrlzywqgylffwvtlmg.supabase.co';
             const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1xenJsenl3cWd5bGZmd3Z0bG1nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAxNzExNDcsImV4cCI6MjA3NTc0NzE0N30.YghplsFD3T1Xv0yuLYTdD9Ib5kenXitDMnXAud7TjSY';
             const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-            // --- CONFIGURAÇÃO N8N (LEGADO MANTIDO) ---
             const n8nGerarArranjoUrl = 'https://n8n-n8n.znxk1t.easypanel.host/webhook/gerar-arranjo';
             const n8nAtualizarGTUrl = 'https://n8n-n8n.znxk1t.easypanel.host/webhook/atualizar-itens-mestre'; 
 
-            // --- VARIÁVEIS DE ESTADO ---
-            // Master Items
+            // --- SISTEMA DE DIALOG CUSTOMIZADO (Substitui alert/confirm) ---
+            const dialogOverlay = document.getElementById('custom-dialog-overlay');
+            const dialogTitle = document.getElementById('custom-dialog-title');
+            const dialogMsg = document.getElementById('custom-dialog-msg');
+            const dialogActions = document.getElementById('custom-dialog-actions');
+            const dialogIcon = document.getElementById('custom-dialog-icon');
+
+            // Função global para mostrar alertas
+            window.showAlert = (message, title = 'Aviso', type = 'warning') => {
+                return new Promise((resolve) => {
+                    dialogTitle.textContent = title;
+                    dialogMsg.textContent = message;
+                    
+                    if(type === 'success') {
+                        dialogIcon.textContent = '✅';
+                        dialogIcon.style.color = 'var(--color-success)';
+                    } else if(type === 'error') {
+                        dialogIcon.textContent = '❌';
+                        dialogIcon.style.color = 'var(--color-danger)';
+                    } else {
+                        dialogIcon.textContent = '⚠️';
+                        dialogIcon.style.color = 'var(--color-warning)';
+                    }
+
+                    dialogActions.innerHTML = '';
+                    const btnOk = document.createElement('button');
+                    btnOk.className = 'btn btn-primary custom-dialog-btn';
+                    btnOk.textContent = 'OK';
+                    btnOk.onclick = () => {
+                        dialogOverlay.classList.remove('open');
+                        resolve();
+                    };
+                    dialogActions.appendChild(btnOk);
+                    
+                    dialogOverlay.classList.add('open');
+                });
+            };
+
+            // Função global para mostrar confirmação (retorna true/false)
+            window.showConfirm = (message, title = 'Confirmação') => {
+                return new Promise((resolve) => {
+                    dialogTitle.textContent = title;
+                    dialogMsg.textContent = message;
+                    dialogIcon.textContent = '❓';
+                    dialogIcon.style.color = 'var(--color-info)';
+
+                    dialogActions.innerHTML = '';
+                    
+                    const btnCancel = document.createElement('button');
+                    btnCancel.className = 'btn btn-secondary custom-dialog-btn';
+                    btnCancel.textContent = 'Cancelar';
+                    btnCancel.onclick = () => {
+                        dialogOverlay.classList.remove('open');
+                        resolve(false);
+                    };
+
+                    const btnConfirm = document.createElement('button');
+                    btnConfirm.className = 'btn btn-danger custom-dialog-btn';
+                    btnConfirm.textContent = 'Confirmar';
+                    btnConfirm.onclick = () => {
+                        dialogOverlay.classList.remove('open');
+                        resolve(true);
+                    };
+
+                    dialogActions.appendChild(btnCancel);
+                    dialogActions.appendChild(btnConfirm);
+                    
+                    dialogOverlay.classList.add('open');
+                });
+            };
+
+            // --- Variáveis de Estado Global ---
+            // Itens Mestre
             let currentMasterPage = 1;
             let itemsPerPage = 10;
             let totalItems = 0;
             let searchTimeout = null;
             
-            // History
+            // Histórico
             let currentHistoryPage = 1;
             let historyItemsPerPage = 10;
             let totalHistoryItems = 0;
             let historySearchTimeout = null;
+            
+            // Estado Atual
+            let gtsAtuais = [];
 
-            // --- ELEMENTOS DOM ---
+            // --- Referências ao DOM ---
             const elements = {
                 // Views
                 viewPrincipal: document.getElementById('view-principal'),
@@ -515,15 +1056,14 @@
                 btnHistory: document.getElementById('btn-history'),
                 btnVoltarProducaoMaster: document.getElementById('btn-voltar-producao-master'),
                 btnVoltarProducaoHistory: document.getElementById('btn-voltar-producao-history'),
-                
-                // Result Buttons Navigation
                 btnResetProduction: document.getElementById('btn-reset-production'),
                 btnBackToHistory: document.getElementById('btn-back-to-history'),
 
+                // Theme & Logo
                 themeToggle: document.getElementById('theme-toggle'),
                 logo: document.getElementById('logo-fama'),
 
-                // Stepper & Steps
+                // Stepper
                 stepNav1: document.getElementById('step-nav-1'),
                 stepNav2: document.getElementById('step-nav-2'),
                 step1: document.getElementById('step-1'),
@@ -571,9 +1111,7 @@
                 historyPageInfo: document.getElementById('history-page-info')
             };
 
-            let gtsAtuais = [];
-
-            // --- LÓGICA DE NAVEGAÇÃO ENTRE TELAS (SPA) ---
+            // --- Lógica de Navegação SPA ---
             function showView(viewId) {
                 elements.viewPrincipal.classList.add('hidden');
                 elements.viewGerenciador.classList.add('hidden');
@@ -582,7 +1120,7 @@
                 document.getElementById(viewId).classList.remove('hidden');
             }
 
-            // Ações do Menu
+            // Menu Principal
             elements.btnMasterManager.addEventListener('click', () => {
                 showView('view-gerenciador');
                 currentMasterPage = 1;
@@ -595,26 +1133,24 @@
                 fetchHistory();
             });
 
-            // Botões "Voltar para Produção" (RESETAM O ESTADO)
+            // Botões "Voltar" (Reseta a tela de produção)
             elements.btnVoltarProducaoMaster.addEventListener('click', () => {
-                resetarProducao(); // Garante que volta limpo
+                resetarProducao();
                 showView('view-principal');
             });
             
             elements.btnVoltarProducaoHistory.addEventListener('click', () => {
-                resetarProducao(); // Garante que volta limpo
+                resetarProducao();
                 showView('view-principal');
             });
             
-            // Botão "Voltar para Histórico" dentro do Step 2 (NÃO RESETA, APENAS NAVEGA)
+            // Botão "Voltar para Histórico" (Dentro do Resultado de Histórico)
             elements.btnBackToHistory.addEventListener('click', () => {
                 showView('view-historico');
-                // Não chama fetchHistory aqui para manter o estado anterior se possível, 
-                // ou chame se quiser garantir dados frescos. Vamos chamar para garantir.
                 fetchHistory(); 
             });
 
-            // Função global para resetar a tela de produção (Novo Arranjo)
+            // Resetar Produção (Novo Arranjo)
             window.resetarProducao = function() {
                 elements.step1.classList.remove('hidden');
                 elements.step2.classList.add('hidden');
@@ -624,12 +1160,12 @@
                 elements.arranjoProducaoLista.innerHTML = '';
                 elements.itensPendentesLista.innerHTML = '';
                 
-                // Restaura botões padrão
+                // Restaura estado padrão dos botões
                 elements.btnResetProduction.classList.remove('hidden');
                 elements.btnBackToHistory.classList.add('hidden');
             };
 
-            // --- CONFIGURAÇÃO FORNO ---
+            // --- Configuração dos Fornos ---
             const fornosConfig = {
                 grande: {
                     titulo: 'Configuração do Forno Grande',
@@ -673,7 +1209,6 @@
                 gerarInputs(elements.qtdeGtsDinamico.value, elements.inputsGtsDinamico);
             };
 
-            // --- EVENT LISTENERS BÁSICOS ---
             elements.btnFornoGrande.addEventListener('click', () => atualizarConfiguracaoForno('grande'));
             elements.btnFornoPequeno.addEventListener('click', () => atualizarConfiguracaoForno('pequeno'));
             elements.qtdeGtsDinamico.addEventListener('change', (e) => gerarInputs(e.target.value, elements.inputsGtsDinamico));
@@ -685,13 +1220,12 @@
                 }
             });
 
-            // --- SUPABASE: HISTÓRICO COMPLETO (FILTROS + PAGINAÇÃO) ---
-
-            // Formatação de Parâmetros
+            // --- Lógica do Histórico ---
             function formatarParametros(rawParams) {
                 if (!rawParams) return "N/A";
 
                 let params = rawParams;
+                // Tratamento de JSON aninhado ou strings escapadas
                 if (typeof params === 'string') {
                     try { params = JSON.parse(params); } catch (e) { return rawParams; }
                 }
@@ -716,11 +1250,10 @@
                 }
                 
                 const gtsDisplay = gtsList.map(g => g.replace(/['"]+/g, '')).join(', ') || "Nenhum";
-
                 return `<b>Forno:</b> ${forno} <span style="margin: 0 10px; color: var(--border-color);">|</span> <b>GTs:</b> ${gtsDisplay}`;
             }
 
-            // Listeners de Filtros do Histórico
+            // Filtros de Histórico
             elements.searchHistoryText.addEventListener('input', (e) => {
                 clearTimeout(historySearchTimeout);
                 historySearchTimeout = setTimeout(() => {
@@ -763,21 +1296,15 @@
                 try {
                     let query = _supabase.from('arranjos_gerados').select('*', { count: 'exact' });
 
-                    // Filtro de Texto (Busca em usuario e parametros_usados)
-                    // Nota: para buscar em JSONB via ilike, o ideal é converter para text. 
-                    // Como o Supabase JS tem limitações de sintaxe direta, usaremos o filtro or com cast se possível,
-                    // ou filter genérico. Tentando a abordagem mais compatível:
+                    // Filtro de Texto
                     const term = elements.searchHistoryText.value.trim();
                     if (term) {
-                        // Tenta buscar no usuário OU nos parâmetros (assumindo que parametros_usados seja convertível em string na busca)
-                        // A sintaxe abaixo força a busca textual na coluna JSON
                         query = query.or(`usuario.ilike.%${term}%,parametros_usados.ilike.%${term}%`);
                     }
 
                     // Filtro de Data
                     const dateVal = elements.searchHistoryDate.value;
                     if (dateVal) {
-                        // Cria range do dia inteiro (UTC consideration might apply, using simple ISO strings)
                         const start = new Date(dateVal).toISOString();
                         const end = new Date(new Date(dateVal).setHours(23,59,59,999)).toISOString();
                         query = query.gte('created_at', start).lte('created_at', end);
@@ -802,7 +1329,7 @@
 
                 } catch (err) {
                     console.error(err);
-                    elements.tableHistoryBody.innerHTML = `<tr><td colspan="4" style="color:var(--color-danger)">Erro ao carregar histórico: ${err.message}</td></tr>`;
+                    elements.tableHistoryBody.innerHTML = `<tr><td colspan="4" style="color:var(--color-danger)">Erro: ${err.message}</td></tr>`;
                 }
             }
 
@@ -839,7 +1366,7 @@
                         <td>${row.usuario || 'Sistema'}</td>
                         <td>${formattedParams}</td>
                         <td style="text-align: center;">
-                            <button class="btn btn-sm btn-primary btn-load-history" title="Carregar este arranjo na tela principal">
+                            <button class="btn btn-sm btn-primary btn-load-history">
                                 📂 Carregar Arranjo
                             </button>
                         </td>
@@ -861,15 +1388,14 @@
                          try { data = JSON.parse(data); } catch (e) {}
                     }
 
-                    // Ir para view de produção
+                    // Ir para view de produção (Resultado)
                     showView('view-principal');
                     
-                    // Configurar steps (Pula passo 1, vai para 2)
                     elements.step1.classList.add('hidden');
                     elements.step2.classList.remove('hidden');
                     updateStepper(2);
 
-                    // ATIVA MODO "VISUALIZAÇÃO DE HISTÓRICO"
+                    // MODO "VISUALIZAÇÃO DE HISTÓRICO"
                     elements.btnResetProduction.classList.add('hidden');
                     elements.btnBackToHistory.classList.remove('hidden');
 
@@ -877,13 +1403,12 @@
                     popularLista('itens-pendentes-lista', data.itens_pendentes || [], true);
 
                 } catch (e) {
-                    alert('Erro ao processar os dados do histórico: ' + e.message);
+                    showAlert('Erro ao processar os dados do histórico: ' + e.message, 'Erro', 'error');
                     console.error(e);
                 }
             }
 
-            // --- SUPABASE: GERENCIADOR DE ITENS MESTRE (CÓDIGO ANTERIOR MANTIDO) ---
-            
+            // --- Lógica de Itens Mestre ---
             elements.itemsPerPageSelect.addEventListener('change', (e) => {
                 itemsPerPage = e.target.value === 'all' ? 'all' : parseInt(e.target.value);
                 currentMasterPage = 1;
@@ -969,20 +1494,21 @@
             function renderMasterTable(items) {
                 elements.tableMasterItemsBody.innerHTML = '';
                 if (!items || items.length === 0) {
-                    elements.tableMasterItemsBody.innerHTML = '<tr><td colspan="5" style="text-align:center; color: var(--text-secondary);">Nenhum item encontrado.</td></tr>';
+                    elements.tableMasterItemsBody.innerHTML = '<tr><td colspan="5" style="text-align:center;">Nenhum item encontrado.</td></tr>';
                     return;
                 }
 
                 items.forEach(item => {
                     const tr = document.createElement('tr');
+                    
                     tr.innerHTML = `
-                        <td><input type="text" class="table-input inp-codigo" value="${item.codigo_item || ''}" disabled title="Código não pode ser alterado aqui"></td>
+                        <td><input type="text" class="table-input inp-codigo" value="${item.codigo_item || ''}" disabled></td>
                         <td><input type="text" class="table-input inp-descricao" value="${item.descricao || ''}"></td>
                         <td><input type="text" class="table-input inp-dimensao" value="${item.dimensao || ''}"></td>
                         <td><input type="text" class="table-input inp-gt" value="${item.gt || ''}"></td>
                         <td class="actions-cell">
-                            <button class="btn btn-sm btn-success btn-save-row" title="Salvar Alterações">💾</button>
-                            <button class="btn btn-sm btn-danger btn-delete-row" title="Excluir Item">🗑️</button>
+                            <button class="btn btn-sm btn-success btn-save-row">💾</button>
+                            <button class="btn btn-sm btn-danger btn-delete-row">🗑️</button>
                         </td>
                     `;
 
@@ -1003,30 +1529,29 @@
                                 .eq('id', itemId);
 
                             if (error) throw error;
-                            alert('Item atualizado com sucesso!');
+                            showAlert('Item atualizado com sucesso!', 'Sucesso', 'success');
                         } catch (e) {
-                            alert('Erro ao atualizar: ' + e.message);
+                            showAlert('Erro ao atualizar: ' + e.message, 'Erro', 'error');
                         } finally {
                             btnSave.disabled = false;
                         }
                     });
 
                     btnDelete.addEventListener('click', async () => {
-                        if(!confirm(`Tem certeza que deseja excluir o item ${item.codigo_item}?`)) return;
-                        
-                        btnDelete.disabled = true;
-                        try {
-                            const { error } = await _supabase
-                                .from('itens_mestre')
-                                .delete()
-                                .eq('id', itemId);
+                        if(await showConfirm(`Tem certeza que deseja excluir o item ${item.codigo_item}?`)) {
+                            btnDelete.disabled = true;
+                            try {
+                                const { error } = await _supabase
+                                    .from('itens_mestre')
+                                    .delete()
+                                    .eq('id', itemId);
 
-                            if (error) throw error;
-                            fetchMasterItems();
-
-                        } catch (e) {
-                            alert('Erro ao excluir: ' + e.message);
-                            btnDelete.disabled = false;
+                                if (error) throw error;
+                                fetchMasterItems();
+                            } catch (e) {
+                                showAlert('Erro ao excluir: ' + e.message, 'Erro', 'error');
+                                btnDelete.disabled = false;
+                            }
                         }
                     });
 
@@ -1040,7 +1565,7 @@
                 const dimensao = elements.newItemDimensao.value.trim();
                 const gt = elements.newItemGt.value.trim();
 
-                if (!codigo) { alert('Código é obrigatório.'); return; }
+                if (!codigo) { showAlert('Código é obrigatório.', 'Atenção'); return; }
 
                 elements.btnAddMasterItem.innerHTML = '<div class="spinner"></div>';
                 elements.btnAddMasterItem.disabled = true;
@@ -1060,10 +1585,10 @@
 
                     currentMasterPage = 1;
                     await fetchMasterItems();
-                    alert('Item criado com sucesso!');
+                    showAlert('Item criado com sucesso!', 'Sucesso', 'success');
 
                 } catch (e) {
-                    alert('Erro ao criar item: ' + e.message);
+                    showAlert('Erro ao criar item: ' + e.message, 'Erro', 'error');
                 } finally {
                     elements.btnAddMasterItem.innerHTML = '+ Criar';
                     elements.btnAddMasterItem.disabled = false;
@@ -1071,10 +1596,10 @@
             });
 
 
-            // --- LÓGICA DE GERAÇÃO (N8N) ---
+            // --- Lógica de Geração do Arranjo (N8N) ---
             elements.btnGerarArranjo.addEventListener('click', async () => {
                 if (!elements.csvFileInput.files[0]) {
-                    alert('Por favor, carregue um arquivo CSV primeiro.');
+                    showAlert('Por favor, carregue um arquivo CSV primeiro.', 'Atenção');
                     return;
                 }
                 const originalButtonText = elements.btnGerarArranjo.innerHTML;
@@ -1095,7 +1620,7 @@
                     const response = await fetch(n8nGerarArranjoUrl, { method: 'POST', body: formData });
                     if (!response.ok) {
                          const errorText = await response.text();
-                         throw new Error(`Erro na comunicação com o servidor: ${response.statusText}. Detalhes: ${errorText}`);
+                         throw new Error(`${response.statusText}. Detalhes: ${errorText}`);
                     }
                     const data = await response.json();
                     
@@ -1103,7 +1628,6 @@
                     elements.step2.classList.remove('hidden');
                     updateStepper(2);
 
-                    // Garante que mostre "Novo Arranjo" e esconda "Voltar para Histórico"
                     elements.btnResetProduction.classList.remove('hidden');
                     elements.btnBackToHistory.classList.add('hidden');
                     
@@ -1111,14 +1635,14 @@
                     popularLista('itens-pendentes-lista', data.itens_pendentes, true);
 
                 } catch (error) {
-                    alert('Ocorreu um erro ao gerar o arranjo: ' + error.message);
+                    showAlert('Ocorreu um erro ao gerar o arranjo: ' + error.message, 'Erro', 'error');
                 } finally {
                     elements.btnGerarArranjo.innerHTML = originalButtonText;
                     elements.btnGerarArranjo.disabled = false;
                 }
             });
 
-            // --- FUNÇÕES AUXILIARES ---
+            // --- Funções Auxiliares de Lista e DragDrop ---
             function popularLista(containerId, items, isPendente) {
                 const container = document.getElementById(containerId);
                 container.innerHTML = '';
@@ -1189,8 +1713,7 @@
                     const codigoItem = cardElement.dataset.codigo;
                     
                     if (novoGT === cardElement.dataset.gt) {
-                        const gtDisplayElement = cardElement.querySelector('.gt-display');
-                        gtDisplayElement.innerHTML = `<b>GT:</b> ${novoGT || 'N/A'}`;
+                        cancelarEdicao(event, cardElement);
                         return;
                     }
 
@@ -1219,15 +1742,13 @@
                             elements.itensPendentesLista.appendChild(cardElement);
                         }
                     } catch (error) {
-                        alert(error.message);
+                        showAlert(error.message, 'Erro', 'error');
                         input.disabled = false;
                         input.value = novoGT;
                         input.focus();
                     }
                 } else if (event.key === 'Escape') {
-                    const currentGT = cardElement.dataset.gt;
-                    const gtDisplayElement = cardElement.querySelector('.gt-display');
-                    gtDisplayElement.innerHTML = `<b>GT:</b> ${currentGT || 'N/A'}`;
+                    cancelarEdicao(event, cardElement);
                 }
             }
 
@@ -1277,19 +1798,20 @@
                 });
             });
             
+            // --- Exportação Excel ---
             elements.btnExportExcel.addEventListener('click', () => {
+                const itemCards = elements.arranjoProducaoLista.querySelectorAll('.item-card');
+                if (itemCards.length === 0) {
+                    showAlert("Não há itens no arranjo de produção para exportar.", "Aviso");
+                    return;
+                }
+
                 const originalText = elements.btnExportExcel.innerHTML;
                 elements.btnExportExcel.innerHTML = '<div class="spinner"></div> Exportando...';
                 elements.btnExportExcel.disabled = true;
 
                 try {
                     const itemsParaExportar = [];
-                    const itemCards = elements.arranjoProducaoLista.querySelectorAll('.item-card');
-                    
-                    if (itemCards.length === 0) {
-                        alert("Não há itens no arranjo de produção para exportar.");
-                        return;
-                    }
                     
                     itemsParaExportar.push([ "Ordem de Produção", "Código", "Descrição", "Bitola", "GT" ]);
                     
@@ -1309,13 +1831,14 @@
                     XLSX.writeFile(wb, "Arranjo_Producao.xlsx");
 
                 } catch (error) {
-                    alert(`Falha ao exportar para Excel: ${error.message}`);
+                    showAlert(`Falha ao exportar para Excel: ${error.message}`, 'Erro', 'error');
                 } finally {
                     elements.btnExportExcel.innerHTML = originalText;
                     elements.btnExportExcel.disabled = false;
                 }
             });
 
+            // --- Toggle Tema ---
             elements.themeToggle.addEventListener('change', () => {
                 const isDark = elements.themeToggle.checked;
                 document.body.classList.toggle('dark-theme', isDark);
@@ -1325,7 +1848,7 @@
                     : 'https://ctfamadobrasil.com.br/wp-content/uploads/2025/09/logo.png';
             });
             
-            // --- INICIALIZAÇÃO ---
+            // --- Inicialização ---
             document.body.classList.add('dark-theme');
             updateStepper(1);
             atualizarConfiguracaoForno('grande');
