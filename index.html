@@ -1425,6 +1425,7 @@
             };
 
             // --- INICIALIZAÇÃO DO MULTI-SELECT DE GTs ---
+            // SUBSTITUIR ESTE BLOCO INTEIRO
             async function initGtMultiSelect() {
                 try {
                     const { data, error } = await _supabase
@@ -1450,7 +1451,7 @@
                         label.className = 'multi-select-option';
                         label.innerHTML = `
                             <input type="checkbox" value="${gt}">
-                            <span>GT ${gt}</span>
+                            <span>${gt}</span>
                         `;
                         elements.gtDropdown.appendChild(label);
                         
@@ -1462,21 +1463,22 @@
 
                 } catch (e) {
                     console.error('Erro ao popular filtro de GTs:', e);
+                    elements.gtDropdown.innerHTML = '<div style="padding:0.5rem 1rem;color:var(--color-danger)">Erro ao carregar GTs</div>';
                 }
-
-                elements.gtDisplay.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    elements.gtDropdown.classList.toggle('open');
-                });
-
-                document.addEventListener('click', () => {
-                    elements.gtDropdown.classList.remove('open');
-                });
-                
-                elements.gtDropdown.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                });
             }
+            // CORREÇÃO: Mover os listeners de clique para fora da função async e adicioná-los uma vez.
+            elements.gtDisplay.addEventListener('click', (e) => {
+                e.stopPropagation();
+                elements.gtDropdown.classList.toggle('open');
+            });
+            document.addEventListener('click', () => {
+                elements.gtDropdown.classList.remove('open');
+            });
+            elements.gtDropdown.addEventListener('click', (e) => {
+                e.stopPropagation();
+            });
+
+            initGtMultiSelect();
 
             function updateSelectedGTs() {
                 const checkboxes = elements.gtDropdown.querySelectorAll('input[type="checkbox"]:checked');
@@ -1494,7 +1496,6 @@
                 fetchHistory();
             }
 
-            initGtMultiSelect();
 
             // --- Lógica de Navegação SPA ---
             function showView(viewId) {
@@ -2027,6 +2028,7 @@
             });
 
             // Lógica do Autocomplete
+            // SUBSTITUIR ESTE BLOCO INTEIRO
             elements.modalInputCodigo.addEventListener('input', (e) => {
                 const val = e.target.value.trim().toUpperCase();
                 
@@ -2038,9 +2040,10 @@
 
                 autocompleteTimeout = setTimeout(async () => {
                     try {
+                        // CORREÇÃO 1: Trocado 'dimensao' por 'bitola' na query select
                         const { data, error } = await _supabase
                             .from('itens_mestre')
-                            .select('codigo_item, dimensao, gt') 
+                            .select('codigo_item, bitola, gt') 
                             .ilike('codigo_item', `${val}%`) 
                             .limit(5);
 
@@ -2054,11 +2057,13 @@
                             data.forEach(item => {
                                 const li = document.createElement('li');
                                 li.className = 'autocomplete-item';
-                                li.innerHTML = `<strong>${item.codigo_item}</strong><small>${item.dimensao || 'S/D'} - GT ${item.gt || '?'}</small>`;
+                                // CORREÇÃO 2: Trocado 'item.dimensao' por 'item.bitola' na exibição
+                                li.innerHTML = `<strong>${item.codigo_item}</strong><small>${item.bitola || 'S/D'} - GT ${item.gt || '?'}</small>`;
                                 
                                 li.addEventListener('click', () => {
                                     elements.modalInputCodigo.value = item.codigo_item;
-                                    elements.modalInputBitola.value = item.dimensao || '';
+                                    // CORREÇÃO 3: Trocado 'item.dimensao' por 'item.bitola' ao preencher
+                                    elements.modalInputBitola.value = item.bitola || '';
                                     elements.modalInputGt.value = item.gt || '';
                                     
                                     elements.autocompleteList.innerHTML = '';
