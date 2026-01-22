@@ -957,9 +957,9 @@
                 </button>
             </div>
             
-            <!-- Inserir este novo bloco de controle de ordenação -->
+            <!-- Bloco de controle de ordenação -->
             <div class="card" style="margin-bottom: 1.5rem; background-color: var(--bg-main);">
-                <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 1rem; align-items: center;">
+                <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 1.5rem; align-items: center;">
                     <div>
                         <label for="bitola-referencia-select" class="config-label" style="margin-bottom: 0.5rem;">Ponto de Partida (Bitola)</label>
                         <select id="bitola-referencia-select">
@@ -968,14 +968,16 @@
                         </select>
                     </div>
                     <div>
-                        <label class="config-label" style="margin-bottom: 0.5rem;">Direção da Ordenação</label>
+                        <label class="config-label" style="margin-bottom: 0.5rem;">Ações de Ordenação</label>
                         <div style="display: flex; gap: 1rem;">
-                            <button id="btn-ordem-crescente" class="btn btn-secondary" style="width: 100%;">⬆ Crescente</button>
-                            <button id="btn-ordem-decrescente" class="btn btn-secondary" style="width: 100%;">⬇ Decrescente</button>
+                            <button id="btn-ordem-crescente" class="btn btn-secondary" style="flex-grow: 1;">⬆ Crescente</button>
+                            <button id="btn-ordem-decrescente" class="btn btn-secondary" style="flex-grow: 1;">⬇ Decrescente</button>
+                            <button id="btn-reset-filter" class="btn btn-secondary btn-sm" title="Limpar Ordenação">↺</button>
                         </div>
                     </div>
                 </div>
             </div>
+
 
             <div class="arranjo-container">
                 <!-- Coluna Arranjo -->
@@ -1318,8 +1320,10 @@
             let historySearchTimeout = null;
             let selectedGTsFilter = [];
             
-            // Estado Atual
+            // Estado Atual da Produção
             let gtsAtuais = [];
+            let listaOriginalArranjo = [];
+            let listaOriginalPendentes = [];
             
             // Autocomplete State
             let autocompleteTimeout = null;
@@ -1528,6 +1532,8 @@
                 elements.itensPendentesLista.innerHTML = '';
                 elements.totalizadorDisplay.textContent = 'Total de Molas: 0';
                 elements.totalizadorDisplay.className = 'totalizador total-low';
+                listaOriginalArranjo = [];
+                listaOriginalPendentes = [];
                 
                 elements.btnResetProduction.classList.remove('hidden');
                 elements.btnBackToHistory.classList.add('hidden');
@@ -1752,9 +1758,14 @@
 
                     elements.btnResetProduction.classList.add('hidden');
                     elements.btnBackToHistory.classList.remove('hidden');
+                    
+                    // Store the original state
+                    listaOriginalArranjo = data.arranjo_producao || [];
+                    listaOriginalPendentes = data.itens_pendentes || [];
 
-                    popularLista('arranjo-producao-lista', data.arranjo_producao || [], false);
-                    popularLista('itens-pendentes-lista', data.itens_pendentes || [], true);
+                    popularLista('arranjo-producao-lista', listaOriginalArranjo, false);
+                    popularLista('itens-pendentes-lista', listaOriginalPendentes, true);
+                    
                     atualizarTotalizador();
                     popularSeletorBitolaReferencia();
                     popularFiltroBitolaPendentes();
@@ -1918,8 +1929,13 @@
                     elements.btnResetProduction.classList.remove('hidden');
                     elements.btnBackToHistory.classList.add('hidden');
                     
-                    popularLista('arranjo-producao-lista', data.arranjo_producao, false);
-                    popularLista('itens-pendentes-lista', data.itens_pendentes, true);
+                    // Store the original state
+                    listaOriginalArranjo = data.arranjo_producao || [];
+                    listaOriginalPendentes = data.itens_pendentes || [];
+
+                    popularLista('arranjo-producao-lista', listaOriginalArranjo, false);
+                    popularLista('itens-pendentes-lista', listaOriginalPendentes, true);
+                    
                     atualizarTotalizador();
                     popularSeletorBitolaReferencia();
                     popularFiltroBitolaPendentes();
@@ -2071,14 +2087,32 @@
             
             function popularSeletorBitolaReferencia() {
                 const seletor = document.getElementById('bitola-referencia-select');
+                const currentValue = seletor.value;
                 seletor.innerHTML = '<option value="">Selecione a bitola...</option>';
-                const todosOsCards = Array.from(document.querySelectorAll('.item-card'));
-                const espessuras = new Set(todosOsCards.map(getEspessura).filter(esp => esp > 0));
+                const todosOsCards = listaOriginalArranjo.concat(listaOriginalPendentes);
+                const espessuras = new Set(todosOsCards.map(item => {
+                    try {
+                        const partes = (item.dimensao || '0 X 0').split('X');
+                        if (partes.length < 2) return 0;
+                        return parseFloat(partes[1].trim().replace(',', '.')) || 0;
+                    } catch (e) { return 0; }
+                }).filter(esp => esp > 0));
+
                 Array.from(espessuras).sort((a, b) => a - b).forEach(esp => {
                     seletor.innerHTML += `<option value="${esp}">${esp}</option>`;
                 });
+                seletor.value = currentValue;
             }
-
+            
+            function resetarOrdenacao() {
+                popularLista('arranjo-producao-lista', listaOriginalArranjo, false);
+                popularLista('itens-pendentes-lista', listaOriginalPendentes, true);
+                atualizarTotalizador();
+                popularFiltroBitolaPendentes(); 
+                filtrarItensPendentes();
+                document.getElementById('bitola-referencia-select').value = "";
+            }
+            
             function aplicarOrdenacaoDirecional(direcao) {
                 const seletor = document.getElementById('bitola-referencia-select');
                 const valorReferencia = parseFloat(seletor.value);
@@ -2088,16 +2122,19 @@
                     return;
                 }
 
+                // 1. Restaura as listas para o estado original antes de aplicar o filtro.
+                resetarOrdenacao();
+
                 const arranjoLista = document.getElementById('arranjo-producao-lista');
                 const pendentesLista = document.getElementById('itens-pendentes-lista');
                 
-                // CORREÇÃO: A fonte de dados é APENAS a lista do arranjo atual.
+                // 2. Pega a lista completa de cards do arranjo recém-restaurado.
                 const cardsDoArranjoAtual = Array.from(arranjoLista.children);
 
                 const permanecemNoArranjo = [];
                 const vaoParaPendentes = [];
 
-                // 1. Particionar os cards do ARRANJO ATUAL em dois grupos.
+                // 3. Particiona os cards do ARRANJO ATUAL em dois grupos.
                 cardsDoArranjoAtual.forEach(card => {
                     const espessura = getEspessura(card);
                     if ((direcao === 'crescente' && espessura >= valorReferencia) || (direcao === 'decrescente' && espessura <= valorReferencia)) {
@@ -2106,24 +2143,30 @@
                         vaoParaPendentes.push(card);
                     }
                 });
+                
+                // 4. Feedback ao usuário se o filtro resultar em uma lista vazia.
+                if (permanecemNoArranjo.length === 0) {
+                    showAlert(
+                        'A ordenação não encontrou itens correspondentes no arranjo. Todos foram movidos para "Itens Pendentes".',
+                        'Aviso de Ordenação'
+                    );
+                }
 
-                // 2. Ordenar apenas o grupo que permanece no arranjo.
+                // 5. Ordena apenas o grupo que permanece no arranjo.
                 permanecemNoArranjo.sort((a, b) => direcao === 'crescente' ? getEspessura(a) - getEspessura(b) : getEspessura(b) - getEspessura(a));
                 
-                // 3. Atualizar o DOM de forma precisa.
-                // Limpa SOMENTE a lista do arranjo.
-                arranjoLista.innerHTML = ''; 
+                // 6. Atualiza o DOM de forma precisa.
+                arranjoLista.innerHTML = ''; // Limpa SOMENTE a lista do arranjo.
                 
-                // Repopula o arranjo com os itens ordenados.
-                permanecemNoArranjo.forEach(card => arranjoLista.appendChild(card));
-                // ADICIONA os itens filtrados ao final dos pendentes, sem limpar a lista.
-                vaoParaPendentes.forEach(card => pendentesLista.appendChild(card)); 
+                permanecemNoArranjo.forEach(card => arranjoLista.appendChild(card)); // Repopula o arranjo com os itens ordenados.
+                vaoParaPendentes.forEach(card => pendentesLista.appendChild(card)); // ADICIONA os itens filtrados ao final dos pendentes.
                 
-                // 4. Atualiza as UIs auxiliares.
+                // 7. Atualiza as UIs auxiliares.
                 atualizarTotalizador();
                 popularFiltroBitolaPendentes(); 
                 filtrarItensPendentes();
             }
+
 
             function popularFiltroBitolaPendentes() {
                 const seletor = document.getElementById('filter-bitola-pendentes');
@@ -2156,7 +2199,8 @@
                     }
                 });
             }
-
+            
+            document.getElementById('btn-reset-filter').addEventListener('click', resetarOrdenacao);
             document.getElementById('btn-ordem-crescente').addEventListener('click', () => aplicarOrdenacaoDirecional('crescente'));
             document.getElementById('btn-ordem-decrescente').addEventListener('click', () => aplicarOrdenacaoDirecional('decrescente'));
             document.getElementById('search-pendentes').addEventListener('input', filtrarItensPendentes);
