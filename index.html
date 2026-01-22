@@ -651,7 +651,7 @@
         
         .add-item-grid { 
             display: grid; 
-            grid-template-columns: 1fr 2fr 1fr 1fr auto; 
+            grid-template-columns: 1fr 2fr 1fr 1fr 1fr auto; 
             gap: 1rem; 
             align-items: end; 
         }
@@ -984,8 +984,11 @@
                 <div class="arranjo-coluna">
                     <div class="arranjo-header">
                         <h3>ARRANJO DE PRODUÇÃO</h3>
-                        <!-- TOTALIZADOR -->
-                        <div id="totalizador-display" class="totalizador total-low">Total de Molas: 0</div>
+                        <div style="display: flex; align-items: center; gap: 1rem;">
+                            <div id="totalizador-display" class="totalizador total-low">Total de Molas: 0</div>
+                            <!-- Adicionar este novo totalizador de peso -->
+                            <div id="totalizador-peso" class="totalizador" style="border-color: var(--color-info); color: var(--color-info);">Carga Total: 0.0 kg</div>
+                        </div>
                     </div>
                     <div id="arranjo-producao-lista"></div>
                 </div>
@@ -1040,6 +1043,11 @@
                     <label class="config-label">Dimensão/Bitola</label>
                     <input type="text" id="new-item-dimensao" placeholder="Ex: 50.8 X 500">
                 </div>
+                <!-- Adicionar este campo antes do GT Padrão -->
+                <div>
+                    <label class="config-label">Peso Unit. (kg)</label>
+                    <input type="number" id="new-item-peso" placeholder="Ex: 1.25" step="0.01">
+                </div>
                 <div>
                     <label class="config-label">GT Padrão</label>
                     <input type="text" id="new-item-gt" placeholder="GT01">
@@ -1079,6 +1087,7 @@
                             <th>Código</th>
                             <th>Descrição</th>
                             <th>Dimensão</th>
+                            <th>Peso (kg)</th>
                             <th>GT</th>
                             <th style="width: 150px;">Ações</th>
                         </tr>
@@ -1381,6 +1390,7 @@
                 newItemCodigo: document.getElementById('new-item-codigo'),
                 newItemDescricao: document.getElementById('new-item-descricao'),
                 newItemDimensao: document.getElementById('new-item-dimensao'),
+                newItemPeso: document.getElementById('new-item-peso'),
                 newItemGt: document.getElementById('new-item-gt'),
                 itemsPerPageSelect: document.getElementById('items-per-page'),
                 btnPrevPage: document.getElementById('btn-prev-page'),
@@ -1792,7 +1802,7 @@
             });
 
             async function fetchMasterItems(searchTerm = '') {
-                elements.tableMasterItemsBody.innerHTML = '<tr><td colspan="5" style="text-align:center;">Carregando...</td></tr>';
+                elements.tableMasterItemsBody.innerHTML = '<tr><td colspan="6" style="text-align:center;">Carregando...</td></tr>';
                 elements.btnPrevPage.disabled = true;
                 elements.btnNextPage.disabled = true;
                 if(searchTerm === '') searchTerm = elements.searchMasterItems.value;
@@ -1815,7 +1825,7 @@
                     renderMasterTable(data);
                     updatePaginationControls();
                 } catch (err) {
-                    elements.tableMasterItemsBody.innerHTML = `<tr><td colspan="5" style="color:var(--color-danger)">Erro: ${err.message}</td></tr>`;
+                    elements.tableMasterItemsBody.innerHTML = `<tr><td colspan="6" style="color:var(--color-danger)">Erro: ${err.message}</td></tr>`;
                 }
             }
 
@@ -1836,7 +1846,7 @@
             function renderMasterTable(items) {
                 elements.tableMasterItemsBody.innerHTML = '';
                 if (!items || items.length === 0) {
-                    elements.tableMasterItemsBody.innerHTML = '<tr><td colspan="5" style="text-align:center;">Nenhum item encontrado.</td></tr>';
+                    elements.tableMasterItemsBody.innerHTML = '<tr><td colspan="6" style="text-align:center;">Nenhum item encontrado.</td></tr>';
                     return;
                 }
                 items.forEach(item => {
@@ -1844,7 +1854,8 @@
                     tr.innerHTML = `
                         <td><input type="text" class="table-input inp-codigo" value="${item.codigo_item || ''}" disabled></td>
                         <td><input type="text" class="table-input inp-descricao" value="${item.descricao || ''}"></td>
-                        <td><input type="text" class="table-input inp-dimensao" value="${item.bitola || ''}"></td>
+                        <td><input type="text" class="table-input inp-dimensao" value="${item.dimensao || ''}"></td>
+                        <td><input type="number" class="table-input inp-peso" value="${item.peso_kg || 0}" step="0.01"></td>
                         <td><input type="text" class="table-input inp-gt" value="${item.gt || ''}"></td>
                         <td class="actions-cell">
                             <button class="btn btn-sm btn-success btn-save-row">💾</button>
@@ -1858,10 +1869,16 @@
                     btnSave.addEventListener('click', async () => {
                         const newDesc = tr.querySelector('.inp-descricao').value;
                         const newDim = tr.querySelector('.inp-dimensao').value;
+                        const newPeso = parseFloat(tr.querySelector('.inp-peso').value) || 0;
                         const newGt = tr.querySelector('.inp-gt').value;
                         btnSave.disabled = true;
                         try {
-                            const { error } = await _supabase.from('itens_mestre').update({ descricao: newDesc, bitola: newDim, gt: newGt }).eq('id', itemId); // CORREÇÃO AQUI
+                            const { error } = await _supabase.from('itens_mestre').update({ 
+                                descricao: newDesc, 
+                                dimensao: newDim, 
+                                peso_kg: newPeso,
+                                gt: newGt 
+                            }).eq('id', itemId);
                             if (error) throw error;
                             showAlert('Item atualizado com sucesso!', 'Sucesso', 'success');
                         } catch (e) { showAlert('Erro ao atualizar: ' + e.message, 'Erro', 'error'); } finally { btnSave.disabled = false; }
@@ -1885,17 +1902,25 @@
                 const codigo = elements.newItemCodigo.value.trim();
                 const descricao = elements.newItemDescricao.value.trim();
                 const dimensao = elements.newItemDimensao.value.trim();
+                const peso = parseFloat(elements.newItemPeso.value) || 0;
                 const gt = elements.newItemGt.value.trim();
                 if (!codigo) { showAlert('Código é obrigatório.', 'Atenção'); return; }
 
                 elements.btnAddMasterItem.innerHTML = '<div class="spinner"></div>';
                 elements.btnAddMasterItem.disabled = true;
                 try {
-                    const { data, error } = await _supabase.from('itens_mestre').insert([{ codigo_item: codigo, descricao, bitola: dimensao, gt }]).select(); // CORREÇÃO AQUI
+                    const { data, error } = await _supabase.from('itens_mestre').insert([{ 
+                        codigo_item: codigo, 
+                        descricao, 
+                        dimensao, 
+                        peso_kg: peso,
+                        gt 
+                    }]).select();
                     if (error) throw error;
                     elements.newItemCodigo.value = '';
                     elements.newItemDescricao.value = '';
                     elements.newItemDimensao.value = '';
+                    elements.newItemPeso.value = '';
                     elements.newItemGt.value = '';
                     currentMasterPage = 1;
                     await fetchMasterItems();
@@ -1948,27 +1973,37 @@
                 }
             });
 
-            // --- FUNÇÃO TOTALIZADOR ---
+            // --- FUNÇÃO TOTALIZADOR (COM CÁLCULO DE PESO) ---
             function atualizarTotalizador() {
                 const container = document.getElementById('arranjo-producao-lista');
                 const cards = container.querySelectorAll('.item-card');
-                let total = 0;
+                
+                let totalMolas = 0;
+                let totalPeso = 0;
                 
                 cards.forEach(card => {
                     const qtd = parseInt(card.dataset.quantidade) || 0;
-                    total += qtd;
+                    const peso = parseFloat(card.dataset.peso) || 0;
+                    totalMolas += qtd;
+                    totalPeso += qtd * peso;
                 });
 
-                elements.totalizadorDisplay.textContent = `Total de Molas: ${total}`;
-                
-                // Lógica de Cores
-                elements.totalizadorDisplay.classList.remove('total-low', 'total-mid', 'total-high');
-                if (total < 3750) {
-                    elements.totalizadorDisplay.classList.add('total-low');
-                } else if (total >= 3750 && total <= 5500) {
-                    elements.totalizadorDisplay.classList.add('total-mid');
+                // Atualiza total de molas (lógica existente)
+                const totalizadorDisplay = document.getElementById('totalizador-display');
+                totalizadorDisplay.textContent = `Total de Molas: ${totalMolas}`;
+                totalizadorDisplay.classList.remove('total-low', 'total-mid', 'total-high');
+                if (totalMolas < 3750) {
+                    totalizadorDisplay.classList.add('total-low');
+                } else if (totalMolas >= 3750 && totalMolas <= 5500) {
+                    totalizadorDisplay.classList.add('total-mid');
                 } else {
-                    elements.totalizadorDisplay.classList.add('total-high');
+                    totalizadorDisplay.classList.add('total-high');
+                }
+
+                // Atualiza o novo totalizador de peso
+                const totalizadorPeso = document.getElementById('totalizador-peso');
+                if(totalizadorPeso) {
+                    totalizadorPeso.textContent = `Carga Total: ${totalPeso.toFixed(1)} kg`;
                 }
             }
 
@@ -1991,7 +2026,7 @@
                 elements.modalManualOverlay.classList.remove('open');
             });
 
-            // Lógica do Autocomplete (CORRIGIDA)
+            // Lógica do Autocomplete
             elements.modalInputCodigo.addEventListener('input', (e) => {
                 const val = e.target.value.trim().toUpperCase();
                 
@@ -2003,15 +2038,13 @@
 
                 autocompleteTimeout = setTimeout(async () => {
                     try {
-                        // CORREÇÃO 1: Trocado 'dimensao' por 'bitola' na query select
                         const { data, error } = await _supabase
                             .from('itens_mestre')
-                            .select('codigo_item, bitola, gt') 
+                            .select('codigo_item, dimensao, gt') 
                             .ilike('codigo_item', `${val}%`) 
                             .limit(5);
 
                         if (error) {
-                            // Exibe o erro real do Supabase no console para depuração
                             console.error("Erro no autocomplete:", error.message);
                             throw error;
                         };
@@ -2021,13 +2054,11 @@
                             data.forEach(item => {
                                 const li = document.createElement('li');
                                 li.className = 'autocomplete-item';
-                                // CORREÇÃO 2: Trocado 'item.dimensao' por 'item.bitola' na exibição
-                                li.innerHTML = `<strong>${item.codigo_item}</strong><small>${item.bitola || 'S/D'} - GT ${item.gt || '?'}</small>`;
+                                li.innerHTML = `<strong>${item.codigo_item}</strong><small>${item.dimensao || 'S/D'} - GT ${item.gt || '?'}</small>`;
                                 
                                 li.addEventListener('click', () => {
                                     elements.modalInputCodigo.value = item.codigo_item;
-                                    // CORREÇÃO 3: Trocado 'item.dimensao' por 'item.bitola' no preenchimento do campo
-                                    elements.modalInputBitola.value = item.bitola || '';
+                                    elements.modalInputBitola.value = item.dimensao || '';
                                     elements.modalInputGt.value = item.gt || '';
                                     
                                     elements.autocompleteList.innerHTML = '';
@@ -2069,14 +2100,14 @@
                     ordemProducao: op,
                     codigo: codigo,
                     descricao: "Item Manual",
-                    dimensao: bitola, // Mantém 'dimensao' aqui para consistência com o resto do app
+                    dimensao: bitola,
                     gt: gt,
-                    quantidade: qtd
+                    quantidade: qtd,
+                    peso_kg: 0 // Itens manuais entram com peso 0, para ser ajustado no mestre
                 };
                 
-                listaOriginalPendentes.push(novoItem); // Adiciona ao estado original
+                listaOriginalPendentes.push(novoItem);
 
-                // CORREÇÃO: Usar o ID correto com underscore
                 criarCard('itens-pendentes-lista', novoItem, true);
                 elements.modalManualOverlay.classList.remove('open');
                 atualizarTotalizador();
@@ -2132,21 +2163,17 @@
                     return;
                 }
 
-                // 1. Restaura as listas para o estado original antes de aplicar o filtro.
                 popularLista('arranjo-producao-lista', listaOriginalArranjo, false);
                 popularLista('itens-pendentes-lista', listaOriginalPendentes, true);
-
 
                 const arranjoLista = document.getElementById('arranjo-producao-lista');
                 const pendentesLista = document.getElementById('itens-pendentes-lista');
                 
-                // 2. Pega a lista completa de cards das DUAS colunas recém-restauradas.
                 const todosOsCards = Array.from(arranjoLista.children).concat(Array.from(pendentesLista.children));
 
                 const novoArranjo = [];
                 const novoPendentes = [];
 
-                // 3. Particiona TODOS os cards
                 todosOsCards.forEach(card => {
                     const espessura = getEspessura(card);
                     if ((direcao === 'crescente' && espessura >= valorReferencia) || (direcao === 'decrescente' && espessura <= valorReferencia)) {
@@ -2156,7 +2183,6 @@
                     }
                 });
                 
-                // 4. Feedback ao usuário se o filtro resultar em uma lista vazia.
                 if (novoArranjo.length === 0) {
                     showAlert(
                         'A ordenação não encontrou itens correspondentes. Todos os itens estão em "Itens Pendentes".',
@@ -2164,17 +2190,14 @@
                     );
                 }
 
-                // 5. Ordena o novo grupo do arranjo.
                 novoArranjo.sort((a, b) => direcao === 'crescente' ? getEspessura(a) - getEspessura(b) : getEspessura(b) - getEspessura(a));
                 
-                // 6. Limpa e atualiza o DOM de forma completa.
                 arranjoLista.innerHTML = '';
                 pendentesLista.innerHTML = ''; 
                 
                 novoArranjo.forEach(card => arranjoLista.appendChild(card));
                 novoPendentes.forEach(card => pendentesLista.appendChild(card));
                 
-                // 7. Atualiza as UIs auxiliares.
                 atualizarTotalizador();
                 popularFiltroBitolaPendentes(); 
                 filtrarItensPendentes();
@@ -2251,7 +2274,8 @@
                 card.dataset.descricao = item.descricao || 'N/A';
                 card.dataset.dimensao = item.dimensao || 'N/A';
                 card.dataset.gt = item.gt || '';
-                card.dataset.quantidade = item.quantidade || '0'; // Dataset Quantidade
+                card.dataset.quantidade = item.quantidade || '0';
+                card.dataset.peso = item.peso_kg || '0';
 
                 let gtHtml = `<b>GT:</b> ${item.gt || 'N/A'}`;
                 if (isPendente && (!item.gt || item.gt.trim() === '')) {
@@ -2264,7 +2288,7 @@
                     <p><b>Código:</b> ${item.codigo || 'N/A'}</p>
                     <p>${item.descricao || 'N/A'}</p>
                     <p><b>Bitola:</b> ${item.dimensao || 'N/A'}</p>
-                    <p><b>Qtd:</b> ${item.quantidade || '0'}</p>
+                    <p><b>Qtd:</b> ${item.quantidade || '0'} <small style="color: var(--text-secondary); margin-left: 10px;">(${parseFloat(item.peso_kg || 0).toFixed(2)} kg/pç)</small></p>
                     <p class="gt-display" onclick="editarGT(event, this.parentElement)">${gtHtml}</p>
                 `;
                 
