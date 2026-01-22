@@ -1991,7 +1991,7 @@
                 elements.modalManualOverlay.classList.remove('open');
             });
 
-            // Lógica do Autocomplete
+            // Lógica do Autocomplete (CORRIGIDA)
             elements.modalInputCodigo.addEventListener('input', (e) => {
                 const val = e.target.value.trim();
                 
@@ -2011,20 +2011,20 @@
 
                         if (error) throw error;
 
+                        elements.autocompleteList.innerHTML = ''; // Limpa antes de popular
                         if (data && data.length > 0) {
-                            elements.autocompleteList.innerHTML = '';
                             data.forEach(item => {
                                 const li = document.createElement('li');
                                 li.className = 'autocomplete-item';
                                 li.innerHTML = `<strong>${item.codigo_item}</strong><small>${item.dimensao || 'S/D'} - GT ${item.gt || '?'}</small>`;
                                 
-                                // Ao clicar na sugestão
+                                // Adiciona o listener de clique para cada item da lista
                                 li.addEventListener('click', () => {
                                     elements.modalInputCodigo.value = item.codigo_item;
                                     elements.modalInputBitola.value = item.dimensao || '';
                                     elements.modalInputGt.value = item.gt || '';
                                     
-                                    // Limpa lista
+                                    // Limpa e esconde a lista
                                     elements.autocompleteList.innerHTML = '';
                                     elements.autocompleteList.classList.remove('visible');
                                 });
@@ -2035,13 +2035,14 @@
                         }
                     } catch (err) {
                         console.error("Erro no autocomplete:", err);
+                        // Opcional: mostrar erro para o usuário
                     }
                 }, 300); // 300ms debounce
             });
 
             // Fechar autocomplete se clicar fora
             document.addEventListener('click', (e) => {
-                if (e.target !== elements.modalInputCodigo) {
+                if (e.target !== elements.modalInputCodigo && !elements.autocompleteList.contains(e.target)) {
                     elements.autocompleteList.classList.remove('visible');
                 }
             });
