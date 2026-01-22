@@ -1425,7 +1425,6 @@
             };
 
             // --- INICIALIZAÇÃO DO MULTI-SELECT DE GTs ---
-            // SUBSTITUIR ESTE BLOCO INTEIRO
             async function initGtMultiSelect() {
                 try {
                     const { data, error } = await _supabase
@@ -2027,11 +2026,13 @@
                 elements.modalManualOverlay.classList.remove('open');
             });
 
-            // Lógica do Autocomplete
             // SUBSTITUIR ESTE BLOCO INTEIRO
             elements.modalInputCodigo.addEventListener('input', (e) => {
                 const val = e.target.value.trim().toUpperCase();
                 
+                // Limpa o peso guardado a cada nova digitação
+                elements.modalInputCodigo.dataset.pesoSelecionado = '0';
+
                 clearTimeout(autocompleteTimeout);
                 elements.autocompleteList.innerHTML = '';
                 elements.autocompleteList.classList.remove('visible');
@@ -2040,34 +2041,52 @@
 
                 autocompleteTimeout = setTimeout(async () => {
                     try {
-                        // CORREÇÃO 1: Trocado 'dimensao' por 'bitola' na query select
-                        const { data, error } = await _supabase
+                        // BUSCA 1: Na tabela itens_mestre para as sugestões
+                        const { data: itensMestre, error: erroMestre } = await _supabase
                             .from('itens_mestre')
                             .select('codigo_item, bitola, gt') 
                             .ilike('codigo_item', `${val}%`) 
                             .limit(5);
 
-                        if (error) {
-                            console.error("Erro no autocomplete:", error.message);
-                            throw error;
-                        };
+                        if (erroMestre) throw erroMestre;
 
                         elements.autocompleteList.innerHTML = ''; 
-                        if (data && data.length > 0) {
-                            data.forEach(item => {
+                        if (itensMestre && itensMestre.length > 0) {
+                            itensMestre.forEach(item => {
                                 const li = document.createElement('li');
                                 li.className = 'autocomplete-item';
-                                // CORREÇÃO 2: Trocado 'item.dimensao' por 'item.bitola' na exibição
                                 li.innerHTML = `<strong>${item.codigo_item}</strong><small>${item.bitola || 'S/D'} - GT ${item.gt || '?'}</small>`;
                                 
-                                li.addEventListener('click', () => {
+                                // Lógica de clique agora faz a segunda busca
+                                li.addEventListener('click', async () => {
+                                    // Preenche os dados da primeira busca
                                     elements.modalInputCodigo.value = item.codigo_item;
-                                    // CORREÇÃO 3: Trocado 'item.dimensao' por 'item.bitola' ao preencher
                                     elements.modalInputBitola.value = item.bitola || '';
                                     elements.modalInputGt.value = item.gt || '';
                                     
                                     elements.autocompleteList.innerHTML = '';
                                     elements.autocompleteList.classList.remove('visible');
+
+                                    // BUSCA 2: Na tabela produtos_peso para obter o peso
+                                    try {
+                                        const { data: pesoData, error: erroPeso } = await _supabase
+                                            .from('produtos_peso')
+                                            .select('peso_kg')
+                                            .eq('codigo_produto', item.codigo_item)
+                                            .single(); // .single() é mais eficiente para buscar um único item
+
+                                        if (erroPeso && erroPeso.code !== 'PGRST116') { // Ignora erro "not found"
+                                            throw erroPeso;
+                                        }
+                                        
+                                        // Guarda o peso no dataset para ser usado na confirmação
+                                        const peso = pesoData ? pesoData.peso_kg : 0;
+                                        elements.modalInputCodigo.dataset.pesoSelecionado = peso;
+
+                                    } catch (err) {
+                                        console.error("Erro ao buscar peso do produto:", err.message);
+                                        elements.modalInputCodigo.dataset.pesoSelecionado = '0'; // Garante valor padrão em caso de erro
+                                    }
                                 });
 
                                 elements.autocompleteList.appendChild(li);
@@ -2075,10 +2094,11 @@
                             elements.autocompleteList.classList.add('visible');
                         }
                     } catch (err) {
-                        console.error("Falha ao executar a busca do autocomplete:", err);
+                        console.error("Falha ao executar a busca do autocomplete:", err.message);
                     }
                 }, 300);
             });
+
 
             // Fechar autocomplete se clicar fora
             document.addEventListener('click', (e) => {
@@ -2089,12 +2109,17 @@
                 }
             });
 
+            // DENTRO DO LISTENER DE 'elements.btnManualConfirm'
             elements.btnManualConfirm.addEventListener('click', () => {
                 const codigo = elements.modalInputCodigo.value.trim();
                 const op = elements.modalInputOp.value.trim();
                 const qtd = elements.modalInputQtd.value.trim();
                 const bitola = elements.modalInputBitola.value.trim();
                 const gt = elements.modalInputGt.value.trim();
+                
+                // LEIA o peso que foi guardado no dataset do input de código
+                const peso = parseFloat(elements.modalInputCodigo.dataset.pesoSelecionado) || 0;
+                elements.modalInputCodigo.dataset.pesoSelecionado = '0'; // Limpa para o próximo uso
 
                 if (!codigo || !op || !qtd) {
                     showAlert("Código, OP e Quantidade são obrigatórios.", "Campos Faltando");
@@ -2108,16 +2133,16 @@
                     dimensao: bitola,
                     gt: gt,
                     quantidade: qtd,
-                    peso_kg: 0 
+                    peso_kg: peso // ADICIONE O CAMPO peso_kg AO OBJETO
                 };
                 
                 listaOriginalPendentes.push(novoItem);
-
                 criarCard('itens-pendentes-lista', novoItem, true);
                 elements.modalManualOverlay.classList.remove('open');
                 atualizarTotalizador();
                 popularFiltroBitolaPendentes();
             });
+
 
             // --- Lógica de Ordenação e Filtros ---
             
