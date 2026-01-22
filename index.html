@@ -2076,6 +2076,7 @@
                 
                 listaOriginalPendentes.push(novoItem); // Adiciona ao estado original
 
+                // CORREÇÃO: Usar o ID correto com underscore
                 criarCard('itens_pendentes_lista', novoItem, true);
                 elements.modalManualOverlay.classList.remove('open');
                 atualizarTotalizador();
@@ -2233,6 +2234,10 @@
 
             function criarCard(containerId, item, isPendente) {
                 const container = document.getElementById(containerId);
+                if (!container) {
+                    console.error(`Container com ID '${containerId}' não encontrado.`);
+                    return;
+                }
                 const index = container.children.length;
                 
                 const card = document.createElement('div');
@@ -2450,9 +2455,7 @@
                 const isDark = elements.themeToggle.checked;
                 document.body.classList.toggle('dark-theme', isDark);
                 document.body.classList.toggle('light-theme', !isDark);
-                elements.logo.src = isDark 
-                    ? 'https://ctfamadobrasil.com.br/wp-content/uploads/2025/12/Gemini_Generated_Image_v8cib8v8cib8v8ci-removebg-preview.png' 
-                    : 'https://ctfamadobrasil.com.br/wp-content/uploads/2025/09/logo.png';
+                // Não precisa setar o src aqui pois já está correto no HTML
                 updateStepper(1);
                 atualizarConfiguracaoForno('grande');
             }
