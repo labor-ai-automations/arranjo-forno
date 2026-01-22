@@ -995,6 +995,14 @@
                         <!-- BOTÃO MANUAL -->
                         <button id="btn-add-manual" class="btn btn-sm btn-secondary" style="padding: 0.25rem 0.75rem; font-size: 0.8rem;">+ Adicionar Manual</button>
                     </div>
+                    <!-- Inserir este novo bloco de filtros para pendentes -->
+                    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 1rem; margin-bottom: 1rem; padding: 0.5rem; border: 1px solid var(--border-color); border-radius: var(--radius-md);">
+                        <input type="search" id="search-pendentes" placeholder="Pesquisar por Código/OP...">
+                        <select id="filter-bitola-pendentes">
+                            <option value="">Filtrar bitola...</option>
+                            <!-- Opções serão adicionadas dinamicamente via JS -->
+                        </select>
+                    </div>
                     <div id="itens-pendentes-lista"></div>
                 </div>
             </div>
@@ -1748,7 +1756,8 @@
                     popularLista('arranjo-producao-lista', data.arranjo_producao || [], false);
                     popularLista('itens-pendentes-lista', data.itens_pendentes || [], true);
                     atualizarTotalizador();
-                    popularSeletorBitola();
+                    popularSeletorBitolaReferencia();
+                    popularFiltroBitolaPendentes();
 
                 } catch (e) {
                     showAlert('Erro ao processar os dados do histórico: ' + e.message, 'Erro', 'error');
@@ -1912,7 +1921,8 @@
                     popularLista('arranjo-producao-lista', data.arranjo_producao, false);
                     popularLista('itens-pendentes-lista', data.itens_pendentes, true);
                     atualizarTotalizador();
-                    popularSeletorBitola();
+                    popularSeletorBitolaReferencia();
+                    popularFiltroBitolaPendentes();
 
                 } catch (error) {
                     showAlert('Ocorreu um erro ao gerar o arranjo: ' + error.message, 'Erro', 'error');
@@ -2047,9 +2057,8 @@
                 atualizarTotalizador();
             });
 
-            // --- Lógica de Ordenação Direcional (NOVO) ---
+            // --- Lógica de Ordenação e Filtros (NOVO) ---
             
-            // Função para extrair o valor numérico da espessura de um card
             function getEspessura(cardElement) {
                 const dimensao = cardElement.dataset.dimensao || '0 X 0';
                 try {
@@ -2057,45 +2066,25 @@
                     if (partes.length < 2) return 0;
                     const espessuraStr = partes[1].trim().replace(',', '.');
                     return parseFloat(espessuraStr) || 0;
-                } catch (e) {
-                    return 0;
-                }
+                } catch (e) { return 0; }
             }
             
-            // Função para popular o seletor de bitola de referência
-            function popularSeletorBitola() {
+            function popularSeletorBitolaReferencia() {
                 const seletor = document.getElementById('bitola-referencia-select');
-                seletor.innerHTML = '<option value="">Selecione a bitola...</option>'; // Reseta o seletor
-
-                const arranjoLista = document.getElementById('arranjo-producao-lista');
-                const pendentesLista = document.getElementById('itens-pendentes-lista');
-                const todosOsCards = Array.from(arranjoLista.children).concat(Array.from(pendentesLista.children));
-
-                const espessuras = new Set();
-                todosOsCards.forEach(card => {
-                    const esp = getEspessura(card);
-                    if (esp > 0) {
-                        espessuras.add(esp);
-                    }
-                });
-
-                const espessurasOrdenadas = Array.from(espessuras).sort((a, b) => a - b);
-
-                espessurasOrdenadas.forEach(esp => {
-                    const option = document.createElement('option');
-                    option.value = esp;
-                    option.textContent = esp;
-                    seletor.appendChild(option);
+                seletor.innerHTML = '<option value="">Selecione a bitola...</option>';
+                const todosOsCards = Array.from(document.querySelectorAll('.item-card'));
+                const espessuras = new Set(todosOsCards.map(getEspessura).filter(esp => esp > 0));
+                Array.from(espessuras).sort((a, b) => a - b).forEach(esp => {
+                    seletor.innerHTML += `<option value="${esp}">${esp}</option>`;
                 });
             }
 
-            // Função principal para aplicar a nova ordenação
             function aplicarOrdenacaoDirecional(direcao) {
                 const seletor = document.getElementById('bitola-referencia-select');
                 const valorReferencia = parseFloat(seletor.value);
 
                 if (isNaN(valorReferencia) || seletor.value === "") {
-                    showAlert('Por favor, selecione uma Bitola de Partida na lista.', 'Atenção');
+                    showAlert('Por favor, selecione uma Bitola de Partida.', 'Atenção');
                     return;
                 }
 
@@ -2108,33 +2097,62 @@
 
                 todosOsCards.forEach(card => {
                     const espessura = getEspessura(card);
-                    if (direcao === 'crescente' && espessura >= valorReferencia) {
-                        cardsParaOrdenar.push(card);
-                    } else if (direcao === 'decrescente' && espessura <= valorReferencia) {
+                    if ((direcao === 'crescente' && espessura >= valorReferencia) || (direcao === 'decrescente' && espessura <= valorReferencia)) {
                         cardsParaOrdenar.push(card);
                     } else {
                         cardsParaPendentes.push(card);
                     }
                 });
 
-                if (direcao === 'crescente') {
-                    cardsParaOrdenar.sort((a, b) => getEspessura(a) - getEspessura(b));
-                } else {
-                    cardsParaOrdenar.sort((a, b) => getEspessura(b) - getEspessura(a));
-                }
+                cardsParaOrdenar.sort((a, b) => direcao === 'crescente' ? getEspessura(a) - getEspessura(b) : getEspessura(b) - getEspessura(a));
                 
                 arranjoLista.innerHTML = '';
                 pendentesLista.innerHTML = '';
-
                 cardsParaOrdenar.forEach(card => arranjoLista.appendChild(card));
                 cardsParaPendentes.forEach(card => pendentesLista.appendChild(card));
                 
                 atualizarTotalizador();
+                // Após a redistribuição, é preciso atualizar os filtros dos pendentes
+                popularFiltroBitolaPendentes(); 
+                filtrarItensPendentes();
             }
-            
-            // Adicionar os Event Listeners para os novos botões
+
+            function popularFiltroBitolaPendentes() {
+                const seletor = document.getElementById('filter-bitola-pendentes');
+                seletor.innerHTML = '<option value="">Filtrar bitola...</option>';
+                const pendentesLista = document.getElementById('itens-pendentes-lista');
+                const cardsPendentes = Array.from(pendentesLista.children);
+                const espessuras = new Set(cardsPendentes.map(getEspessura).filter(esp => esp > 0));
+                Array.from(espessuras).sort((a, b) => a - b).forEach(esp => {
+                    seletor.innerHTML += `<option value="${esp}">${esp}</option>`;
+                });
+            }
+
+            function filtrarItensPendentes() {
+                const searchTerm = document.getElementById('search-pendentes').value.toLowerCase();
+                const bitolaFilter = document.getElementById('filter-bitola-pendentes').value;
+                const pendentesLista = document.getElementById('itens-pendentes-lista');
+                const cards = Array.from(pendentesLista.children);
+
+                cards.forEach(card => {
+                    const cardText = (card.innerText || card.textContent).toLowerCase();
+                    const espessura = getEspessura(card).toString();
+                    
+                    const matchesSearch = searchTerm === '' || cardText.includes(searchTerm);
+                    const matchesBitola = bitolaFilter === '' || espessura === bitolaFilter;
+
+                    if (matchesSearch && matchesBitola) {
+                        card.style.display = 'block';
+                    } else {
+                        card.style.display = 'none';
+                    }
+                });
+            }
+
             document.getElementById('btn-ordem-crescente').addEventListener('click', () => aplicarOrdenacaoDirecional('crescente'));
             document.getElementById('btn-ordem-decrescente').addEventListener('click', () => aplicarOrdenacaoDirecional('decrescente'));
+            document.getElementById('search-pendentes').addEventListener('input', filtrarItensPendentes);
+            document.getElementById('filter-bitola-pendentes').addEventListener('change', filtrarItensPendentes);
 
             // --- Funções Auxiliares de Lista e DragDrop ---
             
