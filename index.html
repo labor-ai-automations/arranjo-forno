@@ -2040,7 +2040,7 @@
                     try {
                         const { data, error } = await _supabase
                             .from('itens_mestre')
-                            .select('codigo_item, bitola, gt') // <-- CORRIGIDO AQUI
+                            .select('codigo_item, bitola, gt')
                             .ilike('codigo_item', `${val}%`) 
                             .limit(5);
 
@@ -2054,12 +2054,11 @@
                             data.forEach(item => {
                                 const li = document.createElement('li');
                                 li.className = 'autocomplete-item';
-                                // CORRIGIDO AQUI
                                 li.innerHTML = `<strong>${item.codigo_item}</strong><small>${item.bitola || 'S/D'} - GT ${item.gt || '?'}</small>`;
                                 
                                 li.addEventListener('click', () => {
                                     elements.modalInputCodigo.value = item.codigo_item;
-                                    elements.modalInputBitola.value = item.bitola || ''; // <-- CORRIGIDO AQUI
+                                    elements.modalInputBitola.value = item.bitola || '';
                                     elements.modalInputGt.value = item.gt || '';
                                     
                                     elements.autocompleteList.innerHTML = '';
@@ -2101,7 +2100,7 @@
                     ordemProducao: op,
                     codigo: codigo,
                     descricao: "Item Manual",
-                    bitola: bitola, // <-- CORRIGIDO AQUI
+                    bitola: bitola,
                     gt: gt,
                     quantidade: qtd,
                     peso_kg: 0 
@@ -2115,30 +2114,57 @@
                 popularFiltroBitolaPendentes();
             });
 
+
             // --- Lógica de Ordenação e Filtros ---
             
+            /**
+             * [NOVA FUNÇÃO CORRIGIDA]
+             * Extrai o valor numérico da espessura de uma string de bitola.
+             * Lida com formatos como "50.8 X 500" e "Algum texto Bitola 12".
+             * @param {string} bitolaString - A string completa da bitola.
+             * @returns {number} O valor da espessura ou 0 se não for encontrado.
+             */
+            function extrairEspessura(bitolaString) {
+                if (!bitolaString || typeof bitolaString !== 'string') {
+                    return 0;
+                }
+
+                // 1. Tenta o formato "DIAMETRO X ESPESSURA"
+                const formatoX = bitolaString.split('X');
+                if (formatoX.length > 1) {
+                    const espessuraStr = formatoX[formatoX.length - 1].trim().replace(',', '.');
+                    const espessura = parseFloat(espessuraStr);
+                    if (!isNaN(espessura)) {
+                        return espessura;
+                    }
+                }
+                
+                // 2. Se falhar, tenta extrair o último número da string (para casos como "Bitola 12")
+                const match = bitolaString.match(/\b(\d+([,.]\d+)?)\b\s*$/);
+                if (match && match[1]) {
+                    const espessura = parseFloat(match[1].replace(',', '.'));
+                    if (!isNaN(espessura)) {
+                        return espessura;
+                    }
+                }
+                
+                return 0; // Retorna 0 se não encontrar nada
+            }
+
             function getEspessura(cardElement) {
-                const bitola = cardElement.dataset.bitola || '0 X 0'; // <-- CORRIGIDO AQUI
-                try {
-                    const partes = bitola.split('X'); // <-- CORRIGIDO AQUI
-                    if (partes.length < 2) return 0;
-                    const espessuraStr = partes[1].trim().replace(',', '.');
-                    return parseFloat(espessuraStr) || 0;
-                } catch (e) { return 0; }
+                const bitolaString = cardElement.dataset.bitola || '';
+                return extrairEspessura(bitolaString);
             }
             
             function popularSeletorBitolaReferencia() {
                 const seletor = document.getElementById('bitola-referencia-select');
                 const currentValue = seletor.value;
                 seletor.innerHTML = '<option value="">Selecione a bitola...</option>';
-                const todosOsCards = listaOriginalArranjo.concat(listaOriginalPendentes);
-                const espessuras = new Set(todosOsCards.map(item => {
-                    try {
-                        const partes = (item.bitola || '0 X 0').split('X'); // <-- CORRIGIDO AQUI
-                        if (partes.length < 2) return 0;
-                        return parseFloat(partes[1].trim().replace(',', '.')) || 0;
-                    } catch (e) { return 0; }
-                }).filter(esp => esp > 0));
+                const todosOsItens = listaOriginalArranjo.concat(listaOriginalPendentes);
+
+                const espessuras = new Set(
+                    todosOsItens.map(item => extrairEspessura(item.bitola)).filter(esp => esp > 0)
+                );
 
                 Array.from(espessuras).sort((a, b) => a - b).forEach(esp => {
                     seletor.innerHTML += `<option value="${esp}">${esp}</option>`;
@@ -2155,7 +2181,6 @@
                 document.getElementById('bitola-referencia-select').value = "";
             }
             
-            // CORREÇÃO: Lógica de Ordenação restaurada para operar apenas na coluna "Arranjo de Produção"
             function aplicarOrdenacaoDirecional(direcao) {
                 const seletor = document.getElementById('bitola-referencia-select');
                 const valorReferencia = parseFloat(seletor.value);
@@ -2168,13 +2193,11 @@
                 const arranjoLista = document.getElementById('arranjo-producao-lista');
                 const pendentesLista = document.getElementById('itens-pendentes-lista');
                 
-                // A fonte de dados é APENAS a lista do arranjo atual.
                 const cardsDoArranjoAtual = Array.from(arranjoLista.children);
 
                 const permanecemNoArranjo = [];
                 const vaoParaPendentes = [];
 
-                // 1. Particionar os cards do ARRANJO ATUAL em dois grupos.
                 cardsDoArranjoAtual.forEach(card => {
                     const espessura = getEspessura(card);
                     if ((direcao === 'crescente' && espessura >= valorReferencia) || (direcao === 'decrescente' && espessura <= valorReferencia)) {
@@ -2184,16 +2207,13 @@
                     }
                 });
 
-                // 2. Ordenar apenas o grupo que permanece no arranjo.
                 permanecemNoArranjo.sort((a, b) => direcao === 'crescente' ? getEspessura(a) - getEspessura(b) : getEspessura(b) - getEspessura(a));
                 
-                // 3. Atualizar o DOM de forma precisa.
-                arranjoLista.innerHTML = ''; // Limpa SOMENTE a lista do arranjo.
+                arranjoLista.innerHTML = '';
                 
                 permanecemNoArranjo.forEach(card => arranjoLista.appendChild(card));
                 vaoParaPendentes.forEach(card => pendentesLista.appendChild(card)); 
                 
-                // 4. Atualiza as UIs auxiliares.
                 atualizarTotalizador();
                 popularFiltroBitolaPendentes(); 
                 filtrarItensPendentes();
@@ -2268,7 +2288,7 @@
                 card.dataset.ordemProducao = item.ordemProducao || 'N/A';
                 card.dataset.codigo = item.codigo || 'N/A';
                 card.dataset.descricao = item.descricao || 'N/A';
-                card.dataset.bitola = item.bitola || 'N/A'; // <-- CORRIGIDO AQUI
+                card.dataset.bitola = item.bitola || 'N/A';
                 card.dataset.gt = item.gt || '';
                 card.dataset.quantidade = item.quantidade || '0';
                 card.dataset.peso = item.peso_kg || '0';
@@ -2373,14 +2393,10 @@
                 const lista = elements.arranjoProducaoLista;
                 const items = Array.from(lista.querySelectorAll('.item-card'));
                 items.sort((a, b) => {
-                    try {
-                        const espessuraA = parseFloat(a.dataset.bitola.split('X')[1].trim().replace(',', '.')); // <-- CORRIGIDO AQUI
-                        const espessuraB = parseFloat(b.dataset.bitola.split('X')[1].trim().replace(',', '.')); // <-- CORRIGIDO AQUI
-                        if (isNaN(espessuraA) || isNaN(espessuraB)) return 0;
-                        return espessuraA - espessuraB;
-                    } catch (e) {
-                        return 0;
-                    }
+                    const espessuraA = getEspessura(a);
+                    const espessuraB = getEspessura(b);
+                    if (isNaN(espessuraA) || isNaN(espessuraB)) return 0;
+                    return espessuraA - espessuraB;
                 });
                 items.forEach(item => lista.appendChild(item));
                 atualizarTotalizador();
@@ -2440,7 +2456,7 @@
                             card.dataset.ordemProducao,
                             card.dataset.codigo,
                             card.dataset.descricao,
-                            card.dataset.bitola, // <-- CORRIGIDO AQUI
+                            card.dataset.bitola,
                             card.dataset.gt,
                             card.dataset.quantidade
                         ]);
