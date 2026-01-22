@@ -957,6 +957,23 @@
                 </button>
             </div>
             
+            <!-- Inserir este novo bloco de controle de ordenação -->
+            <div class="card" style="margin-bottom: 1.5rem; background-color: var(--bg-main);">
+                <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 1rem; align-items: center;">
+                    <div>
+                        <label for="bitola-referencia" class="config-label" style="margin-bottom: 0.5rem;">Ponto de Partida (Bitola)</label>
+                        <input type="number" id="bitola-referencia" placeholder="Ex: 12" step="0.01">
+                    </div>
+                    <div>
+                        <label class="config-label" style="margin-bottom: 0.5rem;">Direção da Ordenação</label>
+                        <div style="display: flex; gap: 1rem;">
+                            <button id="btn-ordem-crescente" class="btn btn-secondary" style="width: 100%;">⬆ Crescente</button>
+                            <button id="btn-ordem-decrescente" class="btn btn-secondary" style="width: 100%;">⬇ Decrescente</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div class="arranjo-container">
                 <!-- Coluna Arranjo -->
                 <div class="arranjo-coluna">
@@ -2025,7 +2042,73 @@
                 atualizarTotalizador();
             });
 
+            // --- Lógica de Ordenação Direcional (NOVO) ---
+            
+            // Função para extrair o valor numérico da espessura de um card
+            function getEspessura(cardElement) {
+                const dimensao = cardElement.dataset.dimensao || '0 X 0';
+                try {
+                    const partes = dimensao.split('X');
+                    if (partes.length < 2) return 0;
+                    // Limpa, troca vírgula por ponto e converte para número
+                    const espessuraStr = partes[1].trim().replace(',', '.');
+                    return parseFloat(espessuraStr) || 0;
+                } catch (e) {
+                    return 0;
+                }
+            }
+            
+            // Função principal para aplicar a nova ordenação
+            function aplicarOrdenacaoDirecional(direcao) {
+                const inputReferencia = document.getElementById('bitola-referencia');
+                const valorReferencia = parseFloat(inputReferencia.value);
 
+                if (isNaN(valorReferencia)) {
+                    showAlert('Por favor, insira um valor numérico válido para a Bitola de Referência.', 'Atenção');
+                    return;
+                }
+
+                const arranjoLista = document.getElementById('arranjo-producao-lista');
+                const pendentesLista = document.getElementById('itens-pendentes-lista');
+                const todosOsCards = Array.from(arranjoLista.children).concat(Array.from(pendentesLista.children));
+
+                const cardsParaOrdenar = [];
+                const cardsParaPendentes = [];
+
+                // 1. FILTRAR: Separar os cards que entram na sequência e os que ficam pendentes
+                todosOsCards.forEach(card => {
+                    const espessura = getEspessura(card);
+                    if (direcao === 'crescente' && espessura >= valorReferencia) {
+                        cardsParaOrdenar.push(card);
+                    } else if (direcao === 'decrescente' && espessura <= valorReferencia) {
+                        cardsParaOrdenar.push(card);
+                    } else {
+                        cardsParaPendentes.push(card);
+                    }
+                });
+
+                // 2. ORDENAR: Aplicar a ordenação correta na lista filtrada
+                if (direcao === 'crescente') {
+                    cardsParaOrdenar.sort((a, b) => getEspessura(a) - getEspessura(b));
+                } else { // decrescente
+                    cardsParaOrdenar.sort((a, b) => getEspessura(b) - getEspessura(a));
+                }
+                
+                // 3. ATUALIZAR DOM: Limpar as listas e repopular com os cards organizados
+                arranjoLista.innerHTML = '';
+                pendentesLista.innerHTML = '';
+
+                cardsParaOrdenar.forEach(card => arranjoLista.appendChild(card));
+                cardsParaPendentes.forEach(card => pendentesLista.appendChild(card));
+                
+                // 4. Atualizar o totalizador (função existente)
+                atualizarTotalizador();
+            }
+            
+            // Adicionar os Event Listeners para os novos botões
+            document.getElementById('btn-ordem-crescente').addEventListener('click', () => aplicarOrdenacaoDirecional('crescente'));
+            document.getElementById('btn-ordem-decrescente').addEventListener('click', () => aplicarOrdenacaoDirecional('decrescente'));
+            
             // --- Funções Auxiliares de Lista e DragDrop ---
             
             function popularLista(containerId, items, isPendente) {
