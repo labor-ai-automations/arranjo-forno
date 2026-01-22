@@ -2034,7 +2034,7 @@
                 elements.autocompleteList.innerHTML = '';
                 elements.autocompleteList.classList.remove('visible');
 
-                if (val.length < 2) return; // Só busca com 2+ caracteres
+                if (val.length < 2) return; 
 
                 autocompleteTimeout = setTimeout(async () => {
                     try {
@@ -2103,7 +2103,7 @@
                     dimensao: bitola,
                     gt: gt,
                     quantidade: qtd,
-                    peso_kg: 0 // Itens manuais entram com peso 0, para ser ajustado no mestre
+                    peso_kg: 0 
                 };
                 
                 listaOriginalPendentes.push(novoItem);
@@ -2154,6 +2154,7 @@
                 document.getElementById('bitola-referencia-select').value = "";
             }
             
+            // CORREÇÃO: Lógica de Ordenação restaurada para operar apenas na coluna "Arranjo de Produção"
             function aplicarOrdenacaoDirecional(direcao) {
                 const seletor = document.getElementById('bitola-referencia-select');
                 const valorReferencia = parseFloat(seletor.value);
@@ -2163,41 +2164,35 @@
                     return;
                 }
 
-                popularLista('arranjo-producao-lista', listaOriginalArranjo, false);
-                popularLista('itens-pendentes-lista', listaOriginalPendentes, true);
-
                 const arranjoLista = document.getElementById('arranjo-producao-lista');
                 const pendentesLista = document.getElementById('itens-pendentes-lista');
                 
-                const todosOsCards = Array.from(arranjoLista.children).concat(Array.from(pendentesLista.children));
+                // A fonte de dados é APENAS a lista do arranjo atual.
+                const cardsDoArranjoAtual = Array.from(arranjoLista.children);
 
-                const novoArranjo = [];
-                const novoPendentes = [];
+                const permanecemNoArranjo = [];
+                const vaoParaPendentes = [];
 
-                todosOsCards.forEach(card => {
+                // 1. Particionar os cards do ARRANJO ATUAL em dois grupos.
+                cardsDoArranjoAtual.forEach(card => {
                     const espessura = getEspessura(card);
                     if ((direcao === 'crescente' && espessura >= valorReferencia) || (direcao === 'decrescente' && espessura <= valorReferencia)) {
-                        novoArranjo.push(card);
+                        permanecemNoArranjo.push(card);
                     } else {
-                        novoPendentes.push(card);
+                        vaoParaPendentes.push(card);
                     }
                 });
-                
-                if (novoArranjo.length === 0) {
-                    showAlert(
-                        'A ordenação não encontrou itens correspondentes. Todos os itens estão em "Itens Pendentes".',
-                        'Aviso de Ordenação'
-                    );
-                }
 
-                novoArranjo.sort((a, b) => direcao === 'crescente' ? getEspessura(a) - getEspessura(b) : getEspessura(b) - getEspessura(a));
+                // 2. Ordenar apenas o grupo que permanece no arranjo.
+                permanecemNoArranjo.sort((a, b) => direcao === 'crescente' ? getEspessura(a) - getEspessura(b) : getEspessura(b) - getEspessura(a));
                 
-                arranjoLista.innerHTML = '';
-                pendentesLista.innerHTML = ''; 
+                // 3. Atualizar o DOM de forma precisa.
+                arranjoLista.innerHTML = ''; // Limpa SOMENTE a lista do arranjo.
                 
-                novoArranjo.forEach(card => arranjoLista.appendChild(card));
-                novoPendentes.forEach(card => pendentesLista.appendChild(card));
+                permanecemNoArranjo.forEach(card => arranjoLista.appendChild(card));
+                vaoParaPendentes.forEach(card => pendentesLista.appendChild(card)); 
                 
+                // 4. Atualiza as UIs auxiliares.
                 atualizarTotalizador();
                 popularFiltroBitolaPendentes(); 
                 filtrarItensPendentes();
