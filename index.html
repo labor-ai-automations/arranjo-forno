@@ -1040,8 +1040,8 @@
                     <input type="text" id="new-item-descricao" placeholder="Descrição">
                 </div>
                 <div>
-                    <label class="config-label">Bitola</label>
-                    <input type="text" id="new-item-bitola" placeholder="Ex: 50.8 X 500">
+                    <label class="config-label">Dimensão/Bitola</label>
+                    <input type="text" id="new-item-dimensao" placeholder="Ex: 50.8 X 500">
                 </div>
                 <!-- Adicionar este campo antes do GT Padrão -->
                 <div>
@@ -1086,7 +1086,7 @@
                         <tr>
                             <th>Código</th>
                             <th>Descrição</th>
-                            <th>Bitola</th>
+                            <th>Dimensão</th>
                             <th>Peso (kg)</th>
                             <th>GT</th>
                             <th style="width: 150px;">Ações</th>
@@ -1389,7 +1389,7 @@
                 btnAddMasterItem: document.getElementById('btn-add-master-item'),
                 newItemCodigo: document.getElementById('new-item-codigo'),
                 newItemDescricao: document.getElementById('new-item-descricao'),
-                newItemBitola: document.getElementById('new-item-bitola'),
+                newItemDimensao: document.getElementById('new-item-dimensao'),
                 newItemPeso: document.getElementById('new-item-peso'),
                 newItemGt: document.getElementById('new-item-gt'),
                 itemsPerPageSelect: document.getElementById('items-per-page'),
@@ -1854,7 +1854,7 @@
                     tr.innerHTML = `
                         <td><input type="text" class="table-input inp-codigo" value="${item.codigo_item || ''}" disabled></td>
                         <td><input type="text" class="table-input inp-descricao" value="${item.descricao || ''}"></td>
-                        <td><input type="text" class="table-input inp-bitola" value="${item.bitola || ''}"></td>
+                        <td><input type="text" class="table-input inp-dimensao" value="${item.dimensao || ''}"></td>
                         <td><input type="number" class="table-input inp-peso" value="${item.peso_kg || 0}" step="0.01"></td>
                         <td><input type="text" class="table-input inp-gt" value="${item.gt || ''}"></td>
                         <td class="actions-cell">
@@ -1868,14 +1868,14 @@
 
                     btnSave.addEventListener('click', async () => {
                         const newDesc = tr.querySelector('.inp-descricao').value;
-                        const newBitola = tr.querySelector('.inp-bitola').value;
+                        const newDim = tr.querySelector('.inp-dimensao').value;
                         const newPeso = parseFloat(tr.querySelector('.inp-peso').value) || 0;
                         const newGt = tr.querySelector('.inp-gt').value;
                         btnSave.disabled = true;
                         try {
                             const { error } = await _supabase.from('itens_mestre').update({ 
                                 descricao: newDesc, 
-                                bitola: newBitola, 
+                                dimensao: newDim, 
                                 peso_kg: newPeso,
                                 gt: newGt 
                             }).eq('id', itemId);
@@ -1901,7 +1901,7 @@
             elements.btnAddMasterItem.addEventListener('click', async () => {
                 const codigo = elements.newItemCodigo.value.trim();
                 const descricao = elements.newItemDescricao.value.trim();
-                const bitola = elements.newItemBitola.value.trim();
+                const dimensao = elements.newItemDimensao.value.trim();
                 const peso = parseFloat(elements.newItemPeso.value) || 0;
                 const gt = elements.newItemGt.value.trim();
                 if (!codigo) { showAlert('Código é obrigatório.', 'Atenção'); return; }
@@ -1912,14 +1912,14 @@
                     const { data, error } = await _supabase.from('itens_mestre').insert([{ 
                         codigo_item: codigo, 
                         descricao, 
-                        bitola, 
+                        dimensao, 
                         peso_kg: peso,
                         gt 
                     }]).select();
                     if (error) throw error;
                     elements.newItemCodigo.value = '';
                     elements.newItemDescricao.value = '';
-                    elements.newItemBitola.value = '';
+                    elements.newItemDimensao.value = '';
                     elements.newItemPeso.value = '';
                     elements.newItemGt.value = '';
                     currentMasterPage = 1;
@@ -2040,7 +2040,7 @@
                     try {
                         const { data, error } = await _supabase
                             .from('itens_mestre')
-                            .select('codigo_item, bitola, gt')
+                            .select('codigo_item, dimensao, gt') 
                             .ilike('codigo_item', `${val}%`) 
                             .limit(5);
 
@@ -2054,11 +2054,11 @@
                             data.forEach(item => {
                                 const li = document.createElement('li');
                                 li.className = 'autocomplete-item';
-                                li.innerHTML = `<strong>${item.codigo_item}</strong><small>${item.bitola || 'S/D'} - GT ${item.gt || '?'}</small>`;
+                                li.innerHTML = `<strong>${item.codigo_item}</strong><small>${item.dimensao || 'S/D'} - GT ${item.gt || '?'}</small>`;
                                 
                                 li.addEventListener('click', () => {
                                     elements.modalInputCodigo.value = item.codigo_item;
-                                    elements.modalInputBitola.value = item.bitola || '';
+                                    elements.modalInputBitola.value = item.dimensao || '';
                                     elements.modalInputGt.value = item.gt || '';
                                     
                                     elements.autocompleteList.innerHTML = '';
@@ -2100,7 +2100,7 @@
                     ordemProducao: op,
                     codigo: codigo,
                     descricao: "Item Manual",
-                    bitola: bitola,
+                    dimensao: bitola,
                     gt: gt,
                     quantidade: qtd,
                     peso_kg: 0 
@@ -2114,57 +2114,30 @@
                 popularFiltroBitolaPendentes();
             });
 
-
             // --- Lógica de Ordenação e Filtros ---
             
-            /**
-             * [NOVA FUNÇÃO CORRIGIDA]
-             * Extrai o valor numérico da espessura de uma string de bitola.
-             * Lida com formatos como "50.8 X 500" e "Algum texto Bitola 12".
-             * @param {string} bitolaString - A string completa da bitola.
-             * @returns {number} O valor da espessura ou 0 se não for encontrado.
-             */
-            function extrairEspessura(bitolaString) {
-                if (!bitolaString || typeof bitolaString !== 'string') {
-                    return 0;
-                }
-
-                // 1. Tenta o formato "DIAMETRO X ESPESSURA"
-                const formatoX = bitolaString.split('X');
-                if (formatoX.length > 1) {
-                    const espessuraStr = formatoX[formatoX.length - 1].trim().replace(',', '.');
-                    const espessura = parseFloat(espessuraStr);
-                    if (!isNaN(espessura)) {
-                        return espessura;
-                    }
-                }
-                
-                // 2. Se falhar, tenta extrair o último número da string (para casos como "Bitola 12")
-                const match = bitolaString.match(/\b(\d+([,.]\d+)?)\b\s*$/);
-                if (match && match[1]) {
-                    const espessura = parseFloat(match[1].replace(',', '.'));
-                    if (!isNaN(espessura)) {
-                        return espessura;
-                    }
-                }
-                
-                return 0; // Retorna 0 se não encontrar nada
-            }
-
             function getEspessura(cardElement) {
-                const bitolaString = cardElement.dataset.bitola || '';
-                return extrairEspessura(bitolaString);
+                const dimensao = cardElement.dataset.dimensao || '0 X 0';
+                try {
+                    const partes = dimensao.split('X');
+                    if (partes.length < 2) return 0;
+                    const espessuraStr = partes[1].trim().replace(',', '.');
+                    return parseFloat(espessuraStr) || 0;
+                } catch (e) { return 0; }
             }
             
             function popularSeletorBitolaReferencia() {
                 const seletor = document.getElementById('bitola-referencia-select');
                 const currentValue = seletor.value;
                 seletor.innerHTML = '<option value="">Selecione a bitola...</option>';
-                const todosOsItens = listaOriginalArranjo.concat(listaOriginalPendentes);
-
-                const espessuras = new Set(
-                    todosOsItens.map(item => extrairEspessura(item.bitola)).filter(esp => esp > 0)
-                );
+                const todosOsCards = listaOriginalArranjo.concat(listaOriginalPendentes);
+                const espessuras = new Set(todosOsCards.map(item => {
+                    try {
+                        const partes = (item.dimensao || '0 X 0').split('X');
+                        if (partes.length < 2) return 0;
+                        return parseFloat(partes[1].trim().replace(',', '.')) || 0;
+                    } catch (e) { return 0; }
+                }).filter(esp => esp > 0));
 
                 Array.from(espessuras).sort((a, b) => a - b).forEach(esp => {
                     seletor.innerHTML += `<option value="${esp}">${esp}</option>`;
@@ -2181,6 +2154,7 @@
                 document.getElementById('bitola-referencia-select').value = "";
             }
             
+            // CORREÇÃO: Lógica de Ordenação restaurada para operar apenas na coluna "Arranjo de Produção"
             function aplicarOrdenacaoDirecional(direcao) {
                 const seletor = document.getElementById('bitola-referencia-select');
                 const valorReferencia = parseFloat(seletor.value);
@@ -2193,11 +2167,13 @@
                 const arranjoLista = document.getElementById('arranjo-producao-lista');
                 const pendentesLista = document.getElementById('itens-pendentes-lista');
                 
+                // A fonte de dados é APENAS a lista do arranjo atual.
                 const cardsDoArranjoAtual = Array.from(arranjoLista.children);
 
                 const permanecemNoArranjo = [];
                 const vaoParaPendentes = [];
 
+                // 1. Particionar os cards do ARRANJO ATUAL em dois grupos.
                 cardsDoArranjoAtual.forEach(card => {
                     const espessura = getEspessura(card);
                     if ((direcao === 'crescente' && espessura >= valorReferencia) || (direcao === 'decrescente' && espessura <= valorReferencia)) {
@@ -2207,13 +2183,16 @@
                     }
                 });
 
+                // 2. Ordenar apenas o grupo que permanece no arranjo.
                 permanecemNoArranjo.sort((a, b) => direcao === 'crescente' ? getEspessura(a) - getEspessura(b) : getEspessura(b) - getEspessura(a));
                 
-                arranjoLista.innerHTML = '';
+                // 3. Atualizar o DOM de forma precisa.
+                arranjoLista.innerHTML = ''; // Limpa SOMENTE a lista do arranjo.
                 
                 permanecemNoArranjo.forEach(card => arranjoLista.appendChild(card));
                 vaoParaPendentes.forEach(card => pendentesLista.appendChild(card)); 
                 
+                // 4. Atualiza as UIs auxiliares.
                 atualizarTotalizador();
                 popularFiltroBitolaPendentes(); 
                 filtrarItensPendentes();
@@ -2288,7 +2267,7 @@
                 card.dataset.ordemProducao = item.ordemProducao || 'N/A';
                 card.dataset.codigo = item.codigo || 'N/A';
                 card.dataset.descricao = item.descricao || 'N/A';
-                card.dataset.bitola = item.bitola || 'N/A';
+                card.dataset.dimensao = item.dimensao || 'N/A';
                 card.dataset.gt = item.gt || '';
                 card.dataset.quantidade = item.quantidade || '0';
                 card.dataset.peso = item.peso_kg || '0';
@@ -2303,7 +2282,7 @@
                     <p><b>Ordem de Produção:</b> ${item.ordemProducao || 'N/A'}</p>
                     <p><b>Código:</b> ${item.codigo || 'N/A'}</p>
                     <p>${item.descricao || 'N/A'}</p>
-                    <p><b>Bitola:</b> ${item.bitola || 'N/A'}</p> 
+                    <p><b>Bitola:</b> ${item.dimensao || 'N/A'}</p>
                     <p><b>Qtd:</b> ${item.quantidade || '0'} <small style="color: var(--text-secondary); margin-left: 10px;">(${parseFloat(item.peso_kg || 0).toFixed(2)} kg/pç)</small></p>
                     <p class="gt-display" onclick="editarGT(event, this.parentElement)">${gtHtml}</p>
                 `;
@@ -2393,10 +2372,14 @@
                 const lista = elements.arranjoProducaoLista;
                 const items = Array.from(lista.querySelectorAll('.item-card'));
                 items.sort((a, b) => {
-                    const espessuraA = getEspessura(a);
-                    const espessuraB = getEspessura(b);
-                    if (isNaN(espessuraA) || isNaN(espessuraB)) return 0;
-                    return espessuraA - espessuraB;
+                    try {
+                        const espessuraA = parseFloat(a.dataset.dimensao.split('X')[1].trim().replace(',', '.'));
+                        const espessuraB = parseFloat(b.dataset.dimensao.split('X')[1].trim().replace(',', '.'));
+                        if (isNaN(espessuraA) || isNaN(espessuraB)) return 0;
+                        return espessuraA - espessuraB;
+                    } catch (e) {
+                        return 0;
+                    }
                 });
                 items.forEach(item => lista.appendChild(item));
                 atualizarTotalizador();
@@ -2456,7 +2439,7 @@
                             card.dataset.ordemProducao,
                             card.dataset.codigo,
                             card.dataset.descricao,
-                            card.dataset.bitola,
+                            card.dataset.dimensao,
                             card.dataset.gt,
                             card.dataset.quantidade
                         ]);
