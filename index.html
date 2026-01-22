@@ -1932,7 +1932,7 @@
                 }
             });
 
-            // --- FUNÇÃO TOTALIZADOR (NOVA) ---
+            // --- FUNÇÃO TOTALIZADOR ---
             function atualizarTotalizador() {
                 const container = document.getElementById('arranjo-producao-lista');
                 const cards = container.querySelectorAll('.item-card');
@@ -1956,7 +1956,7 @@
                 }
             }
 
-            // --- ADIÇÃO MANUAL E AUTOCOMPLETE (NOVO) ---
+            // --- ADIÇÃO MANUAL E AUTOCOMPLETE ---
             
             elements.btnAddManual.addEventListener('click', () => {
                 elements.modalInputCodigo.value = '';
@@ -2057,7 +2057,7 @@
                 atualizarTotalizador();
             });
 
-            // --- Lógica de Ordenação e Filtros (NOVO) ---
+            // --- Lógica de Ordenação e Filtros ---
             
             function getEspessura(cardElement) {
                 const dimensao = cardElement.dataset.dimensao || '0 X 0';
@@ -2078,7 +2078,7 @@
                     seletor.innerHTML += `<option value="${esp}">${esp}</option>`;
                 });
             }
-            
+
             function aplicarOrdenacaoDirecional(direcao) {
                 const seletor = document.getElementById('bitola-referencia-select');
                 const valorReferencia = parseFloat(seletor.value);
@@ -2091,30 +2091,32 @@
                 const arranjoLista = document.getElementById('arranjo-producao-lista');
                 const pendentesLista = document.getElementById('itens-pendentes-lista');
                 
-                // CORREÇÃO: Pega os cards APENAS do arranjo de produção atual.
-                const cardsDoArranjoAtual = Array.from(arranjoLista.children);
+                // CORREÇÃO CRÍTICA: Juntar TODOS os cards de AMBAS as listas a cada execução.
+                // Isso garante que a função sempre trabalhe com o conjunto completo de dados.
+                const todosOsCards = Array.from(arranjoLista.children).concat(Array.from(pendentesLista.children));
 
-                const permanecemNoArranjo = [];
-                const vaoParaPendentes = [];
+                const novoArranjo = [];
+                const novoPendentes = [];
 
-                // 1. FILTRAR: Divide os cards do arranjo atual em dois grupos.
-                cardsDoArranjoAtual.forEach(card => {
+                // 1. FILTRAR: Divide o "pool" total de cards nos novos grupos de arranjo e pendentes.
+                todosOsCards.forEach(card => {
                     const espessura = getEspessura(card);
                     if ((direcao === 'crescente' && espessura >= valorReferencia) || (direcao === 'decrescente' && espessura <= valorReferencia)) {
-                        permanecemNoArranjo.push(card);
+                        novoArranjo.push(card);
                     } else {
-                        vaoParaPendentes.push(card);
+                        novoPendentes.push(card);
                     }
                 });
 
-                // 2. ORDENAR: Ordena apenas os cards que atendem ao critério.
-                permanecemNoArranjo.sort((a, b) => direcao === 'crescente' ? getEspessura(a) - getEspessura(b) : getEspessura(b) - getEspessura(a));
+                // 2. ORDENAR: Ordena apenas a nova lista do arranjo.
+                novoArranjo.sort((a, b) => direcao === 'crescente' ? getEspessura(a) - getEspessura(b) : getEspessura(b) - getEspessura(a));
                 
-                // 3. ATUALIZAR DOM: Reconstrói o arranjo e adiciona os excedentes aos pendentes.
-                arranjoLista.innerHTML = ''; // Limpa a lista do arranjo.
+                // 3. ATUALIZAR DOM: Limpa AMBAS as listas e as reconstrói do zero.
+                arranjoLista.innerHTML = '';
+                pendentesLista.innerHTML = '';
                 
-                permanecemNoArranjo.forEach(card => arranjoLista.appendChild(card));
-                vaoParaPendentes.forEach(card => pendentesLista.appendChild(card)); // Adiciona ao final dos pendentes.
+                novoArranjo.forEach(card => arranjoLista.appendChild(card));
+                novoPendentes.forEach(card => pendentesLista.appendChild(card));
                 
                 // 4. Atualiza UIs auxiliares.
                 atualizarTotalizador();
