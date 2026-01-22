@@ -900,7 +900,7 @@
             <button id="btn-history" class="nav-btn">📜 Histórico</button>
         </div>
         <div class="logo-area">
-            <img id="logo-fama" src="https://ctfamadobrasil.com.br/wp-content/uploads/2026/01/unnamed__51_-removebg-preview.png" alt="Logo Molas Fama">
+            <img id="logo-fama" src="https://ctfamadobrasil.com.br/wp-content/uploads/2025/12/Gemini_Generated_Image_v8cib8v8cib8v8ci-removebg-preview.png" alt="Logo Molas Fama">
         </div>
         <div class="right-actions">
             <div class="theme-switcher">
@@ -1993,7 +1993,7 @@
 
             // Lógica do Autocomplete (CORRIGIDA)
             elements.modalInputCodigo.addEventListener('input', (e) => {
-                const val = e.target.value.trim();
+                const val = e.target.value.trim().toUpperCase();
                 
                 clearTimeout(autocompleteTimeout);
                 elements.autocompleteList.innerHTML = '';
@@ -2435,9 +2435,18 @@
             });
             
             // --- Inicialização ---
-            document.body.classList.add('dark-theme');
-            updateStepper(1);
-            atualizarConfiguracaoForno('grande');
+            function initApp() {
+                const isDark = elements.themeToggle.checked;
+                document.body.classList.toggle('dark-theme', isDark);
+                document.body.classList.toggle('light-theme', !isDark);
+                elements.logo.src = isDark 
+                    ? 'https://ctfamadobrasil.com.br/wp-content/uploads/2025/12/Gemini_Generated_Image_v8cib8v8cib8v8ci-removebg-preview.png' 
+                    : 'https://ctfamadobrasil.com.br/wp-content/uploads/2025/09/logo.png';
+                updateStepper(1);
+                atualizarConfiguracaoForno('grande');
+            }
+
+            initApp();
         });
     </script>
 </body>
