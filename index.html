@@ -1844,7 +1844,7 @@
                     tr.innerHTML = `
                         <td><input type="text" class="table-input inp-codigo" value="${item.codigo_item || ''}" disabled></td>
                         <td><input type="text" class="table-input inp-descricao" value="${item.descricao || ''}"></td>
-                        <td><input type="text" class="table-input inp-dimensao" value="${item.dimensao || ''}"></td>
+                        <td><input type="text" class="table-input inp-dimensao" value="${item.bitola || ''}"></td>
                         <td><input type="text" class="table-input inp-gt" value="${item.gt || ''}"></td>
                         <td class="actions-cell">
                             <button class="btn btn-sm btn-success btn-save-row">💾</button>
@@ -1861,7 +1861,7 @@
                         const newGt = tr.querySelector('.inp-gt').value;
                         btnSave.disabled = true;
                         try {
-                            const { error } = await _supabase.from('itens_mestre').update({ descricao: newDesc, dimensao: newDim, gt: newGt }).eq('id', itemId);
+                            const { error } = await _supabase.from('itens_mestre').update({ descricao: newDesc, bitola: newDim, gt: newGt }).eq('id', itemId); // CORREÇÃO AQUI
                             if (error) throw error;
                             showAlert('Item atualizado com sucesso!', 'Sucesso', 'success');
                         } catch (e) { showAlert('Erro ao atualizar: ' + e.message, 'Erro', 'error'); } finally { btnSave.disabled = false; }
@@ -1891,7 +1891,7 @@
                 elements.btnAddMasterItem.innerHTML = '<div class="spinner"></div>';
                 elements.btnAddMasterItem.disabled = true;
                 try {
-                    const { data, error } = await _supabase.from('itens_mestre').insert([{ codigo_item: codigo, descricao, dimensao, gt }]).select();
+                    const { data, error } = await _supabase.from('itens_mestre').insert([{ codigo_item: codigo, descricao, bitola: dimensao, gt }]).select(); // CORREÇÃO AQUI
                     if (error) throw error;
                     elements.newItemCodigo.value = '';
                     elements.newItemDescricao.value = '';
@@ -2003,28 +2003,33 @@
 
                 autocompleteTimeout = setTimeout(async () => {
                     try {
+                        // CORREÇÃO 1: Trocado 'dimensao' por 'bitola' na query select
                         const { data, error } = await _supabase
                             .from('itens_mestre')
-                            .select('codigo_item, dimensao, gt')
-                            .ilike('codigo_item', `${val}%`) // Busca com wildcard para prefixo
-                            .limit(5); // Limita a 5 sugestões
+                            .select('codigo_item, bitola, gt') 
+                            .ilike('codigo_item', `${val}%`) 
+                            .limit(5);
 
-                        if (error) throw error;
+                        if (error) {
+                            // Exibe o erro real do Supabase no console para depuração
+                            console.error("Erro no autocomplete:", error.message);
+                            throw error;
+                        };
 
-                        elements.autocompleteList.innerHTML = ''; // Limpa antes de popular
+                        elements.autocompleteList.innerHTML = ''; 
                         if (data && data.length > 0) {
                             data.forEach(item => {
                                 const li = document.createElement('li');
                                 li.className = 'autocomplete-item';
-                                li.innerHTML = `<strong>${item.codigo_item}</strong><small>${item.dimensao || 'S/D'} - GT ${item.gt || '?'}</small>`;
+                                // CORREÇÃO 2: Trocado 'item.dimensao' por 'item.bitola' na exibição
+                                li.innerHTML = `<strong>${item.codigo_item}</strong><small>${item.bitola || 'S/D'} - GT ${item.gt || '?'}</small>`;
                                 
-                                // Adiciona o listener de clique para cada item da lista
                                 li.addEventListener('click', () => {
                                     elements.modalInputCodigo.value = item.codigo_item;
-                                    elements.modalInputBitola.value = item.dimensao || '';
+                                    // CORREÇÃO 3: Trocado 'item.dimensao' por 'item.bitola' no preenchimento do campo
+                                    elements.modalInputBitola.value = item.bitola || '';
                                     elements.modalInputGt.value = item.gt || '';
                                     
-                                    // Limpa e esconde a lista
                                     elements.autocompleteList.innerHTML = '';
                                     elements.autocompleteList.classList.remove('visible');
                                 });
@@ -2034,15 +2039,16 @@
                             elements.autocompleteList.classList.add('visible');
                         }
                     } catch (err) {
-                        console.error("Erro no autocomplete:", err);
-                        // Opcional: mostrar erro para o usuário
+                        console.error("Falha ao executar a busca do autocomplete:", err);
                     }
-                }, 300); // 300ms debounce
+                }, 300);
             });
 
             // Fechar autocomplete se clicar fora
             document.addEventListener('click', (e) => {
-                if (e.target !== elements.modalInputCodigo && !elements.autocompleteList.contains(e.target)) {
+                const isClickInsideAutocomplete = elements.autocompleteList.contains(e.target);
+                const isClickOnInput = e.target === elements.modalInputCodigo;
+                if (!isClickInsideAutocomplete && !isClickOnInput) {
                     elements.autocompleteList.classList.remove('visible');
                 }
             });
@@ -2063,15 +2069,17 @@
                     ordemProducao: op,
                     codigo: codigo,
                     descricao: "Item Manual",
-                    dimensao: bitola,
+                    dimensao: bitola, // Mantém 'dimensao' aqui para consistência com o resto do app
                     gt: gt,
                     quantidade: qtd
                 };
+                
+                listaOriginalPendentes.push(novoItem); // Adiciona ao estado original
 
-                // Cria o card e adiciona na lista de Pendentes
-                criarCard('itens-pendentes-lista', novoItem, true);
+                criarCard('itens_pendentes_lista', novoItem, true);
                 elements.modalManualOverlay.classList.remove('open');
                 atualizarTotalizador();
+                popularFiltroBitolaPendentes();
             });
 
             // --- Lógica de Ordenação e Filtros ---
@@ -2124,43 +2132,46 @@
                 }
 
                 // 1. Restaura as listas para o estado original antes de aplicar o filtro.
-                resetarOrdenacao();
+                popularLista('arranjo-producao-lista', listaOriginalArranjo, false);
+                popularLista('itens-pendentes-lista', listaOriginalPendentes, true);
+
 
                 const arranjoLista = document.getElementById('arranjo-producao-lista');
                 const pendentesLista = document.getElementById('itens-pendentes-lista');
                 
-                // 2. Pega a lista completa de cards do arranjo recém-restaurado.
-                const cardsDoArranjoAtual = Array.from(arranjoLista.children);
+                // 2. Pega a lista completa de cards das DUAS colunas recém-restauradas.
+                const todosOsCards = Array.from(arranjoLista.children).concat(Array.from(pendentesLista.children));
 
-                const permanecemNoArranjo = [];
-                const vaoParaPendentes = [];
+                const novoArranjo = [];
+                const novoPendentes = [];
 
-                // 3. Particiona os cards do ARRANJO ATUAL em dois grupos.
-                cardsDoArranjoAtual.forEach(card => {
+                // 3. Particiona TODOS os cards
+                todosOsCards.forEach(card => {
                     const espessura = getEspessura(card);
                     if ((direcao === 'crescente' && espessura >= valorReferencia) || (direcao === 'decrescente' && espessura <= valorReferencia)) {
-                        permanecemNoArranjo.push(card);
+                        novoArranjo.push(card);
                     } else {
-                        vaoParaPendentes.push(card);
+                        novoPendentes.push(card);
                     }
                 });
                 
                 // 4. Feedback ao usuário se o filtro resultar em uma lista vazia.
-                if (permanecemNoArranjo.length === 0) {
+                if (novoArranjo.length === 0) {
                     showAlert(
-                        'A ordenação não encontrou itens correspondentes no arranjo. Todos foram movidos para "Itens Pendentes".',
+                        'A ordenação não encontrou itens correspondentes. Todos os itens estão em "Itens Pendentes".',
                         'Aviso de Ordenação'
                     );
                 }
 
-                // 5. Ordena apenas o grupo que permanece no arranjo.
-                permanecemNoArranjo.sort((a, b) => direcao === 'crescente' ? getEspessura(a) - getEspessura(b) : getEspessura(b) - getEspessura(a));
+                // 5. Ordena o novo grupo do arranjo.
+                novoArranjo.sort((a, b) => direcao === 'crescente' ? getEspessura(a) - getEspessura(b) : getEspessura(b) - getEspessura(a));
                 
-                // 6. Atualiza o DOM de forma precisa.
-                arranjoLista.innerHTML = ''; // Limpa SOMENTE a lista do arranjo.
+                // 6. Limpa e atualiza o DOM de forma completa.
+                arranjoLista.innerHTML = '';
+                pendentesLista.innerHTML = ''; 
                 
-                permanecemNoArranjo.forEach(card => arranjoLista.appendChild(card)); // Repopula o arranjo com os itens ordenados.
-                vaoParaPendentes.forEach(card => pendentesLista.appendChild(card)); // ADICIONA os itens filtrados ao final dos pendentes.
+                novoArranjo.forEach(card => arranjoLista.appendChild(card));
+                novoPendentes.forEach(card => pendentesLista.appendChild(card));
                 
                 // 7. Atualiza as UIs auxiliares.
                 atualizarTotalizador();
