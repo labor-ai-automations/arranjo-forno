@@ -947,7 +947,7 @@
                 <h2 style="margin:0">Passo 2: Resultado</h2>
                 
                 <!-- Botão Padrão: Novo Arranjo -->
-                <button id="btn-reset-production" onclick="resetarProducao()" class="btn btn-sm btn-secondary">
+                <button id="btn-reset-production" class="btn btn-sm btn-secondary">
                     ↺ Novo Arranjo
                 </button>
                 
@@ -1236,1281 +1236,1260 @@
     </footer>
 
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            // --- Credenciais e URLs ---
-            const SUPABASE_URL = 'https://mqzrlzywqgylffwvtlmg.supabase.co';
-            const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1xenJsenl3cWd5bGZmd3Z0bG1nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAxNzExNDcsImV4cCI6MjA3NTc0NzE0N30.YghplsFD3T1Xv0yuLYTdD9Ib5kenXitDMnXAud7TjSY';
-            const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-            const n8nGerarArranjoUrl = 'https://n8n-n8n.znxk1t.easypanel.host/webhook/gerar-arranjo';
-            const n8nAtualizarGTUrl = 'https://n8n-n8n.znxk1t.easypanel.host/webhook/atualizar-itens-mestre'; 
+    document.addEventListener('DOMContentLoaded', () => {
 
-            // --- SISTEMA DE DIALOG CUSTOMIZADO (Substitui alert/confirm) ---
-            const dialogOverlay = document.getElementById('custom-dialog-overlay');
-            const dialogTitle = document.getElementById('custom-dialog-title');
-            const dialogMsg = document.getElementById('custom-dialog-msg');
-            const dialogActions = document.getElementById('custom-dialog-actions');
-            const dialogIcon = document.getElementById('custom-dialog-icon');
+        // --- Credenciais e URLs ---
+        const SUPABASE_URL = 'https://mqzrlzywqgylffwvtlmg.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1xenJsenl3cWd5bGZmd3Z0bG1nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAxNzExNDcsImV4cCI6MjA3NTc0NzE0N30.YghplsFD3T1Xv0yuLYTdD9Ib5kenXitDMnXAud7TjSY';
+        const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        const n8nGerarArranjoUrl = 'https://n8n-n8n.znxk1t.easypanel.host/webhook/gerar-arranjo';
+        const n8nAtualizarGTUrl = 'https://n8n-n8n.znxk1t.easypanel.host/webhook/atualizar-itens-mestre';
 
-            // Função global para mostrar alertas
-            window.showAlert = (message, title = 'Aviso', type = 'warning') => {
-                return new Promise((resolve) => {
-                    dialogTitle.textContent = title;
-                    dialogMsg.textContent = message;
-                    
-                    if(type === 'success') {
-                        dialogIcon.textContent = '✅';
-                        dialogIcon.style.color = 'var(--color-success)';
-                    } else if(type === 'error') {
-                        dialogIcon.textContent = '❌';
-                        dialogIcon.style.color = 'var(--color-danger)';
-                    } else {
-                        dialogIcon.textContent = '⚠️';
-                        dialogIcon.style.color = 'var(--color-warning)';
-                    }
-
-                    dialogActions.innerHTML = '';
-                    const btnOk = document.createElement('button');
-                    btnOk.className = 'btn btn-primary custom-dialog-btn';
-                    btnOk.textContent = 'OK';
-                    btnOk.onclick = () => {
-                        dialogOverlay.classList.remove('open');
-                        resolve();
-                    };
-                    dialogActions.appendChild(btnOk);
-                    
-                    dialogOverlay.classList.add('open');
-                });
-            };
-
-            // Função global para mostrar confirmação (retorna true/false)
-            window.showConfirm = (message, title = 'Confirmação') => {
-                return new Promise((resolve) => {
-                    dialogTitle.textContent = title;
-                    dialogMsg.textContent = message;
-                    dialogIcon.textContent = '❓';
-                    dialogIcon.style.color = 'var(--color-info)';
-
-                    dialogActions.innerHTML = '';
-                    
-                    const btnCancel = document.createElement('button');
-                    btnCancel.className = 'btn btn-secondary custom-dialog-btn';
-                    btnCancel.textContent = 'Cancelar';
-                    btnCancel.onclick = () => {
-                        dialogOverlay.classList.remove('open');
-                        resolve(false);
-                    };
-
-                    const btnConfirm = document.createElement('button');
-                    btnConfirm.className = 'btn btn-danger custom-dialog-btn';
-                    btnConfirm.textContent = 'Confirmar';
-                    btnConfirm.onclick = () => {
-                        dialogOverlay.classList.remove('open');
-                        resolve(true);
-                    };
-
-                    dialogActions.appendChild(btnCancel);
-                    dialogActions.appendChild(btnConfirm);
-                    
-                    dialogOverlay.classList.add('open');
-                });
-            };
-
-            // --- Variáveis de Estado Global ---
-            // Itens Mestre
-            let currentMasterPage = 1;
-            let itemsPerPage = 10;
-            let totalItems = 0;
-            let searchTimeout = null;
-            
-            // Histórico
-            let currentHistoryPage = 1;
-            let historyItemsPerPage = 10;
-            let totalHistoryItems = 0;
-            let historySearchTimeout = null;
-            let selectedGTsFilter = [];
-            
-            // Estado Atual da Produção
-            let gtsAtuais = [];
-            let listaOriginalArranjo = [];
-            let listaOriginalPendentes = [];
-            
-            // Autocomplete State
-            let autocompleteTimeout = null;
-
-            // --- Referências ao DOM ---
-            const elements = {
-                // Views
-                viewPrincipal: document.getElementById('view-principal'),
-                viewGerenciador: document.getElementById('view-gerenciador'),
-                viewHistorico: document.getElementById('view-historico'),
-
-                // Navigation Buttons
+        // --- Referências ao DOM ---
+        const elements = {
+            views: {
+                principal: document.getElementById('view-principal'),
+                gerenciador: document.getElementById('view-gerenciador'),
+                historico: document.getElementById('view-historico'),
+            },
+            nav: {
                 btnMasterManager: document.getElementById('btn-master-manager'),
                 btnHistory: document.getElementById('btn-history'),
                 btnVoltarProducaoMaster: document.getElementById('btn-voltar-producao-master'),
                 btnVoltarProducaoHistory: document.getElementById('btn-voltar-producao-history'),
-                btnResetProduction: document.getElementById('btn-reset-production'),
-                btnBackToHistory: document.getElementById('btn-back-to-history'),
-
-                // Theme & Logo
-                themeToggle: document.getElementById('theme-toggle'),
+            },
+            theme: {
+                toggle: document.getElementById('theme-toggle'),
                 logo: document.getElementById('logo-fama'),
-
-                // Stepper
-                stepNav1: document.getElementById('step-nav-1'),
-                stepNav2: document.getElementById('step-nav-2'),
+            },
+            stepper: {
+                nav1: document.getElementById('step-nav-1'),
+                nav2: document.getElementById('step-nav-2'),
                 step1: document.getElementById('step-1'),
                 step2: document.getElementById('step-2'),
-
-                // Configuração Forno
+            },
+            productionConfig: {
                 btnFornoGrande: document.getElementById('btn-forno-grande'),
                 btnFornoPequeno: document.getElementById('btn-forno-pequeno'),
                 configTitulo: document.getElementById('config-titulo'),
-                qtdeGtsDinamico: document.getElementById('qtde-gts-dinamico'),
-                inputsGtsDinamico: document.getElementById('inputs-gts-dinamico'),
-
-                // Ações Principais
+                qtdeGtsSelect: document.getElementById('qtde-gts-dinamico'),
+                inputsGtsContainer: document.getElementById('inputs-gts-dinamico'),
                 btnCarregarCsv: document.getElementById('btn-carregar-csv'),
                 csvFileInput: document.getElementById('csv-file-input'),
                 btnGerarArranjo: document.getElementById('btn-gerar-arranjo'),
-                
-                // Listas Drag & Drop e Controle
-                arranjoProducaoLista: document.getElementById('arranjo-producao-lista'),
-                itensPendentesLista: document.getElementById('itens-pendentes-lista'),
+            },
+            productionView: {
+                btnReset: document.getElementById('btn-reset-production'),
+                btnBackToHistory: document.getElementById('btn-back-to-history'),
+                bitolaReferenciaSelect: document.getElementById('bitola-referencia-select'),
+                btnOrdemCrescente: document.getElementById('btn-ordem-crescente'),
+                btnOrdemDecrescente: document.getElementById('btn-ordem-decrescente'),
+                btnResetFilter: document.getElementById('btn-reset-filter'),
+                arranjoContainer: document.getElementById('arranjo-producao-lista').parentElement,
+                arranjoLista: document.getElementById('arranjo-producao-lista'),
+                pendentesContainer: document.getElementById('itens-pendentes-lista').parentElement,
+                pendentesLista: document.getElementById('itens-pendentes-lista'),
                 totalizadorDisplay: document.getElementById('totalizador-display'),
+                totalizadorPeso: document.getElementById('totalizador-peso'),
                 btnAddManual: document.getElementById('btn-add-manual'),
-                
-                // Exportação
+                searchPendentes: document.getElementById('search-pendentes'),
+                filterBitolaPendentes: document.getElementById('filter-bitola-pendentes'),
                 btnExportExcel: document.getElementById('btn-export-excel'),
-
-                // Gerenciador Mestre
-                searchMasterItems: document.getElementById('search-master-items'),
-                tableMasterItemsBody: document.querySelector('#table-master-items tbody'),
-                btnAddMasterItem: document.getElementById('btn-add-master-item'),
-                newItemCodigo: document.getElementById('new-item-codigo'),
-                newItemDescricao: document.getElementById('new-item-descricao'),
-                newItemDimensao: document.getElementById('new-item-dimensao'),
-                newItemPeso: document.getElementById('new-item-peso'),
-                newItemGt: document.getElementById('new-item-gt'),
-                itemsPerPageSelect: document.getElementById('items-per-page'),
-                btnPrevPage: document.getElementById('btn-prev-page'),
-                btnNextPage: document.getElementById('btn-next-page'),
-                pageInfo: document.getElementById('page-info'),
-
-                // Histórico (Elementos de Filtro Atualizados)
-                tableHistoryBody: document.querySelector('#table-history tbody'),
-                filterHistoryForno: document.getElementById('filter-history-forno'),
-                filterHistoryUser: document.getElementById('filter-history-user'),
-                filterHistoryDate: document.getElementById('filter-history-date'),
-                historyItemsPerPageSelect: document.getElementById('history-items-per-page'),
-                btnHistoryPrev: document.getElementById('btn-history-prev'),
-                btnHistoryNext: document.getElementById('btn-history-next'),
-                historyPageInfo: document.getElementById('history-page-info'),
-                
-                // Multi Select Elements
-                gtWrapper: document.getElementById('filter-history-gt-wrapper'),
-                gtDisplay: document.getElementById('filter-history-gt-display'),
-                gtDropdown: document.getElementById('filter-history-gt-dropdown'),
-
-                // Modal Manual & Autocomplete
-                modalManualOverlay: document.getElementById('modal-adicionar-manual-overlay'),
-                modalInputCodigo: document.getElementById('manual-input-codigo'),
-                autocompleteList: document.getElementById('autocomplete-list'),
-                modalInputOp: document.getElementById('manual-input-op'),
-                modalInputQtd: document.getElementById('manual-input-qtd'),
-                modalInputBitola: document.getElementById('manual-input-bitola'),
-                modalInputGt: document.getElementById('manual-input-gt'),
-                btnManualCancel: document.getElementById('btn-manual-cancel'),
-                btnManualConfirm: document.getElementById('btn-manual-confirm')
-            };
-
-            // --- INICIALIZAÇÃO DO MULTI-SELECT DE GTs ---
-            async function initGtMultiSelect() {
-                try {
-                    const { data, error } = await _supabase
-                        .from('itens_mestre')
-                        .select('gt');
-                        
-                    if (error) throw error;
-
-                    const uniqueGTs = [...new Set(data
-                        .map(item => item.gt)
-                        .filter(gt => gt && gt.trim() !== '')
-                    )].sort();
-
-                    elements.gtDropdown.innerHTML = '';
-                    
-                    if (uniqueGTs.length === 0) {
-                        elements.gtDropdown.innerHTML = '<div style="padding:0.5rem 1rem;color:var(--text-secondary)">Nenhum GT encontrado</div>';
-                        return;
-                    }
-
-                    uniqueGTs.forEach(gt => {
-                        const label = document.createElement('label');
-                        label.className = 'multi-select-option';
-                        label.innerHTML = `
-                            <input type="checkbox" value="${gt}">
-                            <span>${gt}</span>
-                        `;
-                        elements.gtDropdown.appendChild(label);
-                        
-                        const checkbox = label.querySelector('input');
-                        checkbox.addEventListener('change', () => {
-                            updateSelectedGTs();
-                        });
-                    });
-
-                } catch (e) {
-                    console.error('Erro ao popular filtro de GTs:', e);
-                    elements.gtDropdown.innerHTML = '<div style="padding:0.5rem 1rem;color:var(--color-danger)">Erro ao carregar GTs</div>';
-                }
-            }
-            // CORREÇÃO: Mover os listeners de clique para fora da função async e adicioná-los uma vez.
-            elements.gtDisplay.addEventListener('click', (e) => {
-                e.stopPropagation();
-                elements.gtDropdown.classList.toggle('open');
-            });
-            document.addEventListener('click', () => {
-                elements.gtDropdown.classList.remove('open');
-            });
-            elements.gtDropdown.addEventListener('click', (e) => {
-                e.stopPropagation();
-            });
-
-            initGtMultiSelect();
-
-            function updateSelectedGTs() {
-                const checkboxes = elements.gtDropdown.querySelectorAll('input[type="checkbox"]:checked');
-                selectedGTsFilter = Array.from(checkboxes).map(cb => cb.value);
-                
-                if (selectedGTsFilter.length === 0) {
-                    elements.gtDisplay.textContent = 'Todos';
-                } else if (selectedGTsFilter.length <= 2) {
-                    elements.gtDisplay.textContent = selectedGTsFilter.join(', ');
-                } else {
-                    elements.gtDisplay.textContent = `${selectedGTsFilter.length} selecionados`;
-                }
-                
-                currentHistoryPage = 1;
-                fetchHistory();
-            }
-
-
-            // --- Lógica de Navegação SPA ---
-            function showView(viewId) {
-                elements.viewPrincipal.classList.add('hidden');
-                elements.viewGerenciador.classList.add('hidden');
-                elements.viewHistorico.classList.add('hidden');
-                document.getElementById(viewId).classList.remove('hidden');
-            }
-
-            elements.btnMasterManager.addEventListener('click', () => {
-                showView('view-gerenciador');
-                currentMasterPage = 1;
-                fetchMasterItems();
-            });
-
-            elements.btnHistory.addEventListener('click', () => {
-                showView('view-historico');
-                initGtMultiSelect();
-                currentHistoryPage = 1;
-                fetchHistory();
-            });
-
-            elements.btnVoltarProducaoMaster.addEventListener('click', () => {
-                resetarProducao();
-                showView('view-principal');
-            });
-            
-            elements.btnVoltarProducaoHistory.addEventListener('click', () => {
-                resetarProducao();
-                showView('view-principal');
-            });
-            
-            elements.btnBackToHistory.addEventListener('click', () => {
-                showView('view-historico');
-                fetchHistory(); 
-            });
-
-            window.resetarProducao = function() {
-                elements.step1.classList.remove('hidden');
-                elements.step2.classList.add('hidden');
-                updateStepper(1);
-                elements.csvFileInput.value = '';
-                elements.btnCarregarCsv.textContent = 'Carregar Lista de Produção (.CSV)';
-                elements.arranjoProducaoLista.innerHTML = '';
-                elements.itensPendentesLista.innerHTML = '';
-                elements.totalizadorDisplay.textContent = 'Total de Molas: 0';
-                elements.totalizadorDisplay.className = 'totalizador total-low';
-                listaOriginalArranjo = [];
-                listaOriginalPendentes = [];
-                
-                elements.btnResetProduction.classList.remove('hidden');
-                elements.btnBackToHistory.classList.add('hidden');
-            };
-
-            // --- Configuração dos Fornos ---
-            const fornosConfig = {
-                grande: {
-                    titulo: 'Configuração do Forno Grande',
-                    opcoes: [ { value: '1', text: '1 GT' }, { value: '2', text: '2 GTs' }, { value: '3', text: '3 GTs' } ]
+            },
+            masterView: {
+                form: {
+                    codigo: document.getElementById('new-item-codigo'),
+                    descricao: document.getElementById('new-item-descricao'),
+                    dimensao: document.getElementById('new-item-dimensao'),
+                    peso: document.getElementById('new-item-peso'),
+                    gt: document.getElementById('new-item-gt'),
+                    btnAdd: document.getElementById('btn-add-master-item'),
                 },
-                pequeno: {
-                    titulo: 'Configuração do Forno Pequeno',
-                    opcoes: [ { value: '1', text: '1 GT' }, { value: '2', text: '2 GTs' } ]
-                }
-            };
-            
-            const updateStepper = (currentStep) => {
-                elements.stepNav1.classList.toggle('active', currentStep >= 1);
-                elements.stepNav2.classList.toggle('active', currentStep >= 2);
-            };
-            
-            const gerarInputs = (qtde, container) => {
-                container.innerHTML = '';
-                for (let i = 1; i <= qtde; i++) {
-                    const input = document.createElement('input');
-                    input.type = 'text';
-                    input.placeholder = `Código GT ${i}`;
-                    input.style.marginTop = '0.5rem';
-                    container.appendChild(input);
-                }
-            };
-            
-            const atualizarConfiguracaoForno = (tipoForno) => {
-                const config = fornosConfig[tipoForno];
-                const isGrande = tipoForno === 'grande';
-                elements.btnFornoGrande.classList.toggle('active', isGrande);
-                elements.btnFornoPequeno.classList.toggle('active', !isGrande);
-                elements.configTitulo.textContent = config.titulo;
-                elements.qtdeGtsDinamico.innerHTML = '';
-                config.opcoes.forEach(opt => {
-                    const optionEl = document.createElement('option');
-                    optionEl.value = opt.value;
-                    optionEl.textContent = opt.text;
-                    elements.qtdeGtsDinamico.appendChild(optionEl);
-                });
-                gerarInputs(elements.qtdeGtsDinamico.value, elements.inputsGtsDinamico);
-            };
+                search: document.getElementById('search-master-items'),
+                tableBody: document.querySelector('#table-master-items tbody'),
+                itemsPerPage: document.getElementById('items-per-page'),
+                btnPrev: document.getElementById('btn-prev-page'),
+                btnNext: document.getElementById('btn-next-page'),
+                pageInfo: document.getElementById('page-info'),
+            },
+            historyView: {
+                tableBody: document.querySelector('#table-history tbody'),
+                filters: {
+                    forno: document.getElementById('filter-history-forno'),
+                    user: document.getElementById('filter-history-user'),
+                    date: document.getElementById('filter-history-date'),
+                    gtWrapper: document.getElementById('filter-history-gt-wrapper'),
+                    gtDisplay: document.getElementById('filter-history-gt-display'),
+                    gtDropdown: document.getElementById('filter-history-gt-dropdown'),
+                },
+                itemsPerPage: document.getElementById('history-items-per-page'),
+                btnPrev: document.getElementById('btn-history-prev'),
+                btnNext: document.getElementById('btn-history-next'),
+                pageInfo: document.getElementById('history-page-info'),
+            },
+            manualAddModal: {
+                overlay: document.getElementById('modal-adicionar-manual-overlay'),
+                inputCodigo: document.getElementById('manual-input-codigo'),
+                autocompleteList: document.getElementById('autocomplete-list'),
+                inputOp: document.getElementById('manual-input-op'),
+                inputQtd: document.getElementById('manual-input-qtd'),
+                inputBitola: document.getElementById('manual-input-bitola'),
+                inputGt: document.getElementById('manual-input-gt'),
+                btnCancel: document.getElementById('btn-manual-cancel'),
+                btnConfirm: document.getElementById('btn-manual-confirm'),
+            },
+            dialog: {
+                overlay: document.getElementById('custom-dialog-overlay'),
+                title: document.getElementById('custom-dialog-title'),
+                msg: document.getElementById('custom-dialog-msg'),
+                actions: document.getElementById('custom-dialog-actions'),
+                icon: document.getElementById('custom-dialog-icon'),
+            },
+        };
 
-            elements.btnFornoGrande.addEventListener('click', () => atualizarConfiguracaoForno('grande'));
-            elements.btnFornoPequeno.addEventListener('click', () => atualizarConfiguracaoForno('pequeno'));
-            elements.qtdeGtsDinamico.addEventListener('change', (e) => gerarInputs(e.target.value, elements.inputsGtsDinamico));
-            
-            elements.btnCarregarCsv.addEventListener('click', () => elements.csvFileInput.click());
-            elements.csvFileInput.addEventListener('change', () => {
-                if (elements.csvFileInput.files.length > 0) {
-                    elements.btnCarregarCsv.textContent = `Arquivo: ${elements.csvFileInput.files[0].name}`;
-                }
-            });
-
-            // --- Lógica do Histórico ---
-            function formatarParametros(rawParams) {
-                if (!rawParams) return "N/A";
-                let params = rawParams;
-                if (typeof params === 'string') { try { params = JSON.parse(params); } catch (e) { return rawParams; } }
-                if (typeof params === 'string') { try { params = JSON.parse(params); } catch (e) { } }
-
-                let forno = params.forno || '?';
-                forno = forno.charAt(0).toUpperCase() + forno.slice(1);
-
-                let gtsData = params.gts_selecionados;
-                let gtsList = [];
-
-                if (Array.isArray(gtsData)) {
-                    gtsList = gtsData;
-                } else if (typeof gtsData === 'string') {
-                    try { gtsList = JSON.parse(gtsData); } catch (e) { gtsList = [gtsData]; }
-                }
-                
-                const gtsDisplay = gtsList.map(g => g.replace(/['"]+/g, '')).join(', ') || "Nenhum";
-                return `<b>Forno:</b> ${forno} <span style="margin: 0 10px; color: var(--border-color);">|</span> <b>GTs:</b> ${gtsDisplay}`;
+        // --- STATE MANAGEMENT ---
+        const appState = {
+            currentView: 'principal', // 'principal', 'gerenciador', 'historico'
+            currentStep: 1, // 1 or 2 for production view
+            isLoading: false,
+            theme: 'dark',
+            production: {
+                config: {
+                    forno: 'grande',
+                    numGTs: 3,
+                    gts: [],
+                    csvFile: null,
+                },
+                arranjo: [],
+                pendentes: [],
+                originalArranjo: [],
+                originalPendentes: [],
+                filters: {
+                    bitolaReferencia: '',
+                    searchTermPendentes: '',
+                    bitolaPendentes: ''
+                },
+                isFromHistory: false,
+            },
+            master: {
+                items: [],
+                currentPage: 1,
+                itemsPerPage: 10,
+                totalItems: 0,
+                searchTerm: '',
+                searchTimeout: null,
+            },
+            history: {
+                items: [],
+                currentPage: 1,
+                itemsPerPage: 10,
+                totalItems: 0,
+                filters: {
+                    forno: 'all',
+                    usuario: '',
+                    data: '',
+                    gts: []
+                },
+                searchTimeout: null,
+            },
+            autocomplete: {
+                suggestions: [],
+                selectedItem: null,
+                searchTimeout: null,
+            },
+            manualAddItem: {
+                codigo: '',
+                op: '',
+                qtd: '',
+                bitola: '',
+                gt: '',
+                peso: 0,
             }
+        };
 
-            elements.filterHistoryForno.addEventListener('change', () => { currentHistoryPage = 1; fetchHistory(); });
-            elements.filterHistoryUser.addEventListener('input', (e) => {
-                clearTimeout(historySearchTimeout);
-                historySearchTimeout = setTimeout(() => { currentHistoryPage = 1; fetchHistory(); }, 500);
-            });
-            elements.filterHistoryDate.addEventListener('change', () => { currentHistoryPage = 1; fetchHistory(); });
-            elements.historyItemsPerPageSelect.addEventListener('change', (e) => {
-                historyItemsPerPage = e.target.value === 'all' ? 'all' : parseInt(e.target.value);
-                currentHistoryPage = 1;
-                fetchHistory();
-            });
-            elements.btnHistoryPrev.addEventListener('click', () => { if (currentHistoryPage > 1) { currentHistoryPage--; fetchHistory(); } });
-            elements.btnHistoryNext.addEventListener('click', () => {
-                const maxPages = historyItemsPerPage === 'all' ? 1 : Math.ceil(totalHistoryItems / historyItemsPerPage);
-                if (currentHistoryPage < maxPages) { currentHistoryPage++; fetchHistory(); }
-            });
+        // --- UTILITIES (Dialogs) ---
+        const showAlert = (message, title = 'Aviso', type = 'warning') => {
+            return new Promise((resolve) => {
+                elements.dialog.title.textContent = title;
+                elements.dialog.msg.textContent = message;
 
-            async function fetchHistory() {
-                elements.tableHistoryBody.innerHTML = '<tr><td colspan="4" style="text-align:center;">Carregando histórico...</td></tr>';
-                elements.btnHistoryPrev.disabled = true;
-                elements.btnHistoryNext.disabled = true;
-
-                try {
-                    let query = _supabase.from('arranjos_gerados').select('*', { count: 'exact' });
-                    const fornoVal = elements.filterHistoryForno.value;
-                    if (fornoVal !== 'all') query = query.contains('parametros_usados', { forno: fornoVal });
-
-                    const userVal = elements.filterHistoryUser.value.trim();
-                    if (userVal) query = query.ilike('usuario', `%${userVal}%`);
-
-                    const dateVal = elements.filterHistoryDate.value;
-                    if (dateVal) {
-                        const start = new Date(dateVal).toISOString();
-                        const end = new Date(new Date(dateVal).setHours(23,59,59,999)).toISOString();
-                        query = query.gte('created_at', start).lte('created_at', end);
-                    }
-                    query = query.order('created_at', { ascending: false });
-
-                    let dataToRender = [];
-                    const hasGtFilter = selectedGTsFilter.length > 0;
-
-                    if (hasGtFilter) {
-                        const { data, error } = await query.limit(1000); 
-                        if (error) throw error;
-
-                        const filteredData = data.filter(row => {
-                            let params = row.parametros_usados;
-                            if (typeof params === 'string') { try { params = JSON.parse(params); } catch (e) { return false; } }
-                            if (typeof params === 'string') { try { params = JSON.parse(params); } catch (e) { return false; } }
-
-                            let gtsInRow = [];
-                            if (Array.isArray(params.gts_selecionados)) { gtsInRow = params.gts_selecionados; } 
-                            else if (typeof params.gts_selecionados === 'string') { try { gtsInRow = JSON.parse(params.gts_selecionados); } catch (e) { gtsInRow = [params.gts_selecionados]; } }
-                            
-                            gtsInRow = gtsInRow.map(g => String(g).replace(/['"]+/g, ''));
-                            return selectedGTsFilter.some(filterGt => gtsInRow.includes(filterGt));
-                        });
-
-                        totalHistoryItems = filteredData.length;
-                        if (historyItemsPerPage !== 'all') {
-                            const start = (currentHistoryPage - 1) * historyItemsPerPage;
-                            dataToRender = filteredData.slice(start, start + historyItemsPerPage);
-                        } else {
-                            dataToRender = filteredData;
-                        }
-
-                    } else {
-                        if (historyItemsPerPage !== 'all') {
-                            const from = (currentHistoryPage - 1) * historyItemsPerPage;
-                            const to = from + historyItemsPerPage - 1;
-                            query = query.range(from, to);
-                        }
-                        const { data, count, error } = await query;
-                        if (error) throw error;
-                        totalHistoryItems = count || 0;
-                        dataToRender = data;
-                    }
-
-                    renderHistoryTable(dataToRender);
-                    updateHistoryPaginationControls();
-
-                } catch (err) {
-                    console.error(err);
-                    elements.tableHistoryBody.innerHTML = `<tr><td colspan="4" style="color:var(--color-danger)">Erro ao carregar histórico: ${err.message}</td></tr>`;
-                }
-            }
-
-            function updateHistoryPaginationControls() {
-                if (historyItemsPerPage === 'all') {
-                    elements.historyPageInfo.textContent = `Mostrando todos (${totalHistoryItems})`;
-                    elements.btnHistoryPrev.disabled = true;
-                    elements.btnHistoryNext.disabled = true;
+                if (type === 'success') {
+                    elements.dialog.icon.textContent = '✅';
+                    elements.dialog.icon.style.color = 'var(--color-success)';
+                } else if (type === 'error') {
+                    elements.dialog.icon.textContent = '❌';
+                    elements.dialog.icon.style.color = 'var(--color-danger)';
                 } else {
-                    const totalPages = Math.ceil(totalHistoryItems / historyItemsPerPage);
-                    if (totalPages === 0) currentHistoryPage = 1;
-                    elements.historyPageInfo.textContent = `Página ${currentHistoryPage} de ${totalPages || 1} (Total: ${totalHistoryItems})`;
-                    elements.btnHistoryPrev.disabled = currentHistoryPage <= 1;
-                    elements.btnHistoryNext.disabled = currentHistoryPage >= totalPages;
-                }
-            }
-
-            function renderHistoryTable(data) {
-                elements.tableHistoryBody.innerHTML = '';
-                if (data.length === 0) {
-                    elements.tableHistoryBody.innerHTML = '<tr><td colspan="4">Nenhum histórico encontrado.</td></tr>';
-                    return;
+                    elements.dialog.icon.textContent = '⚠️';
+                    elements.dialog.icon.style.color = 'var(--color-warning)';
                 }
 
-                data.forEach(row => {
-                    const tr = document.createElement('tr');
-                    const date = new Date(row.created_at).toLocaleString('pt-BR');
-                    const formattedParams = formatarParametros(row.parametros_usados);
-                    
-                    tr.innerHTML = `
-                        <td>${date}</td>
-                        <td>${row.usuario || 'Sistema'}</td>
-                        <td>${formattedParams}</td>
-                        <td style="text-align: center;">
-                            <button class="btn btn-sm btn-primary btn-load-history">📂 Carregar Arranjo</button>
-                        </td>
-                    `;
-                    
-                    const btnLoad = tr.querySelector('.btn-load-history');
-                    btnLoad.addEventListener('click', () => loadHistoryItemIntoView(row.arranjo_resultado));
-                    elements.tableHistoryBody.appendChild(tr);
+                elements.dialog.actions.innerHTML = '';
+                const btnOk = document.createElement('button');
+                btnOk.className = 'btn btn-primary custom-dialog-btn';
+                btnOk.textContent = 'OK';
+                btnOk.onclick = () => {
+                    elements.dialog.overlay.classList.remove('open');
+                    resolve();
+                };
+                elements.dialog.actions.appendChild(btnOk);
+                elements.dialog.overlay.classList.add('open');
+            });
+        };
+        const showConfirm = (message, title = 'Confirmação') => {
+            return new Promise((resolve) => {
+                elements.dialog.title.textContent = title;
+                elements.dialog.msg.textContent = message;
+                elements.dialog.icon.textContent = '❓';
+                elements.dialog.icon.style.color = 'var(--color-info)';
+
+                elements.dialog.actions.innerHTML = '';
+
+                const btnCancel = document.createElement('button');
+                btnCancel.className = 'btn btn-secondary custom-dialog-btn';
+                btnCancel.textContent = 'Cancelar';
+                btnCancel.onclick = () => {
+                    elements.dialog.overlay.classList.remove('open');
+                    resolve(false);
+                };
+
+                const btnConfirm = document.createElement('button');
+                btnConfirm.className = 'btn btn-danger custom-dialog-btn';
+                btnConfirm.textContent = 'Confirmar';
+                btnConfirm.onclick = () => {
+                    elements.dialog.overlay.classList.remove('open');
+                    resolve(true);
+                };
+
+                elements.dialog.actions.appendChild(btnCancel);
+                elements.dialog.actions.appendChild(btnConfirm);
+                elements.dialog.overlay.classList.add('open');
+            });
+        };
+
+        // --- API / SUPABASE CALLS ---
+        const api = {
+            gerarArranjo: async () => {
+                const formData = new FormData();
+                formData.append('file', appState.production.config.csvFile, 'data.csv');
+                formData.append('forno', appState.production.config.forno);
+                formData.append('gts_selecionados', JSON.stringify(appState.production.config.gts));
+
+                const response = await fetch(n8nGerarArranjoUrl, { method: 'POST', body: formData });
+                if (!response.ok) { const errorText = await response.text(); throw new Error(`${response.statusText}. Detalhes: ${errorText}`); }
+                return response.json();
+            },
+            atualizarGT: async (codigo, gt) => {
+                const response = await fetch(n8nAtualizarGTUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ codigo, gt })
                 });
-            }
-
-            function loadHistoryItemIntoView(jsonResultado) {
-                try {
-                    let data = jsonResultado;
-                    if (typeof data === 'string') { try { data = JSON.parse(data); } catch (e) {} }
-                    if (typeof data === 'string') { try { data = JSON.parse(data); } catch (e) {} }
-
-                    showView('view-principal');
-                    elements.step1.classList.add('hidden');
-                    elements.step2.classList.remove('hidden');
-                    updateStepper(2);
-
-                    elements.btnResetProduction.classList.add('hidden');
-                    elements.btnBackToHistory.classList.remove('hidden');
-                    
-                    // Store the original state
-                    listaOriginalArranjo = data.arranjo_producao || [];
-                    listaOriginalPendentes = data.itens_pendentes || [];
-
-                    popularLista('arranjo-producao-lista', listaOriginalArranjo, false);
-                    popularLista('itens-pendentes-lista', listaOriginalPendentes, true);
-                    
-                    atualizarTotalizador();
-                    popularSeletorBitolaReferencia();
-                    popularFiltroBitolaPendentes();
-
-                } catch (e) {
-                    showAlert('Erro ao processar os dados do histórico: ' + e.message, 'Erro', 'error');
+                if (!response.ok) throw new Error('Falha ao atualizar o GT no banco de dados.');
+                return response.json();
+            },
+            fetchMasterItems: async () => {
+                const { master } = appState;
+                let query = _supabase.from('itens_mestre').select('*', { count: 'exact' });
+                if (master.searchTerm) {
+                    const term = `%${master.searchTerm}%`;
+                    query = query.or(`codigo_item.ilike.${term},descricao.ilike.${term},gt.ilike.${term}`);
                 }
-            }
+                query = query.order('codigo_item', { ascending: true });
+                if (master.itemsPerPage !== 'all') {
+                    const from = (master.currentPage - 1) * master.itemsPerPage;
+                    const to = from + master.itemsPerPage - 1;
+                    query = query.range(from, to);
+                }
+                const { data, count, error } = await query;
+                if (error) throw error;
+                return { items: data, total: count || 0 };
+            },
+            updateMasterItem: (id, updates) => _supabase.from('itens_mestre').update(updates).eq('id', id),
+            deleteMasterItem: (id) => _supabase.from('itens_mestre').delete().eq('id', id),
+            createMasterItem: (newItem) => _supabase.from('itens_mestre').insert([newItem]).select(),
+            fetchHistory: async () => {
+                const { history } = appState;
+                let query = _supabase.from('arranjos_gerados').select('*', { count: 'exact' });
+                const { forno, usuario, data } = history.filters;
 
-            // --- Lógica de Itens Mestre ---
-            elements.itemsPerPageSelect.addEventListener('change', (e) => {
-                itemsPerPage = e.target.value === 'all' ? 'all' : parseInt(e.target.value);
-                currentMasterPage = 1;
-                fetchMasterItems();
-            });
-            elements.btnPrevPage.addEventListener('click', () => { if (currentMasterPage > 1) { currentMasterPage--; fetchMasterItems(); } });
-            elements.btnNextPage.addEventListener('click', () => {
-                const maxPages = itemsPerPage === 'all' ? 1 : Math.ceil(totalItems / itemsPerPage);
-                if (currentMasterPage < maxPages) { currentMasterPage++; fetchMasterItems(); }
-            });
-            elements.searchMasterItems.addEventListener('input', (e) => {
-                clearTimeout(searchTimeout);
-                searchTimeout = setTimeout(() => { currentMasterPage = 1; fetchMasterItems(e.target.value); }, 500); 
-            });
+                if (forno !== 'all') query = query.contains('parametros_usados', { forno });
+                if (usuario) query = query.ilike('usuario', `%${usuario}%`);
+                if (data) {
+                    const start = new Date(data).toISOString();
+                    const end = new Date(new Date(data).setHours(23, 59, 59, 999)).toISOString();
+                    query = query.gte('created_at', start).lte('created_at', end);
+                }
+                query = query.order('created_at', { ascending: false });
 
-            async function fetchMasterItems(searchTerm = '') {
-                elements.tableMasterItemsBody.innerHTML = '<tr><td colspan="6" style="text-align:center;">Carregando...</td></tr>';
-                elements.btnPrevPage.disabled = true;
-                elements.btnNextPage.disabled = true;
-                if(searchTerm === '') searchTerm = elements.searchMasterItems.value;
-
-                try {
-                    let query = _supabase.from('itens_mestre').select('*', { count: 'exact' });
-                    if (searchTerm) {
-                        const term = `%${searchTerm}%`;
-                        query = query.or(`codigo_item.ilike.${term},descricao.ilike.${term},gt.ilike.${term}`);
+                // Client-side filtering for GTs is complex but necessary with current schema
+                if (history.filters.gts.length > 0) {
+                    const { data: allData, error } = await query.limit(1000); // Fetch a larger set for filtering
+                    if (error) throw error;
+                    const filteredData = allData.filter(row => {
+                        let params = row.parametros_usados;
+                        if (typeof params === 'string') { try { params = JSON.parse(params); } catch (e) { return false; } }
+                        if (typeof params === 'string') { try { params = JSON.parse(params); } catch (e) { return false; } }
+                        let gtsInRow = [];
+                        if (Array.isArray(params.gts_selecionados)) gtsInRow = params.gts_selecionados;
+                        else if (typeof params.gts_selecionados === 'string') { try { gtsInRow = JSON.parse(params.gts_selecionados); } catch (e) { gtsInRow = [params.gts_selecionados]; } }
+                        gtsInRow = gtsInRow.map(g => String(g).replace(/['"]+/g, ''));
+                        return history.filters.gts.some(filterGt => gtsInRow.includes(filterGt));
+                    });
+                    const total = filteredData.length;
+                    let paginatedData = filteredData;
+                    if (history.itemsPerPage !== 'all') {
+                        const start = (history.currentPage - 1) * history.itemsPerPage;
+                        paginatedData = filteredData.slice(start, start + history.itemsPerPage);
                     }
-                    query = query.order('codigo_item', { ascending: true });
-                    if (itemsPerPage !== 'all') {
-                        const from = (currentMasterPage - 1) * itemsPerPage;
-                        const to = from + itemsPerPage - 1;
+                    return { items: paginatedData, total };
+                } else {
+                    if (history.itemsPerPage !== 'all') {
+                        const from = (history.currentPage - 1) * history.itemsPerPage;
+                        const to = from + history.itemsPerPage - 1;
                         query = query.range(from, to);
                     }
                     const { data, count, error } = await query;
                     if (error) throw error;
-                    totalItems = count || 0;
-                    renderMasterTable(data);
-                    updatePaginationControls();
-                } catch (err) {
-                    elements.tableMasterItemsBody.innerHTML = `<tr><td colspan="6" style="color:var(--color-danger)">Erro: ${err.message}</td></tr>`;
+                    return { items: data, total: count || 0 };
                 }
-            }
+            },
+            fetchGtOptions: async () => {
+                const { data, error } = await _supabase.from('itens_mestre').select('gt');
+                if (error) throw error;
+                return [...new Set(data.map(item => item.gt).filter(Boolean))].sort();
+            },
+            fetchAutocomplete: async (term) => {
+                const { data, error } = await _supabase
+                    .from('itens_mestre').select('codigo_item, dimensao as bitola, gt, peso_kg')
+                    .ilike('codigo_item', `${term}%`).limit(5);
+                if (error) throw error;
+                return data;
+            },
+        };
 
-            function updatePaginationControls() {
-                if (itemsPerPage === 'all') {
-                    elements.pageInfo.textContent = `Mostrando todos (${totalItems})`;
-                    elements.btnPrevPage.disabled = true;
-                    elements.btnNextPage.disabled = true;
-                } else {
-                    const totalPages = Math.ceil(totalItems / itemsPerPage);
-                    if (totalPages === 0) currentMasterPage = 1;
-                    elements.pageInfo.textContent = `Página ${currentMasterPage} de ${totalPages || 1} (Total: ${totalItems})`;
-                    elements.btnPrevPage.disabled = currentMasterPage <= 1;
-                    elements.btnNextPage.disabled = currentMasterPage >= totalPages;
-                }
-            }
+        // --- UI COMPONENTS ---
+        const createItemCard = (item) => {
+            const card = document.createElement('div');
+            card.className = 'item-card';
+            card.draggable = true;
+            card.dataset.id = item.id;
 
-            function renderMasterTable(items) {
-                elements.tableMasterItemsBody.innerHTML = '';
-                if (!items || items.length === 0) {
-                    elements.tableMasterItemsBody.innerHTML = '<tr><td colspan="6" style="text-align:center;">Nenhum item encontrado.</td></tr>';
-                    return;
-                }
-                items.forEach(item => {
-                    const tr = document.createElement('tr');
-                    tr.innerHTML = `
-                        <td><input type="text" class="table-input inp-codigo" value="${item.codigo_item || ''}" disabled></td>
-                        <td><input type="text" class="table-input inp-descricao" value="${item.descricao || ''}"></td>
-                        <td><input type="text" class="table-input inp-dimensao" value="${item.dimensao || ''}"></td>
-                        <td><input type="number" class="table-input inp-peso" value="${item.peso_kg || 0}" step="0.01"></td>
-                        <td><input type="text" class="table-input inp-gt" value="${item.gt || ''}"></td>
-                        <td class="actions-cell">
-                            <button class="btn btn-sm btn-success btn-save-row">💾</button>
-                            <button class="btn btn-sm btn-danger btn-delete-row">🗑️</button>
-                        </td>
-                    `;
-                    const btnSave = tr.querySelector('.btn-save-row');
-                    const btnDelete = tr.querySelector('.btn-delete-row');
-                    const itemId = item.id; 
+            const deleteBtn = document.createElement('span');
+            deleteBtn.className = 'delete-btn';
+            deleteBtn.innerHTML = '&times;';
+            deleteBtn.addEventListener('click', () => logic.production.deleteItem(item.id));
 
-                    btnSave.addEventListener('click', async () => {
-                        const newDesc = tr.querySelector('.inp-descricao').value;
-                        const newDim = tr.querySelector('.inp-dimensao').value;
-                        const newPeso = parseFloat(tr.querySelector('.inp-peso').value) || 0;
-                        const newGt = tr.querySelector('.inp-gt').value;
-                        btnSave.disabled = true;
+            const opP = document.createElement('p');
+            opP.innerHTML = `<b>Ordem de Produção:</b> ${item.ordemProducao || 'N/A'}`;
+
+            const codigoP = document.createElement('p');
+            codigoP.innerHTML = `<b>Código:</b> ${item.codigo || 'N/A'}`;
+
+            const descP = document.createElement('p');
+            descP.textContent = item.descricao || 'N/A';
+            
+            const dimensaoP = document.createElement('p');
+            dimensaoP.innerHTML = `<b>Bitola:</b> ${item.dimensao || 'N/A'}`;
+
+            const qtdP = document.createElement('p');
+            qtdP.innerHTML = `<b>Qtd:</b> ${item.quantidade || '0'} <small style="color: var(--text-secondary); margin-left: 10px;">(${parseFloat(item.peso_kg || 0).toFixed(2)} kg/pç)</small>`;
+
+            const gtDisplay = document.createElement('p');
+            gtDisplay.className = 'gt-display';
+            gtDisplay.innerHTML = `<b>GT:</b> ${item.gt || 'N/A'}`;
+            gtDisplay.addEventListener('click', (e) => logic.production.editGT(e, item.id));
+
+            card.append(deleteBtn, opP, codigoP, descP, dimensaoP, qtdP, gtDisplay);
+            card.addEventListener('dragstart', (e) => logic.production.handleDragStart(e, item.id));
+            card.addEventListener('dragend', (e) => e.target.classList.remove('dragging'));
+
+            return card;
+        };
+        const createMasterTableRow = (item) => {
+            const tr = document.createElement('tr');
+            tr.dataset.id = item.id;
+
+            const createCellWithInput = (value, className, type = 'text', disabled = false) => {
+                const td = document.createElement('td');
+                const input = document.createElement('input');
+                input.type = type;
+                input.className = `table-input ${className}`;
+                input.value = value || '';
+                if (type === 'number') input.step = '0.01';
+                input.disabled = disabled;
+                td.appendChild(input);
+                return td;
+            };
+
+            const actionsCell = document.createElement('td');
+            actionsCell.className = 'actions-cell';
+
+            const saveBtn = document.createElement('button');
+            saveBtn.className = 'btn btn-sm btn-success btn-save-row';
+            saveBtn.innerHTML = '💾';
+            saveBtn.addEventListener('click', () => logic.master.saveItem(item.id));
+
+            const deleteBtn = document.createElement('button');
+            deleteBtn.className = 'btn btn-sm btn-danger btn-delete-row';
+            deleteBtn.innerHTML = '🗑️';
+            deleteBtn.addEventListener('click', () => logic.master.deleteItem(item.id, item.codigo_item));
+
+            actionsCell.append(saveBtn, deleteBtn);
+
+            tr.append(
+                createCellWithInput(item.codigo_item, 'inp-codigo', 'text', true),
+                createCellWithInput(item.descricao, 'inp-descricao'),
+                createCellWithInput(item.dimensao, 'inp-dimensao'),
+                createCellWithInput(item.peso_kg, 'inp-peso', 'number'),
+                createCellWithInput(item.gt, 'inp-gt'),
+                actionsCell
+            );
+            return tr;
+        };
+        const createHistoryTableRow = (historyItem) => {
+            const tr = document.createElement('tr');
+
+            const createCell = (content, isHtml = false) => {
+                const td = document.createElement('td');
+                if (isHtml) td.innerHTML = content;
+                else td.textContent = content;
+                return td;
+            };
+
+            const formatParams = (rawParams) => {
+                if (!rawParams) return "N/A";
+                let params = rawParams;
+                try {
+                    if (typeof params === 'string') params = JSON.parse(params);
+                    if (typeof params === 'string') params = JSON.parse(params);
+                } catch (e) { return String(rawParams); }
+
+                let forno = (params.forno || '?').replace(/^\w/, c => c.toUpperCase());
+                let gtsList = [];
+                if (Array.isArray(params.gts_selecionados)) gtsList = params.gts_selecionados;
+                else if (typeof params.gts_selecionados === 'string') { try { gtsList = JSON.parse(params.gts_selecionados); } catch (e) { gtsList = [params.gts_selecionados]; } }
+                const gtsDisplay = gtsList.map(g => String(g).replace(/['"]+/g, '')).join(', ') || "Nenhum";
+                return `<b>Forno:</b> ${forno} <span style="margin: 0 10px; color: var(--border-color);">|</span> <b>GTs:</b> ${gtsDisplay}`;
+            };
+
+            const actionsCell = document.createElement('td');
+            actionsCell.style.textAlign = 'center';
+            const loadBtn = document.createElement('button');
+            loadBtn.className = 'btn btn-sm btn-primary btn-load-history';
+            loadBtn.innerHTML = '📂 Carregar Arranjo';
+            loadBtn.addEventListener('click', () => logic.history.loadItem(historyItem.arranjo_resultado));
+            actionsCell.appendChild(loadBtn);
+
+            tr.append(
+                createCell(new Date(historyItem.created_at).toLocaleString('pt-BR')),
+                createCell(historyItem.usuario || 'Sistema'),
+                createCell(formatParams(historyItem.parametros_usados), true),
+                actionsCell
+            );
+            return tr;
+        };
+
+        // --- UI RENDER FUNCTIONS ---
+        const render = {
+            app: () => {
+                render.view();
+                render.theme();
+            },
+            view: () => {
+                Object.values(elements.views).forEach(v => v.classList.add('hidden'));
+                elements.views[appState.currentView].classList.remove('hidden');
+
+                if (appState.currentView === 'principal') render.production.full();
+                if (appState.currentView === 'gerenciador') render.master.full();
+                if (appState.currentView === 'historico') render.history.full();
+            },
+            theme: () => {
+                const isDark = appState.theme === 'dark';
+                document.body.classList.toggle('dark-theme', isDark);
+                document.body.classList.toggle('light-theme', !isDark);
+                elements.theme.toggle.checked = isDark;
+                elements.theme.logo.src = isDark
+                    ? 'https://ctfamadobrasil.com.br/wp-content/uploads/2025/12/Gemini_Generated_Image_v8cib8v8cib8v8ci-removebg-preview.png'
+                    : 'https://ctfamadobrasil.com.br/wp-content/uploads/2025/09/logo.png';
+            },
+            production: {
+                full: () => {
+                    render.production.stepper();
+                    render.production.stepContent();
+                    render.production.configForm();
+                    render.production.lists();
+                    render.production.totalizers();
+                    render.production.filters();
+                },
+                stepper: () => {
+                    elements.stepper.nav1.classList.toggle('active', appState.currentStep >= 1);
+                    elements.stepper.nav2.classList.toggle('active', appState.currentStep >= 2);
+                },
+                stepContent: () => {
+                    elements.stepper.step1.classList.toggle('hidden', appState.currentStep !== 1);
+                    elements.stepper.step2.classList.toggle('hidden', appState.currentStep !== 2);
+                    elements.productionView.btnReset.classList.toggle('hidden', appState.production.isFromHistory);
+                    elements.productionView.btnBackToHistory.classList.toggle('hidden', !appState.production.isFromHistory);
+                },
+                configForm: () => {
+                    const { forno, numGTs } = appState.production.config;
+                    elements.productionConfig.btnFornoGrande.classList.toggle('active', forno === 'grande');
+                    elements.productionConfig.btnFornoPequeno.classList.toggle('active', forno === 'pequeno');
+                    
+                    const fornosConfig = {
+                        grande: { titulo: 'Configuração do Forno Grande', opcoes: [3, 2, 1] },
+                        pequeno: { titulo: 'Configuração do Forno Pequeno', opcoes: [2, 1] }
+                    };
+                    const config = fornosConfig[forno];
+                    elements.productionConfig.configTitulo.textContent = config.titulo;
+
+                    elements.productionConfig.qtdeGtsSelect.innerHTML = '';
+                    config.opcoes.forEach(val => {
+                        const option = document.createElement('option');
+                        option.value = val;
+                        option.textContent = `${val} GT${val > 1 ? 's' : ''}`;
+                        elements.productionConfig.qtdeGtsSelect.appendChild(option);
+                    });
+                    elements.productionConfig.qtdeGtsSelect.value = numGTs;
+
+                    elements.productionConfig.inputsGtsContainer.innerHTML = '';
+                    for (let i = 1; i <= numGTs; i++) {
+                        const input = document.createElement('input');
+                        input.type = 'text';
+                        input.placeholder = `Código GT ${i}`;
+                        input.style.marginTop = '0.5rem';
+                        elements.productionConfig.inputsGtsContainer.appendChild(input);
+                    }
+                },
+                lists: () => {
+                    const { arranjoLista, pendentesLista } = elements.productionView;
+                    const { searchTermPendentes, bitolaPendentes } = appState.production.filters;
+
+                    const getEspessura = (dimensao) => {
                         try {
-                            const { error } = await _supabase.from('itens_mestre').update({ 
-                                descricao: newDesc, 
-                                dimensao: newDim, 
-                                peso_kg: newPeso,
-                                gt: newGt 
-                            }).eq('id', itemId);
-                            if (error) throw error;
-                            showAlert('Item atualizado com sucesso!', 'Sucesso', 'success');
-                        } catch (e) { showAlert('Erro ao atualizar: ' + e.message, 'Erro', 'error'); } finally { btnSave.disabled = false; }
+                            const partes = (dimensao || '0 X 0').split('X');
+                            return parseFloat(partes[1].trim().replace(',', '.')) || 0;
+                        } catch (e) { return 0; }
+                    };
+
+                    arranjoLista.innerHTML = '';
+                    appState.production.arranjo.forEach(item => {
+                        arranjoLista.appendChild(createItemCard(item));
                     });
 
-                    btnDelete.addEventListener('click', async () => {
-                        if(await showConfirm(`Tem certeza que deseja excluir o item ${item.codigo_item}?`)) {
-                            btnDelete.disabled = true;
-                            try {
-                                const { error } = await _supabase.from('itens_mestre').delete().eq('id', itemId);
-                                if (error) throw error;
-                                fetchMasterItems();
-                            } catch (e) { showAlert('Erro ao excluir: ' + e.message, 'Erro', 'error'); btnDelete.disabled = false; }
-                        }
+                    pendentesLista.innerHTML = '';
+                    const filteredPendentes = appState.production.pendentes.filter(item => {
+                        const text = `${item.ordemProducao} ${item.codigo} ${item.descricao}`.toLowerCase();
+                        const matchesSearch = text.includes(searchTermPendentes.toLowerCase());
+                        const matchesBitola = bitolaPendentes === '' || String(getEspessura(item.dimensao)) === bitolaPendentes;
+                        return matchesSearch && matchesBitola;
                     });
-                    elements.tableMasterItemsBody.appendChild(tr);
-                });
-            }
-
-            elements.btnAddMasterItem.addEventListener('click', async () => {
-                const codigo = elements.newItemCodigo.value.trim();
-                const descricao = elements.newItemDescricao.value.trim();
-                const dimensao = elements.newItemDimensao.value.trim();
-                const peso = parseFloat(elements.newItemPeso.value) || 0;
-                const gt = elements.newItemGt.value.trim();
-                if (!codigo) { showAlert('Código é obrigatório.', 'Atenção'); return; }
-
-                elements.btnAddMasterItem.innerHTML = '<div class="spinner"></div>';
-                elements.btnAddMasterItem.disabled = true;
-                try {
-                    const { data, error } = await _supabase.from('itens_mestre').insert([{ 
-                        codigo_item: codigo, 
-                        descricao, 
-                        dimensao, 
-                        peso_kg: peso,
-                        gt 
-                    }]).select();
-                    if (error) throw error;
-                    elements.newItemCodigo.value = '';
-                    elements.newItemDescricao.value = '';
-                    elements.newItemDimensao.value = '';
-                    elements.newItemPeso.value = '';
-                    elements.newItemGt.value = '';
-                    currentMasterPage = 1;
-                    await fetchMasterItems();
-                    showAlert('Item criado com sucesso!', 'Sucesso', 'success');
-                } catch (e) { showAlert('Erro ao criar item: ' + e.message, 'Erro', 'error'); } finally { elements.btnAddMasterItem.innerHTML = '+ Criar'; elements.btnAddMasterItem.disabled = false; }
-            });
-
-            // --- Lógica de Geração do Arranjo (N8N) ---
-            elements.btnGerarArranjo.addEventListener('click', async () => {
-                if (!elements.csvFileInput.files[0]) { showAlert('Por favor, carregue um arquivo CSV primeiro.', 'Atenção'); return; }
-                const originalButtonText = elements.btnGerarArranjo.innerHTML;
-                elements.btnGerarArranjo.innerHTML = '<div class="spinner"></div> Gerando...';
-                elements.btnGerarArranjo.disabled = true;
-
-                const formData = new FormData();
-                formData.append('file', elements.csvFileInput.files[0], 'data.csv');
-                const fornoAtivo = elements.btnFornoGrande.classList.contains('active') ? 'grande' : 'pequeno';
-                formData.append('forno', fornoAtivo);
-                gtsAtuais = Array.from(elements.inputsGtsDinamico.querySelectorAll('input')).map(input => input.value).filter(Boolean);
-                formData.append('gts_selecionados', JSON.stringify(gtsAtuais));
-                
-                try {
-                    const response = await fetch(n8nGerarArranjoUrl, { method: 'POST', body: formData });
-                    if (!response.ok) { const errorText = await response.text(); throw new Error(`${response.statusText}. Detalhes: ${errorText}`); }
-                    const data = await response.json();
+                    filteredPendentes.forEach(item => {
+                        pendentesLista.appendChild(createItemCard(item));
+                    });
+                },
+                totalizers: () => {
+                    let totalMolas = 0;
+                    let totalPeso = 0;
+                    appState.production.arranjo.forEach(item => {
+                        const qtd = parseInt(item.quantidade) || 0;
+                        const peso = parseFloat(item.peso_kg) || 0;
+                        totalMolas += qtd;
+                        totalPeso += qtd * peso;
+                    });
                     
-                    elements.step1.classList.add('hidden');
-                    elements.step2.classList.remove('hidden');
-                    updateStepper(2);
-
-                    elements.btnResetProduction.classList.remove('hidden');
-                    elements.btnBackToHistory.classList.add('hidden');
+                    const { totalizadorDisplay, totalizadorPeso } = elements.productionView;
+                    totalizadorDisplay.textContent = `Total de Molas: ${totalMolas}`;
+                    totalizadorDisplay.className = 'totalizador';
+                    if (totalMolas < 3750) totalizadorDisplay.classList.add('total-low');
+                    else if (totalMolas <= 5500) totalizadorDisplay.classList.add('total-mid');
+                    else totalizadorDisplay.classList.add('total-high');
                     
-                    // Store the original state
-                    listaOriginalArranjo = data.arranjo_producao || [];
-                    listaOriginalPendentes = data.itens_pendentes || [];
-
-                    popularLista('arranjo-producao-lista', listaOriginalArranjo, false);
-                    popularLista('itens-pendentes-lista', listaOriginalPendentes, true);
-                    
-                    atualizarTotalizador();
-                    popularSeletorBitolaReferencia();
-                    popularFiltroBitolaPendentes();
-
-                } catch (error) {
-                    showAlert('Ocorreu um erro ao gerar o arranjo: ' + error.message, 'Erro', 'error');
-                } finally {
-                    elements.btnGerarArranjo.innerHTML = originalButtonText;
-                    elements.btnGerarArranjo.disabled = false;
-                }
-            });
-
-            // --- FUNÇÃO TOTALIZADOR (COM CÁLCULO DE PESO) ---
-            function atualizarTotalizador() {
-                const container = document.getElementById('arranjo-producao-lista');
-                const cards = container.querySelectorAll('.item-card');
-                
-                let totalMolas = 0;
-                let totalPeso = 0;
-                
-                cards.forEach(card => {
-                    const qtd = parseInt(card.dataset.quantidade) || 0;
-                    const peso = parseFloat(card.dataset.peso) || 0;
-                    totalMolas += qtd;
-                    totalPeso += qtd * peso;
-                });
-
-                // Atualiza total de molas (lógica existente)
-                const totalizadorDisplay = document.getElementById('totalizador-display');
-                totalizadorDisplay.textContent = `Total de Molas: ${totalMolas}`;
-                totalizadorDisplay.classList.remove('total-low', 'total-mid', 'total-high');
-                if (totalMolas < 3750) {
-                    totalizadorDisplay.classList.add('total-low');
-                } else if (totalMolas >= 3750 && totalMolas <= 5500) {
-                    totalizadorDisplay.classList.add('total-mid');
-                } else {
-                    totalizadorDisplay.classList.add('total-high');
-                }
-
-                // Atualiza o novo totalizador de peso
-                const totalizadorPeso = document.getElementById('totalizador-peso');
-                if(totalizadorPeso) {
                     totalizadorPeso.textContent = `Carga Total: ${totalPeso.toFixed(1)} kg`;
-                }
-            }
-
-            // --- ADIÇÃO MANUAL E AUTOCOMPLETE ---
-            
-            elements.btnAddManual.addEventListener('click', () => {
-                elements.modalInputCodigo.value = '';
-                elements.modalInputOp.value = '';
-                elements.modalInputQtd.value = '';
-                elements.modalInputBitola.value = '';
-                elements.modalInputGt.value = '';
-                elements.autocompleteList.innerHTML = '';
-                elements.autocompleteList.classList.remove('visible');
-                
-                elements.modalManualOverlay.classList.add('open');
-                setTimeout(() => elements.modalInputCodigo.focus(), 100);
-            });
-
-            elements.btnManualCancel.addEventListener('click', () => {
-                elements.modalManualOverlay.classList.remove('open');
-            });
-
-            // SUBSTITUIR ESTE BLOCO INTEIRO
-            elements.modalInputCodigo.addEventListener('input', (e) => {
-                const val = e.target.value.trim().toUpperCase();
-                
-                // Limpa o peso guardado a cada nova digitação
-                elements.modalInputCodigo.dataset.pesoSelecionado = '0';
-
-                clearTimeout(autocompleteTimeout);
-                elements.autocompleteList.innerHTML = '';
-                elements.autocompleteList.classList.remove('visible');
-
-                if (val.length < 2) return; 
-
-                autocompleteTimeout = setTimeout(async () => {
-                    try {
-                        // BUSCA 1: Na tabela itens_mestre para as sugestões
-                        const { data: itensMestre, error: erroMestre } = await _supabase
-                            .from('itens_mestre')
-                            .select('codigo_item, bitola, gt') 
-                            .ilike('codigo_item', `${val}%`) 
-                            .limit(5);
-
-                        if (erroMestre) throw erroMestre;
-
-                        elements.autocompleteList.innerHTML = ''; 
-                        if (itensMestre && itensMestre.length > 0) {
-                            itensMestre.forEach(item => {
-                                const li = document.createElement('li');
-                                li.className = 'autocomplete-item';
-                                li.innerHTML = `<strong>${item.codigo_item}</strong><small>${item.bitola || 'S/D'} - GT ${item.gt || '?'}</small>`;
-                                
-                                // Lógica de clique agora faz a segunda busca
-                                li.addEventListener('click', async () => {
-                                    // Preenche os dados da primeira busca
-                                    elements.modalInputCodigo.value = item.codigo_item;
-                                    elements.modalInputBitola.value = item.bitola || '';
-                                    elements.modalInputGt.value = item.gt || '';
-                                    
-                                    elements.autocompleteList.innerHTML = '';
-                                    elements.autocompleteList.classList.remove('visible');
-
-                                    // BUSCA 2: Na tabela produtos_peso para obter o peso
-                                    try {
-                                        const { data: pesoData, error: erroPeso } = await _supabase
-                                            .from('produtos_peso')
-                                            .select('peso_kg')
-                                            .eq('codigo_produto', item.codigo_item)
-                                            .single(); // .single() é mais eficiente para buscar um único item
-
-                                        if (erroPeso && erroPeso.code !== 'PGRST116') { // Ignora erro "not found"
-                                            throw erroPeso;
-                                        }
-                                        
-                                        // Guarda o peso no dataset para ser usado na confirmação
-                                        const peso = pesoData ? pesoData.peso_kg : 0;
-                                        elements.modalInputCodigo.dataset.pesoSelecionado = peso;
-
-                                    } catch (err) {
-                                        console.error("Erro ao buscar peso do produto:", err.message);
-                                        elements.modalInputCodigo.dataset.pesoSelecionado = '0'; // Garante valor padrão em caso de erro
-                                    }
-                                });
-
-                                elements.autocompleteList.appendChild(li);
-                            });
-                            elements.autocompleteList.classList.add('visible');
-                        }
-                    } catch (err) {
-                        console.error("Falha ao executar a busca do autocomplete:", err.message);
-                    }
-                }, 300);
-            });
-
-
-            // Fechar autocomplete se clicar fora
-            document.addEventListener('click', (e) => {
-                const isClickInsideAutocomplete = elements.autocompleteList.contains(e.target);
-                const isClickOnInput = e.target === elements.modalInputCodigo;
-                if (!isClickInsideAutocomplete && !isClickOnInput) {
-                    elements.autocompleteList.classList.remove('visible');
-                }
-            });
-
-            // DENTRO DO LISTENER DE 'elements.btnManualConfirm'
-            elements.btnManualConfirm.addEventListener('click', () => {
-                const codigo = elements.modalInputCodigo.value.trim();
-                const op = elements.modalInputOp.value.trim();
-                const qtd = elements.modalInputQtd.value.trim();
-                const bitola = elements.modalInputBitola.value.trim();
-                const gt = elements.modalInputGt.value.trim();
-                
-                // LEIA o peso que foi guardado no dataset do input de código
-                const peso = parseFloat(elements.modalInputCodigo.dataset.pesoSelecionado) || 0;
-                elements.modalInputCodigo.dataset.pesoSelecionado = '0'; // Limpa para o próximo uso
-
-                if (!codigo || !op || !qtd) {
-                    showAlert("Código, OP e Quantidade são obrigatórios.", "Campos Faltando");
-                    return;
-                }
-
-                const novoItem = {
-                    ordemProducao: op,
-                    codigo: codigo,
-                    descricao: "Item Manual",
-                    dimensao: bitola,
-                    gt: gt,
-                    quantidade: qtd,
-                    peso_kg: peso // ADICIONE O CAMPO peso_kg AO OBJETO
-                };
-                
-                listaOriginalPendentes.push(novoItem);
-                criarCard('itens-pendentes-lista', novoItem, true);
-                elements.modalManualOverlay.classList.remove('open');
-                atualizarTotalizador();
-                popularFiltroBitolaPendentes();
-            });
-
-
-            // --- Lógica de Ordenação e Filtros ---
-            
-            function getEspessura(cardElement) {
-                const dimensao = cardElement.dataset.dimensao || '0 X 0';
-                try {
-                    const partes = dimensao.split('X');
-                    if (partes.length < 2) return 0;
-                    const espessuraStr = partes[1].trim().replace(',', '.');
-                    return parseFloat(espessuraStr) || 0;
-                } catch (e) { return 0; }
-            }
-            
-            function popularSeletorBitolaReferencia() {
-                const seletor = document.getElementById('bitola-referencia-select');
-                const currentValue = seletor.value;
-                seletor.innerHTML = '<option value="">Selecione a bitola...</option>';
-                const todosOsCards = listaOriginalArranjo.concat(listaOriginalPendentes);
-                const espessuras = new Set(todosOsCards.map(item => {
-                    try {
-                        const partes = (item.dimensao || '0 X 0').split('X');
-                        if (partes.length < 2) return 0;
-                        return parseFloat(partes[1].trim().replace(',', '.')) || 0;
-                    } catch (e) { return 0; }
-                }).filter(esp => esp > 0));
-
-                Array.from(espessuras).sort((a, b) => a - b).forEach(esp => {
-                    seletor.innerHTML += `<option value="${esp}">${esp}</option>`;
-                });
-                seletor.value = currentValue;
-            }
-            
-            function resetarOrdenacao() {
-                popularLista('arranjo-producao-lista', listaOriginalArranjo, false);
-                popularLista('itens-pendentes-lista', listaOriginalPendentes, true);
-                atualizarTotalizador();
-                popularFiltroBitolaPendentes(); 
-                filtrarItensPendentes();
-                document.getElementById('bitola-referencia-select').value = "";
-            }
-            
-            // CORREÇÃO: Lógica de Ordenação restaurada para operar apenas na coluna "Arranjo de Produção"
-            function aplicarOrdenacaoDirecional(direcao) {
-                const seletor = document.getElementById('bitola-referencia-select');
-                const valorReferencia = parseFloat(seletor.value);
-
-                if (isNaN(valorReferencia) || seletor.value === "") {
-                    showAlert('Por favor, selecione uma Bitola de Partida.', 'Atenção');
-                    return;
-                }
-
-                const arranjoLista = document.getElementById('arranjo-producao-lista');
-                const pendentesLista = document.getElementById('itens-pendentes-lista');
-                
-                // A fonte de dados é APENAS a lista do arranjo atual.
-                const cardsDoArranjoAtual = Array.from(arranjoLista.children);
-
-                const permanecemNoArranjo = [];
-                const vaoParaPendentes = [];
-
-                // 1. Particionar os cards do ARRANJO ATUAL em dois grupos.
-                cardsDoArranjoAtual.forEach(card => {
-                    const espessura = getEspessura(card);
-                    if ((direcao === 'crescente' && espessura >= valorReferencia) || (direcao === 'decrescente' && espessura <= valorReferencia)) {
-                        permanecemNoArranjo.push(card);
-                    } else {
-                        vaoParaPendentes.push(card);
-                    }
-                });
-
-                // 2. Ordenar apenas o grupo que permanece no arranjo.
-                permanecemNoArranjo.sort((a, b) => direcao === 'crescente' ? getEspessura(a) - getEspessura(b) : getEspessura(b) - getEspessura(a));
-                
-                // 3. Atualizar o DOM de forma precisa.
-                arranjoLista.innerHTML = ''; // Limpa SOMENTE a lista do arranjo.
-                
-                permanecemNoArranjo.forEach(card => arranjoLista.appendChild(card));
-                vaoParaPendentes.forEach(card => pendentesLista.appendChild(card)); 
-                
-                // 4. Atualiza as UIs auxiliares.
-                atualizarTotalizador();
-                popularFiltroBitolaPendentes(); 
-                filtrarItensPendentes();
-            }
-
-
-            function popularFiltroBitolaPendentes() {
-                const seletor = document.getElementById('filter-bitola-pendentes');
-                seletor.innerHTML = '<option value="">Filtrar bitola...</option>';
-                const pendentesLista = document.getElementById('itens-pendentes-lista');
-                const cardsPendentes = Array.from(pendentesLista.children);
-                const espessuras = new Set(cardsPendentes.map(getEspessura).filter(esp => esp > 0));
-                Array.from(espessuras).sort((a, b) => a - b).forEach(esp => {
-                    seletor.innerHTML += `<option value="${esp}">${esp}</option>`;
-                });
-            }
-
-            function filtrarItensPendentes() {
-                const searchTerm = document.getElementById('search-pendentes').value.toLowerCase();
-                const bitolaFilter = document.getElementById('filter-bitola-pendentes').value;
-                const pendentesLista = document.getElementById('itens-pendentes-lista');
-                const cards = Array.from(pendentesLista.children);
-
-                cards.forEach(card => {
-                    const cardText = (card.innerText || card.textContent).toLowerCase();
-                    const espessura = getEspessura(card).toString();
+                },
+                filters: () => {
+                    const getEspessura = (item) => {
+                        try {
+                            const partes = (item.dimensao || '0 X 0').split('X');
+                            return parseFloat(partes[1].trim().replace(',', '.')) || 0;
+                        } catch (e) { return 0; }
+                    };
                     
-                    const matchesSearch = searchTerm === '' || cardText.includes(searchTerm);
-                    const matchesBitola = bitolaFilter === '' || espessura === bitolaFilter;
+                    const todosOsItens = [...appState.production.arranjo, ...appState.production.pendentes];
+                    const todasEspessuras = [...new Set(todosOsItens.map(getEspessura).filter(e => e > 0))].sort((a, b) => a - b);
 
-                    if (matchesSearch && matchesBitola) {
-                        card.style.display = 'block';
-                    } else {
-                        card.style.display = 'none';
-                    }
-                });
-            }
-            
-            document.getElementById('btn-reset-filter').addEventListener('click', resetarOrdenacao);
-            document.getElementById('btn-ordem-crescente').addEventListener('click', () => aplicarOrdenacaoDirecional('crescente'));
-            document.getElementById('btn-ordem-decrescente').addEventListener('click', () => aplicarOrdenacaoDirecional('decrescente'));
-            document.getElementById('search-pendentes').addEventListener('input', filtrarItensPendentes);
-            document.getElementById('filter-bitola-pendentes').addEventListener('change', filtrarItensPendentes);
-
-            // --- Funções Auxiliares de Lista e DragDrop ---
-            
-            function popularLista(containerId, items, isPendente) {
-                const container = document.getElementById(containerId);
-                container.innerHTML = '';
-                if (!items || items.length === 0) {
-                    return;
-                }
-                items.forEach(item => {
-                    criarCard(containerId, item, isPendente);
-                });
-            }
-
-            function criarCard(containerId, item, isPendente) {
-                const container = document.getElementById(containerId);
-                if (!container) {
-                    console.error(`Container com ID '${containerId}' não encontrado.`);
-                    return;
-                }
-                const index = container.children.length;
-                
-                const card = document.createElement('div');
-                card.className = 'item-card';
-                card.draggable = true;
-                card.id = `${containerId}-item-${Date.now()}-${index}`;
-                
-                // Datasets
-                card.dataset.ordemProducao = item.ordemProducao || 'N/A';
-                card.dataset.codigo = item.codigo || 'N/A';
-                card.dataset.descricao = item.descricao || 'N/A';
-                card.dataset.dimensao = item.dimensao || 'N/A';
-                card.dataset.gt = item.gt || '';
-                card.dataset.quantidade = item.quantidade || '0';
-                card.dataset.peso = item.peso_kg || '0';
-
-                let gtHtml = `<b>GT:</b> ${item.gt || 'N/A'}`;
-                if (isPendente && (!item.gt || item.gt.trim() === '')) {
-                    gtHtml = `<b>GT:</b> <input type="text" class="gt-input" placeholder="N/A" onkeydown="reavaliarItem(event, this.parentElement.parentElement)">`;
-                }
-                
-                card.innerHTML = `
-                    <span class="delete-btn" onclick="removerCard(this.parentElement)">×</span>
-                    <p><b>Ordem de Produção:</b> ${item.ordemProducao || 'N/A'}</p>
-                    <p><b>Código:</b> ${item.codigo || 'N/A'}</p>
-                    <p>${item.descricao || 'N/A'}</p>
-                    <p><b>Bitola:</b> ${item.dimensao || 'N/A'}</p>
-                    <p><b>Qtd:</b> ${item.quantidade || '0'} <small style="color: var(--text-secondary); margin-left: 10px;">(${parseFloat(item.peso_kg || 0).toFixed(2)} kg/pç)</small></p>
-                    <p class="gt-display" onclick="editarGT(event, this.parentElement)">${gtHtml}</p>
-                `;
-                
-                card.addEventListener('dragstart', handleDragStart);
-                card.addEventListener('dragend', handleDragEnd);
-                
-                container.appendChild(card);
-            }
-
-            window.removerCard = function(card) {
-                card.remove();
-                atualizarTotalizador();
-            }
-            
-            window.editarGT = function(event, cardElement) {
-                if (event.target.tagName === 'INPUT') { return; }
-                const gtDisplayElement = cardElement.querySelector('.gt-display');
-                const currentGT = cardElement.dataset.gt;
-                gtDisplayElement.innerHTML = `<b>GT:</b> <input type="text" class="gt-input" value="${currentGT}" onkeydown="reavaliarItem(event, this.parentElement.parentElement)" onblur="cancelarEdicao(event, this.parentElement.parentElement)">`;
-                const inputField = gtDisplayElement.querySelector('.gt-input');
-                if (inputField) {
-                    inputField.focus();
-                    inputField.select();
-                }
-            }
-
-            window.cancelarEdicao = function(event, cardElement) {
-                setTimeout(() => {
-                    const input = cardElement.querySelector('.gt-input');
-                    if (input && !input.disabled) {
-                        const currentGT = cardElement.dataset.gt;
-                        const gtDisplayElement = cardElement.querySelector('.gt-display');
-                        gtDisplayElement.innerHTML = `<b>GT:</b> ${currentGT || 'N/A'}`;
-                    }
-                }, 100);
-            }
-
-            window.reavaliarItem = async function(event, cardElement) {
-                if (event.key === 'Enter') {
-                    const input = event.target;
-                    const novoGT = input.value.trim();
-                    const codigoItem = cardElement.dataset.codigo;
+                    const { bitolaReferenciaSelect, filterBitolaPendentes } = elements.productionView;
                     
-                    if (novoGT === cardElement.dataset.gt) {
-                        cancelarEdicao(event, cardElement);
+                    bitolaReferenciaSelect.innerHTML = '<option value="">Selecione a bitola...</option>';
+                    todasEspessuras.forEach(esp => {
+                        const option = document.createElement('option');
+                        option.value = esp;
+                        option.textContent = esp;
+                        bitolaReferenciaSelect.appendChild(option);
+                    });
+                    bitolaReferenciaSelect.value = appState.production.filters.bitolaReferencia;
+
+                    const pendentesEspessuras = [...new Set(appState.production.pendentes.map(getEspessura).filter(e => e > 0))].sort((a, b) => a - b);
+                    filterBitolaPendentes.innerHTML = '<option value="">Filtrar bitola...</option>';
+                    pendentesEspessuras.forEach(esp => {
+                        const option = document.createElement('option');
+                        option.value = esp;
+                        option.textContent = esp;
+                        filterBitolaPendentes.appendChild(option);
+                    });
+                    filterBitolaPendentes.value = appState.production.filters.bitolaPendentes;
+                }
+            },
+            master: {
+                full: () => {
+                    render.master.table();
+                    render.master.pagination();
+                },
+                table: () => {
+                    const { tableBody } = elements.masterView;
+                    tableBody.innerHTML = '';
+                    if(appState.isLoading) {
+                        tableBody.innerHTML = '<tr><td colspan="6" style="text-align:center;">Carregando...</td></tr>';
                         return;
                     }
-
-                    input.disabled = true;
-                    input.value = "Salvando...";
-
-                    try {
-                        const response = await fetch(n8nAtualizarGTUrl, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ codigo: codigoItem, gt: novoGT })
-                        });
-
-                        if (!response.ok) { throw new Error('Falha ao atualizar o GT no banco de dados.'); }
-
-                        cardElement.dataset.gt = novoGT;
-                        const gtDisplayElement = cardElement.querySelector('.gt-display');
-                        gtDisplayElement.innerHTML = `<b>GT:</b> ${novoGT || 'N/A'}`;
-
-                        const corresponde = gtsAtuais.some(gtSelecionado => novoGT.includes(gtSelecionado));
-
-                        if (corresponde && cardElement.parentElement.id !== 'arranjo-producao-lista') {
-                            elements.arranjoProducaoLista.appendChild(cardElement);
-                            reordenarArranjo();
-                        } else if (!corresponde && cardElement.parentElement.id !== 'itens-pendentes-lista') {
-                            elements.itensPendentesLista.appendChild(cardElement);
-                        }
-                        atualizarTotalizador();
-                    } catch (error) {
-                        showAlert(error.message, 'Erro', 'error');
-                        input.disabled = false;
-                        input.value = novoGT;
-                        input.focus();
+                    if (appState.master.items.length === 0) {
+                        tableBody.innerHTML = '<tr><td colspan="6" style="text-align:center;">Nenhum item encontrado.</td></tr>';
+                        return;
                     }
-                } else if (event.key === 'Escape') {
-                    cancelarEdicao(event, cardElement);
-                }
-            }
+                    appState.master.items.forEach(item => {
+                        tableBody.appendChild(createMasterTableRow(item));
+                    });
+                },
+                pagination: () => {
+                    const { itemsPerPage, currentPage, totalItems } = appState.master;
+                    const { pageInfo, btnPrev, btnNext } = elements.masterView;
 
-            function reordenarArranjo() {
-                const lista = elements.arranjoProducaoLista;
-                const items = Array.from(lista.querySelectorAll('.item-card'));
-                items.sort((a, b) => {
-                    try {
-                        const espessuraA = parseFloat(a.dataset.dimensao.split('X')[1].trim().replace(',', '.'));
-                        const espessuraB = parseFloat(b.dataset.dimensao.split('X')[1].trim().replace(',', '.'));
-                        if (isNaN(espessuraA) || isNaN(espessuraB)) return 0;
-                        return espessuraA - espessuraB;
-                    } catch (e) {
-                        return 0;
-                    }
-                });
-                items.forEach(item => lista.appendChild(item));
-                atualizarTotalizador();
-            }
-            
-            function handleDragStart(e) {
-                e.target.classList.add('dragging');
-                e.dataTransfer.setData('text/plain', e.target.id);
-            }
-
-            function handleDragEnd(e) {
-                e.target.classList.remove('dragging');
-            }
-
-            const dropZones = [elements.arranjoProducaoLista.parentElement, elements.itensPendentesLista.parentElement];
-
-            dropZones.forEach(zone => {
-                zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
-                zone.addEventListener('dragleave', () => { zone.classList.remove('drag-over'); });
-                zone.addEventListener('drop', e => {
-                    e.preventDefault();
-                    zone.classList.remove('drag-over');
-                    const id = e.dataTransfer.getData('text');
-                    const draggableElement = document.getElementById(id);
-                    if (!draggableElement) return;
-                    
-                    const targetList = zone.querySelector('div[id$="-lista"]');
-                    targetList.appendChild(draggableElement);
-
-                    if (targetList.id === 'arranjo-producao-lista') {
-                        reordenarArranjo(); // Já chama atualizarTotalizador
+                    if (itemsPerPage === 'all') {
+                        pageInfo.textContent = `Mostrando todos (${totalItems})`;
+                        btnPrev.disabled = true;
+                        btnNext.disabled = true;
                     } else {
-                        atualizarTotalizador(); // Se moveu para pendentes, precisa atualizar também
+                        const totalPages = Math.ceil(totalItems / itemsPerPage) || 1;
+                        pageInfo.textContent = `Página ${currentPage} de ${totalPages} (Total: ${totalItems})`;
+                        btnPrev.disabled = currentPage <= 1;
+                        btnNext.disabled = currentPage >= totalPages;
+                    }
+                },
+            },
+            history: {
+                full: () => {
+                    render.history.table();
+                    render.history.pagination();
+                    render.history.filters();
+                },
+                table: () => {
+                    const { tableBody } = elements.historyView;
+                    tableBody.innerHTML = '';
+                     if(appState.isLoading) {
+                        tableBody.innerHTML = '<tr><td colspan="4" style="text-align:center;">Carregando histórico...</td></tr>';
+                        return;
+                    }
+                    if (appState.history.items.length === 0) {
+                        tableBody.innerHTML = '<tr><td colspan="4" style="text-align:center;">Nenhum histórico encontrado.</td></tr>';
+                        return;
+                    }
+                    appState.history.items.forEach(item => {
+                        tableBody.appendChild(createHistoryTableRow(item));
+                    });
+                },
+                pagination: () => {
+                    const { itemsPerPage, currentPage, totalItems } = appState.history;
+                    const { pageInfo, btnPrev, btnNext } = elements.historyView;
+                     if (itemsPerPage === 'all') {
+                        pageInfo.textContent = `Mostrando todos (${totalItems})`;
+                        btnPrev.disabled = true;
+                        btnNext.disabled = true;
+                    } else {
+                        const totalPages = Math.ceil(totalItems / itemsPerPage) || 1;
+                        pageInfo.textContent = `Página ${currentPage} de ${totalPages} (Total: ${totalItems})`;
+                        btnPrev.disabled = currentPage <= 1;
+                        btnNext.disabled = currentPage >= totalPages;
+                    }
+                },
+                filters: async () => {
+                    const { gtDropdown, gtDisplay } = elements.historyView.filters;
+                    const { gts } = appState.history.filters;
+                    
+                    if(gtDropdown.children.length === 0) {
+                       const options = await api.fetchGtOptions();
+                       options.forEach(gt => {
+                           const label = document.createElement('label');
+                           label.className = 'multi-select-option';
+                           const checkbox = document.createElement('input');
+                           checkbox.type = 'checkbox';
+                           checkbox.value = gt;
+                           const span = document.createElement('span');
+                           span.textContent = gt;
+                           label.append(checkbox, span);
+                           gtDropdown.appendChild(label);
+                           label.addEventListener('change', () => logic.history.updateGtFilter());
+                       });
+                    }
+
+                    if (gts.length === 0) gtDisplay.textContent = 'Todos';
+                    else if (gts.length <= 2) gtDisplay.textContent = gts.join(', ');
+                    else gtDisplay.textContent = `${gts.length} selecionados`;
+                }
+            },
+            autocomplete: () => {
+                const { autocompleteList } = elements.manualAddModal;
+                autocompleteList.innerHTML = '';
+                if (appState.autocomplete.suggestions.length > 0) {
+                    appState.autocomplete.suggestions.forEach(item => {
+                        const li = document.createElement('li');
+                        li.className = 'autocomplete-item';
+                        li.innerHTML = `<strong>${item.codigo_item}</strong><small>${item.bitola || 'S/D'} - GT ${item.gt || '?'}</small>`;
+                        li.addEventListener('click', () => logic.manualAdd.selectAutocompleteItem(item));
+                        autocompleteList.appendChild(li);
+                    });
+                    autocompleteList.classList.add('visible');
+                } else {
+                    autocompleteList.classList.remove('visible');
+                }
+            }
+        };
+
+        // --- LOGIC & EVENT LISTENERS ---
+        const logic = {
+            init: () => {
+                // Initial setup
+                appState.theme = elements.theme.toggle.checked ? 'dark' : 'light';
+                render.app();
+
+                // Navigation
+                elements.nav.btnMasterManager.addEventListener('click', logic.navigation.goToMaster);
+                elements.nav.btnHistory.addEventListener('click', logic.navigation.goToHistory);
+                elements.nav.btnVoltarProducaoMaster.addEventListener('click', logic.navigation.goToProduction);
+                elements.nav.btnVoltarProducaoHistory.addEventListener('click', logic.navigation.goToProduction);
+                elements.productionView.btnBackToHistory.addEventListener('click', logic.navigation.goToHistory);
+
+                // Theme
+                elements.theme.toggle.addEventListener('change', (e) => {
+                    appState.theme = e.target.checked ? 'dark' : 'light';
+                    render.theme();
+                });
+
+                // Production Config
+                elements.productionConfig.btnFornoGrande.addEventListener('click', () => logic.production.setForno('grande'));
+                elements.productionConfig.btnFornoPequeno.addEventListener('click', () => logic.production.setForno('pequeno'));
+                elements.productionConfig.qtdeGtsSelect.addEventListener('change', (e) => logic.production.setNumGTs(parseInt(e.target.value)));
+                elements.productionConfig.btnCarregarCsv.addEventListener('click', () => elements.productionConfig.csvFileInput.click());
+                elements.productionConfig.csvFileInput.addEventListener('change', (e) => {
+                    appState.production.config.csvFile = e.target.files[0];
+                    elements.productionConfig.btnCarregarCsv.textContent = `Arquivo: ${e.target.files[0].name}`;
+                });
+                elements.productionConfig.btnGerarArranjo.addEventListener('click', logic.production.gerarArranjo);
+                
+                // Production View
+                elements.productionView.btnReset.addEventListener('click', logic.production.reset);
+                elements.productionView.bitolaReferenciaSelect.addEventListener('change', (e) => appState.production.filters.bitolaReferencia = e.target.value);
+                elements.productionView.btnOrdemCrescente.addEventListener('click', () => logic.production.sort('crescente'));
+                elements.productionView.btnOrdemDecrescente.addEventListener('click', () => logic.production.sort('decrescente'));
+                elements.productionView.btnResetFilter.addEventListener('click', logic.production.resetSortAndFilter);
+                elements.productionView.searchPendentes.addEventListener('input', (e) => {
+                    appState.production.filters.searchTermPendentes = e.target.value;
+                    render.production.lists();
+                });
+                elements.productionView.filterBitolaPendentes.addEventListener('change', (e) => {
+                    appState.production.filters.bitolaPendentes = e.target.value;
+                    render.production.lists();
+                });
+                elements.productionView.btnAddManual.addEventListener('click', logic.manualAdd.openModal);
+                elements.productionView.btnExportExcel.addEventListener('click', logic.production.exportExcel);
+                // Drag & Drop
+                const dropZones = [elements.productionView.arranjoContainer, elements.productionView.pendentesContainer];
+                dropZones.forEach(zone => {
+                    zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
+                    zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'); });
+                    zone.addEventListener('drop', (e) => {
+                        e.preventDefault();
+                        zone.classList.remove('drag-over');
+                        const itemId = e.dataTransfer.getData('text/plain');
+                        const targetList = zone.querySelector('div[id$="-lista"]').id.includes('arranjo') ? 'arranjo' : 'pendentes';
+                        logic.production.moveItem(itemId, targetList);
+                    });
+                });
+                
+                // Master View
+                elements.masterView.search.addEventListener('input', (e) => {
+                    clearTimeout(appState.master.searchTimeout);
+                    appState.master.searchTimeout = setTimeout(() => {
+                        appState.master.searchTerm = e.target.value;
+                        appState.master.currentPage = 1;
+                        logic.master.fetchItems();
+                    }, 500);
+                });
+                elements.masterView.itemsPerPage.addEventListener('change', (e) => {
+                    appState.master.itemsPerPage = e.target.value === 'all' ? 'all' : parseInt(e.target.value);
+                    appState.master.currentPage = 1;
+                    logic.master.fetchItems();
+                });
+                elements.masterView.btnPrev.addEventListener('click', () => {
+                    if (appState.master.currentPage > 1) {
+                        appState.master.currentPage--;
+                        logic.master.fetchItems();
                     }
                 });
-            });
-            
-            // --- Exportação Excel ---
-            elements.btnExportExcel.addEventListener('click', () => {
-                const itemCards = elements.arranjoProducaoLista.querySelectorAll('.item-card');
-                if (itemCards.length === 0) {
-                    showAlert("Não há itens no arranjo de produção para exportar.", "Aviso");
-                    return;
+                elements.masterView.btnNext.addEventListener('click', () => {
+                    const { currentPage, totalItems, itemsPerPage } = appState.master;
+                    const totalPages = Math.ceil(totalItems / itemsPerPage);
+                    if (currentPage < totalPages) {
+                        appState.master.currentPage++;
+                        logic.master.fetchItems();
+                    }
+                });
+                elements.masterView.form.btnAdd.addEventListener('click', logic.master.createItem);
+                
+                // History View
+                const historyFilterHandler = () => {
+                    clearTimeout(appState.history.searchTimeout);
+                    appState.history.searchTimeout = setTimeout(() => {
+                        appState.history.currentPage = 1;
+                        logic.history.fetchItems();
+                    }, 500);
+                };
+                elements.historyView.filters.forno.addEventListener('change', (e) => { appState.history.filters.forno = e.target.value; historyFilterHandler(); });
+                elements.historyView.filters.user.addEventListener('input', (e) => { appState.history.filters.usuario = e.target.value; historyFilterHandler(); });
+                elements.historyView.filters.date.addEventListener('change', (e) => { appState.history.filters.data = e.target.value; historyFilterHandler(); });
+                elements.historyView.itemsPerPage.addEventListener('change', (e) => {
+                    appState.history.itemsPerPage = e.target.value === 'all' ? 'all' : parseInt(e.target.value);
+                    appState.history.currentPage = 1;
+                    logic.history.fetchItems();
+                });
+                elements.historyView.btnPrev.addEventListener('click', () => {
+                    if (appState.history.currentPage > 1) {
+                        appState.history.currentPage--;
+                        logic.history.fetchItems();
+                    }
+                });
+                elements.historyView.btnNext.addEventListener('click', () => {
+                    const { currentPage, totalItems, itemsPerPage } = appState.history;
+                    const totalPages = Math.ceil(totalItems / itemsPerPage);
+                    if (currentPage < totalPages) {
+                        appState.history.currentPage++;
+                        logic.history.fetchItems();
+                    }
+                });
+                elements.historyView.filters.gtDisplay.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    elements.historyView.filters.gtDropdown.classList.toggle('open');
+                });
+                document.addEventListener('click', () => elements.historyView.filters.gtDropdown.classList.remove('open'));
+                elements.historyView.filters.gtDropdown.addEventListener('click', (e) => e.stopPropagation());
+
+                // Manual Add Modal
+                elements.manualAddModal.btnCancel.addEventListener('click', logic.manualAdd.closeModal);
+                elements.manualAddModal.btnConfirm.addEventListener('click', logic.manualAdd.confirmAddItem);
+                elements.manualAddModal.inputCodigo.addEventListener('input', (e) => logic.manualAdd.fetchAutocomplete(e.target.value));
+                document.addEventListener('click', (e) => {
+                    if (!elements.manualAddModal.inputCodigo.contains(e.target) && !elements.manualAddModal.autocompleteList.contains(e.target)) {
+                        elements.manualAddModal.autocompleteList.classList.remove('visible');
+                    }
+                });
+            },
+            navigation: {
+                goTo: (view) => {
+                    appState.currentView = view;
+                    render.view();
+                },
+                goToMaster: () => {
+                    logic.navigation.goTo('gerenciador');
+                    logic.master.fetchItems();
+                },
+                goToHistory: () => {
+                    logic.navigation.goTo('historico');
+                    logic.history.fetchItems();
+                },
+                goToProduction: () => {
+                    logic.production.reset();
+                    logic.navigation.goTo('principal');
                 }
-
-                const originalText = elements.btnExportExcel.innerHTML;
-                elements.btnExportExcel.innerHTML = '<div class="spinner"></div> Exportando...';
-                elements.btnExportExcel.disabled = true;
-
-                try {
-                    const itemsParaExportar = [];
-                    // Adicionado Quantidade na exportação
-                    itemsParaExportar.push([ "Ordem de Produção", "Código", "Descrição", "Bitola", "GT", "Quantidade" ]);
+            },
+            production: {
+                setForno: (forno) => {
+                    appState.production.config.forno = forno;
+                    appState.production.config.numGTs = forno === 'grande' ? 3 : 2;
+                    render.production.configForm();
+                },
+                setNumGTs: (num) => {
+                    appState.production.config.numGTs = num;
+                    render.production.configForm();
+                },
+                gerarArranjo: async () => {
+                    if (!appState.production.config.csvFile) return showAlert('Por favor, carregue um arquivo CSV primeiro.');
                     
-                    itemCards.forEach(card => {
-                        itemsParaExportar.push([
-                            card.dataset.ordemProducao,
-                            card.dataset.codigo,
-                            card.dataset.descricao,
-                            card.dataset.dimensao,
-                            card.dataset.gt,
-                            card.dataset.quantidade
-                        ]);
+                    appState.production.config.gts = Array.from(elements.productionConfig.inputsGtsContainer.querySelectorAll('input'))
+                        .map(input => input.value.trim()).filter(Boolean);
+
+                    const btn = elements.productionConfig.btnGerarArranjo;
+                    const originalText = btn.innerHTML;
+                    btn.innerHTML = '<div class="spinner"></div> Gerando...';
+                    btn.disabled = true;
+
+                    try {
+                        const data = await api.gerarArranjo();
+                        const uniqueIdItems = (items) => items.map(item => ({...item, id: `${item.ordemProducao}-${item.codigo}-${Math.random()}`}));
+                        
+                        appState.production.arranjo = uniqueIdItems(data.arranjo_producao || []);
+                        appState.production.pendentes = uniqueIdItems(data.itens_pendentes || []);
+                        appState.production.originalArranjo = JSON.parse(JSON.stringify(appState.production.arranjo));
+                        appState.production.originalPendentes = JSON.parse(JSON.stringify(appState.production.pendentes));
+                        appState.currentStep = 2;
+                        appState.production.isFromHistory = false;
+                        render.production.full();
+                    } catch (error) {
+                        showAlert('Ocorreu um erro ao gerar o arranjo: ' + error.message, 'Erro', 'error');
+                    } finally {
+                        btn.innerHTML = originalText;
+                        btn.disabled = false;
+                    }
+                },
+                reset: () => {
+                    appState.currentStep = 1;
+                    appState.production.arranjo = [];
+                    appState.production.pendentes = [];
+                    appState.production.originalArranjo = [];
+                    appState.production.originalPendentes = [];
+                    appState.production.filters = { bitolaReferencia: '', searchTermPendentes: '', bitolaPendentes: '' };
+                    appState.production.config.csvFile = null;
+                    appState.production.isFromHistory = false;
+                    elements.productionConfig.csvFileInput.value = '';
+                    elements.productionConfig.btnCarregarCsv.textContent = 'Carregar Lista de Produção (.CSV)';
+                    render.production.full();
+                },
+                deleteItem: (itemId) => {
+                    appState.production.arranjo = appState.production.arranjo.filter(i => i.id !== itemId);
+                    appState.production.pendentes = appState.production.pendentes.filter(i => i.id !== itemId);
+                    render.production.lists();
+                    render.production.totalizers();
+                },
+                editGT: (event, itemId) => {
+                    if (event.target.tagName === 'INPUT') return;
+                    const card = document.querySelector(`[data-id="${itemId}"]`);
+                    const item = appState.production.arranjo.find(i => i.id === itemId) || appState.production.pendentes.find(i => i.id === itemId);
+                    if (!card || !item) return;
+
+                    const gtDisplay = card.querySelector('.gt-display');
+                    const input = document.createElement('input');
+                    input.type = 'text';
+                    input.className = 'gt-input';
+                    input.value = item.gt || '';
+
+                    input.addEventListener('keydown', async (e) => {
+                        if (e.key === 'Enter') {
+                            const newGT = e.target.value.trim();
+                            e.target.disabled = true;
+                            e.target.value = "Salvando...";
+                            try {
+                                await api.atualizarGT(item.codigo, newGT);
+                                item.gt = newGT;
+                                const isCompatible = appState.production.config.gts.some(g => newGT.includes(g));
+                                if (isCompatible && !appState.production.arranjo.find(i=>i.id === itemId)) {
+                                    logic.production.moveItem(itemId, 'arranjo');
+                                } else if (!isCompatible && !appState.production.pendentes.find(i=>i.id === itemId)) {
+                                    logic.production.moveItem(itemId, 'pendentes');
+                                }
+                                render.production.lists();
+                            } catch (error) {
+                                showAlert(error.message, 'Erro', 'error');
+                                e.target.disabled = false;
+                                e.target.value = newGT;
+                                e.target.focus();
+                            }
+                        } else if (e.key === 'Escape') {
+                            gtDisplay.innerHTML = `<b>GT:</b> ${item.gt || 'N/A'}`;
+                        }
+                    });
+                    input.addEventListener('blur', () => { setTimeout(() => { gtDisplay.innerHTML = `<b>GT:</b> ${item.gt || 'N/A'}`; }, 100); });
+                    gtDisplay.innerHTML = `<b>GT:</b> `;
+                    gtDisplay.appendChild(input);
+                    input.focus();
+                    input.select();
+                },
+                sort: (direction) => {
+                    const refValue = parseFloat(appState.production.filters.bitolaReferencia);
+                    if (isNaN(refValue)) return showAlert('Por favor, selecione uma Bitola de Partida.');
+
+                    const getEspessura = (item) => {
+                        try {
+                            const partes = (item.dimensao || '0 X 0').split('X');
+                            return parseFloat(partes[1].trim().replace(',', '.')) || 0;
+                        } catch (e) { return 0; }
+                    };
+
+                    const newArranjo = [];
+                    const toPendentes = [];
+                    
+                    appState.production.arranjo.forEach(item => {
+                        const esp = getEspessura(item);
+                        if ((direction === 'crescente' && esp >= refValue) || (direction === 'decrescente' && esp <= refValue)) {
+                            newArranjo.push(item);
+                        } else {
+                            toPendentes.push(item);
+                        }
                     });
 
-                    const wb = XLSX.utils.book_new();
-                    const ws = XLSX.utils.aoa_to_sheet(itemsParaExportar);
-                    XLSX.utils.book_append_sheet(wb, ws, "Arranjo de Produção");
-                    XLSX.writeFile(wb, "Arranjo_Producao.xlsx");
+                    newArranjo.sort((a, b) => {
+                        const diff = getEspessura(a) - getEspessura(b);
+                        return direction === 'crescente' ? diff : -diff;
+                    });
+                    
+                    appState.production.arranjo = newArranjo;
+                    appState.production.pendentes.push(...toPendentes);
+                    
+                    render.production.full();
+                },
+                resetSortAndFilter: () => {
+                    appState.production.arranjo = JSON.parse(JSON.stringify(appState.production.originalArranjo));
+                    appState.production.pendentes = JSON.parse(JSON.stringify(appState.production.originalPendentes));
+                    appState.production.filters = { bitolaReferencia: '', searchTermPendentes: '', bitolaPendentes: '' };
+                    render.production.full();
+                },
+                exportExcel: () => {
+                    if (appState.production.arranjo.length === 0) return showAlert("Não há itens no arranjo para exportar.");
+                    
+                    const btn = elements.productionView.btnExportExcel;
+                    const originalText = btn.innerHTML;
+                    btn.innerHTML = '<div class="spinner"></div> Exportando...';
+                    btn.disabled = true;
+                    
+                    try {
+                        const data = [["Ordem de Produção", "Código", "Descrição", "Bitola", "GT", "Quantidade"]];
+                        appState.production.arranjo.forEach(item => {
+                            data.push([item.ordemProducao, item.codigo, item.descricao, item.dimensao, item.gt, item.quantidade]);
+                        });
+                        const wb = XLSX.utils.book_new();
+                        const ws = XLSX.utils.aoa_to_sheet(data);
+                        XLSX.utils.book_append_sheet(wb, ws, "Arranjo de Produção");
+                        XLSX.writeFile(wb, "Arranjo_Producao.xlsx");
+                    } catch(e) {
+                        showAlert(`Falha ao exportar para Excel: ${e.message}`, 'Erro', 'error');
+                    } finally {
+                        btn.innerHTML = originalText;
+                        btn.disabled = false;
+                    }
+                },
+                handleDragStart: (e, itemId) => {
+                    e.target.classList.add('dragging');
+                    e.dataTransfer.setData('text/plain', itemId);
+                },
+                moveItem: (itemId, targetList) => {
+                    const sourceList = targetList === 'arranjo' ? 'pendentes' : 'arranjo';
+                    const itemIndex = appState.production[sourceList].findIndex(i => i.id === itemId);
+                    if (itemIndex === -1) return;
 
-                } catch (error) {
-                    showAlert(`Falha ao exportar para Excel: ${error.message}`, 'Erro', 'error');
-                } finally {
-                    elements.btnExportExcel.innerHTML = originalText;
-                    elements.btnExportExcel.disabled = false;
+                    const [item] = appState.production[sourceList].splice(itemIndex, 1);
+                    appState.production[targetList].push(item);
+                    
+                    if(targetList === 'arranjo') {
+                       // Re-sort arranjo by bitola
+                        appState.production.arranjo.sort((a,b) => {
+                             const getEspessura = (item) => {
+                                try {
+                                    const partes = (item.dimensao || '0 X 0').split('X');
+                                    return parseFloat(partes[1].trim().replace(',', '.')) || 0;
+                                } catch (e) { return 0; }
+                            };
+                            return getEspessura(a) - getEspessura(b);
+                        });
+                    }
+
+                    render.production.full();
                 }
-            });
+            },
+            master: {
+                fetchItems: async () => {
+                    appState.isLoading = true;
+                    render.master.table();
+                    try {
+                        const { items, total } = await api.fetchMasterItems();
+                        appState.master.items = items;
+                        appState.master.totalItems = total;
+                    } catch (e) {
+                        showAlert('Erro ao buscar itens mestre: ' + e.message, 'Erro', 'error');
+                        appState.master.items = [];
+                        appState.master.totalItems = 0;
+                    } finally {
+                        appState.isLoading = false;
+                        render.master.full();
+                    }
+                },
+                saveItem: async (itemId) => {
+                    const row = document.querySelector(`tr[data-id="${itemId}"]`);
+                    const updates = {
+                        descricao: row.querySelector('.inp-descricao').value,
+                        dimensao: row.querySelector('.inp-dimensao').value,
+                        peso_kg: parseFloat(row.querySelector('.inp-peso').value) || 0,
+                        gt: row.querySelector('.inp-gt').value,
+                    };
+                    const btn = row.querySelector('.btn-save-row');
+                    btn.disabled = true;
+                    try {
+                        const { error } = await api.updateMasterItem(itemId, updates);
+                        if (error) throw error;
+                        showAlert('Item atualizado com sucesso!', 'Sucesso', 'success');
+                    } catch (e) {
+                        showAlert('Erro ao atualizar: ' + e.message, 'Erro', 'error');
+                    } finally {
+                        btn.disabled = false;
+                    }
+                },
+                deleteItem: async (itemId, codigo) => {
+                    if (await showConfirm(`Tem certeza que deseja excluir o item ${codigo}?`)) {
+                        try {
+                            const { error } = await api.deleteMasterItem(itemId);
+                            if (error) throw error;
+                            logic.master.fetchItems(); // Refresh
+                        } catch (e) {
+                            showAlert('Erro ao excluir: ' + e.message, 'Erro', 'error');
+                        }
+                    }
+                },
+                createItem: async () => {
+                    const form = elements.masterView.form;
+                    const newItem = {
+                        codigo_item: form.codigo.value.trim(),
+                        descricao: form.descricao.value.trim(),
+                        dimensao: form.dimensao.value.trim(),
+                        peso_kg: parseFloat(form.peso.value) || 0,
+                        gt: form.gt.value.trim(),
+                    };
+                    if (!newItem.codigo_item) return showAlert('Código é obrigatório.');
 
-            // --- Toggle Tema ---
-            elements.themeToggle.addEventListener('change', () => {
-                const isDark = elements.themeToggle.checked;
-                document.body.classList.toggle('dark-theme', isDark);
-                document.body.classList.toggle('light-theme', !isDark);
-                
-                elements.logo.src = isDark 
-                    ? 'https://ctfamadobrasil.com.br/wp-content/uploads/2025/12/Gemini_Generated_Image_v8cib8v8cib8v8ci-removebg-preview.png' 
-                    : 'https://ctfamadobrasil.com.br/wp-content/uploads/2025/09/logo.png';
-            });
-            
-            // --- Inicialização ---
-            function initApp() {
-                const isDark = elements.themeToggle.checked;
-                document.body.classList.toggle('dark-theme', isDark);
-                document.body.classList.toggle('light-theme', !isDark);
-                // Não precisa setar o src aqui pois já está correto no HTML
-                updateStepper(1);
-                atualizarConfiguracaoForno('grande');
+                    form.btnAdd.innerHTML = '<div class="spinner"></div>';
+                    form.btnAdd.disabled = true;
+                    try {
+                        const { error } = await api.createMasterItem(newItem);
+                        if (error) throw error;
+                        Object.values(form).forEach(el => { if (el.tagName === 'INPUT') el.value = ''; });
+                        appState.master.currentPage = 1;
+                        await logic.master.fetchItems();
+                        showAlert('Item criado com sucesso!', 'Sucesso', 'success');
+                    } catch (e) {
+                        showAlert('Erro ao criar item: ' + e.message, 'Erro', 'error');
+                    } finally {
+                        form.btnAdd.innerHTML = '+ Criar';
+                        form.btnAdd.disabled = false;
+                    }
+                }
+            },
+            history: {
+                fetchItems: async () => {
+                    appState.isLoading = true;
+                    render.history.table();
+                    try {
+                        const { items, total } = await api.fetchHistory();
+                        appState.history.items = items;
+                        appState.history.totalItems = total;
+                    } catch (e) {
+                        showAlert('Erro ao buscar histórico: ' + e.message, 'Erro', 'error');
+                        appState.history.items = [];
+                        appState.history.totalItems = 0;
+                    } finally {
+                        appState.isLoading = false;
+                        render.history.full();
+                    }
+                },
+                loadItem: (jsonResult) => {
+                     try {
+                        let data = jsonResult;
+                        if (typeof data === 'string') data = JSON.parse(JSON.parse(data));
+                        
+                        const uniqueIdItems = (items) => items.map(item => ({...item, id: `${item.ordemProducao}-${item.codigo}-${Math.random()}`}));
+                        appState.production.arranjo = uniqueIdItems(data.arranjo_producao || []);
+                        appState.production.pendentes = uniqueIdItems(data.itens_pendentes || []);
+                        appState.production.originalArranjo = JSON.parse(JSON.stringify(appState.production.arranjo));
+                        appState.production.originalPendentes = JSON.parse(JSON.stringify(appState.production.pendentes));
+
+                        appState.currentView = 'principal';
+                        appState.currentStep = 2;
+                        appState.production.isFromHistory = true;
+                        render.app();
+                    } catch (e) {
+                        showAlert('Erro ao processar dados do histórico: ' + e.message, 'Erro', 'error');
+                    }
+                },
+                updateGtFilter: () => {
+                    const checkboxes = elements.historyView.filters.gtDropdown.querySelectorAll('input:checked');
+                    appState.history.filters.gts = Array.from(checkboxes).map(cb => cb.value);
+                    appState.history.currentPage = 1;
+                    logic.history.fetchItems();
+                }
+            },
+            manualAdd: {
+                openModal: () => {
+                    appState.manualAddItem = { codigo: '', op: '', qtd: '', bitola: '', gt: '', peso: 0 };
+                    Object.values(elements.manualAddModal).forEach(el => {
+                        if (el.tagName === 'INPUT') el.value = '';
+                    });
+                    elements.manualAddModal.autocompleteList.classList.remove('visible');
+                    elements.manualAddModal.overlay.classList.add('open');
+                    setTimeout(() => elements.manualAddModal.inputCodigo.focus(), 100);
+                },
+                closeModal: () => {
+                    elements.manualAddModal.overlay.classList.remove('open');
+                },
+                fetchAutocomplete: (term) => {
+                    clearTimeout(appState.autocomplete.searchTimeout);
+                    appState.autocomplete.searchTimeout = setTimeout(async () => {
+                        if (term.length < 2) {
+                            appState.autocomplete.suggestions = [];
+                            render.autocomplete();
+                            return;
+                        }
+                        try {
+                            appState.autocomplete.suggestions = await api.fetchAutocomplete(term.toUpperCase());
+                            render.autocomplete();
+                        } catch(e) { console.error("Autocomplete error:", e); }
+                    }, 300);
+                },
+                selectAutocompleteItem: (item) => {
+                    appState.manualAddItem.codigo = item.codigo_item;
+                    appState.manualAddItem.bitola = item.bitola;
+                    appState.manualAddItem.gt = item.gt;
+                    appState.manualAddItem.peso = item.peso_kg || 0;
+                    
+                    elements.manualAddModal.inputCodigo.value = item.codigo_item;
+                    elements.manualAddModal.inputBitola.value = item.bitola || '';
+                    elements.manualAddModal.inputGt.value = item.gt || '';
+                    elements.manualAddModal.autocompleteList.classList.remove('visible');
+                },
+                confirmAddItem: () => {
+                    const { op, qtd } = elements.manualAddModal;
+                    const { codigo, bitola, gt, peso } = appState.manualAddItem;
+
+                    if (!codigo || !op.value || !qtd.value) {
+                        return showAlert("Código, OP e Quantidade são obrigatórios.");
+                    }
+                    
+                    const newItem = {
+                        id: `manual-${Date.now()}`,
+                        ordemProducao: op.value.trim(),
+                        codigo,
+                        descricao: "Item Manual",
+                        dimensao: bitola,
+                        gt,
+                        quantidade: qtd.value,
+                        peso_kg: peso
+                    };
+
+                    appState.production.pendentes.push(newItem);
+                    appState.production.originalPendentes.push(JSON.parse(JSON.stringify(newItem)));
+                    logic.manualAdd.closeModal();
+                    render.production.full();
+                }
             }
+        };
 
-            initApp();
-        });
+        // --- INITIALIZATION ---
+        logic.init();
+    });
     </script>
 </body>
 </html>
