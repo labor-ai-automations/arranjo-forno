@@ -1243,6 +1243,15 @@
             const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
             const n8nGerarArranjoUrl = 'https://n8n-n8n.znxk1t.easypanel.host/webhook/gerar-arranjo';
             const n8nAtualizarGTUrl = 'https://n8n-n8n.znxk1t.easypanel.host/webhook/atualizar-itens-mestre'; 
+            
+            // --- NEW: Paleta de Cores para o Mapa Visual ---
+            const gtColors = { 
+                'GT23': '#D92D20', 
+                'GT170': '#FBBF24', 
+                'GT152': '#88110D', 
+                'GT77': '#F97316', 
+                'DEFAULT': '#3B82F6' 
+            };
 
             // --- SISTEMA DE DIALOG CUSTOMIZADO (Substitui alert/confirm) ---
             const dialogOverlay = document.getElementById('custom-dialog-overlay');
@@ -1382,6 +1391,7 @@
                 
                 // Exportação
                 btnExportExcel: document.getElementById('btn-export-excel'),
+                btnExportPdf: document.getElementById('btn-export-pdf'),
 
                 // Gerenciador Mestre
                 searchMasterItems: document.getElementById('search-master-items'),
@@ -2109,7 +2119,6 @@
                 }
             });
 
-            // DENTRO DO LISTENER DE 'elements.btnManualConfirm'
             elements.btnManualConfirm.addEventListener('click', () => {
                 const codigo = elements.modalInputCodigo.value.trim();
                 const op = elements.modalInputOp.value.trim();
@@ -2117,9 +2126,8 @@
                 const bitola = elements.modalInputBitola.value.trim();
                 const gt = elements.modalInputGt.value.trim();
                 
-                // LEIA o peso que foi guardado no dataset do input de código
                 const peso = parseFloat(elements.modalInputCodigo.dataset.pesoSelecionado) || 0;
-                elements.modalInputCodigo.dataset.pesoSelecionado = '0'; // Limpa para o próximo uso
+                elements.modalInputCodigo.dataset.pesoSelecionado = '0';
 
                 if (!codigo || !op || !qtd) {
                     showAlert("Código, OP e Quantidade são obrigatórios.", "Campos Faltando");
@@ -2133,7 +2141,8 @@
                     dimensao: bitola,
                     gt: gt,
                     quantidade: qtd,
-                    peso_kg: peso // ADICIONE O CAMPO peso_kg AO OBJETO
+                    peso_kg: peso,
+                    comprimento_mm: 'N/A' // Comprimento não aplicável para itens manuais
                 };
                 
                 listaOriginalPendentes.push(novoItem);
@@ -2184,7 +2193,6 @@
                 document.getElementById('bitola-referencia-select').value = "";
             }
             
-            // CORREÇÃO: Lógica de Ordenação restaurada para operar apenas na coluna "Arranjo de Produção"
             function aplicarOrdenacaoDirecional(direcao) {
                 const seletor = document.getElementById('bitola-referencia-select');
                 const valorReferencia = parseFloat(seletor.value);
@@ -2197,13 +2205,11 @@
                 const arranjoLista = document.getElementById('arranjo-producao-lista');
                 const pendentesLista = document.getElementById('itens-pendentes-lista');
                 
-                // A fonte de dados é APENAS a lista do arranjo atual.
                 const cardsDoArranjoAtual = Array.from(arranjoLista.children);
 
                 const permanecemNoArranjo = [];
                 const vaoParaPendentes = [];
 
-                // 1. Particionar os cards do ARRANJO ATUAL em dois grupos.
                 cardsDoArranjoAtual.forEach(card => {
                     const espessura = getEspessura(card);
                     if ((direcao === 'crescente' && espessura >= valorReferencia) || (direcao === 'decrescente' && espessura <= valorReferencia)) {
@@ -2213,16 +2219,13 @@
                     }
                 });
 
-                // 2. Ordenar apenas o grupo que permanece no arranjo.
                 permanecemNoArranjo.sort((a, b) => direcao === 'crescente' ? getEspessura(a) - getEspessura(b) : getEspessura(b) - getEspessura(a));
                 
-                // 3. Atualizar o DOM de forma precisa.
-                arranjoLista.innerHTML = ''; // Limpa SOMENTE a lista do arranjo.
+                arranjoLista.innerHTML = '';
                 
                 permanecemNoArranjo.forEach(card => arranjoLista.appendChild(card));
                 vaoParaPendentes.forEach(card => pendentesLista.appendChild(card)); 
                 
-                // 4. Atualiza as UIs auxiliares.
                 atualizarTotalizador();
                 popularFiltroBitolaPendentes(); 
                 filtrarItensPendentes();
@@ -2301,11 +2304,15 @@
                 card.dataset.gt = item.gt || '';
                 card.dataset.quantidade = item.quantidade || '0';
                 card.dataset.peso = item.peso_kg || '0';
+                card.dataset.comprimento = item.comprimento_mm || '0'; // NEW: Store length
 
                 let gtHtml = `<b>GT:</b> ${item.gt || 'N/A'}`;
                 if (isPendente && (!item.gt || item.gt.trim() === '')) {
                     gtHtml = `<b>GT:</b> <input type="text" class="gt-input" placeholder="N/A" onkeydown="reavaliarItem(event, this.parentElement.parentElement)">`;
                 }
+
+                // NEW: Calculate total weight for display
+                const peso_total_do_card = (parseFloat(item.quantidade || 0) * parseFloat(item.peso_kg || 0)).toFixed(1);
                 
                 card.innerHTML = `
                     <span class="delete-btn" onclick="removerCard(this.parentElement)">×</span>
@@ -2313,7 +2320,7 @@
                     <p><b>Código:</b> ${item.codigo || 'N/A'}</p>
                     <p>${item.descricao || 'N/A'}</p>
                     <p><b>Bitola:</b> ${item.dimensao || 'N/A'}</p>
-                    <p><b>Qtd:</b> ${item.quantidade || '0'} <small style="color: var(--text-secondary); margin-left: 10px;">(${parseFloat(item.peso_kg || 0).toFixed(2)} kg/pç)</small></p>
+                    <p><b>Qtd:</b> ${item.quantidade || '0'} <small style="color: var(--text-secondary); margin-left: 10px;">(${peso_total_do_card} kg | ${item.comprimento_mm || 'N/A'} mm)</small></p>
                     <p class="gt-display" onclick="editarGT(event, this.parentElement)">${gtHtml}</p>
                 `;
                 
@@ -2398,21 +2405,13 @@
                 }
             }
 
+            // --- UPDATED: reordenarArranjo ---
+            // The function no longer sorts by bitola, as the backend now provides the pre-sorted list.
+            // It now just updates the UI components that depend on the list's state.
             function reordenarArranjo() {
-                const lista = elements.arranjoProducaoLista;
-                const items = Array.from(lista.querySelectorAll('.item-card'));
-                items.sort((a, b) => {
-                    try {
-                        const espessuraA = parseFloat(a.dataset.dimensao.split('X')[1].trim().replace(',', '.'));
-                        const espessuraB = parseFloat(b.dataset.dimensao.split('X')[1].trim().replace(',', '.'));
-                        if (isNaN(espessuraA) || isNaN(espessuraB)) return 0;
-                        return espessuraA - espessuraB;
-                    } catch (e) {
-                        return 0;
-                    }
-                });
-                items.forEach(item => lista.appendChild(item));
                 atualizarTotalizador();
+                popularFiltroBitolaPendentes();
+                filtrarItensPendentes();
             }
             
             function handleDragStart(e) {
@@ -2439,11 +2438,8 @@
                     const targetList = zone.querySelector('div[id$="-lista"]');
                     targetList.appendChild(draggableElement);
 
-                    if (targetList.id === 'arranjo-producao-lista') {
-                        reordenarArranjo(); // Já chama atualizarTotalizador
-                    } else {
-                        atualizarTotalizador(); // Se moveu para pendentes, precisa atualizar também
-                    }
+                    // Call the updated reordenarArranjo regardless of the target list
+                    reordenarArranjo();
                 });
             });
             
@@ -2461,7 +2457,6 @@
 
                 try {
                     const itemsParaExportar = [];
-                    // Adicionado Quantidade na exportação
                     itemsParaExportar.push([ "Ordem de Produção", "Código", "Descrição", "Bitola", "GT", "Quantidade" ]);
                     
                     itemCards.forEach(card => {
@@ -2488,6 +2483,66 @@
                 }
             });
 
+            // --- NEW: Visual Map Generation ---
+            function generateVisualMap() {
+                const itemCards = document.getElementById('arranjo-producao-lista').querySelectorAll('.item-card');
+                if (itemCards.length === 0) {
+                    showAlert("Não há itens no arranjo para gerar o mapa.", "Aviso");
+                    return;
+                }
+
+                let mapHtml = `
+                    <!DOCTYPE html>
+                    <html lang="pt-BR">
+                    <head>
+                        <title>Mapa Visual do Forno</title>
+                        <style>
+                            body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; margin: 0; padding: 20px; background-color: #f0f1f3; }
+                            .print-btn { position: fixed; top: 10px; right: 10px; padding: 8px 16px; background-color: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; z-index: 100; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+                            @media print { .print-btn, h1 { display: none; } .conveyor-belt { border: none; padding: 0; } }
+                            h1 { text-align: center; color: #333; margin-bottom: 20px;}
+                            .conveyor-belt { display: flex; align-items: center; background-color: #ccc; border: 2px solid #555; height: 120px; padding: 5px; overflow-x: auto; white-space: nowrap; border-radius: 8px; }
+                            .item-block { flex-shrink: 0; height: 110px; margin-right: 2px; border: 1px solid rgba(0,0,0,0.2); color: white; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 5px; box-sizing: border-box; font-size: 11px; white-space: normal; overflow: hidden; border-radius: 3px; }
+                            .item-block span { display: block; font-weight: bold; }
+                        </style>
+                    </head>
+                    <body>
+                        <button class="print-btn" onclick="window.print()">Imprimir Mapa</button>
+                        <h1>Mapa Visual da Carga do Forno</h1>
+                        <div class="conveyor-belt">
+                `;
+
+                itemCards.forEach(card => {
+                    const comprimento = parseFloat(card.dataset.comprimento) || 0;
+                    const width = comprimento * 0.1; // Scale: 1mm = 0.1px
+                    const gt = card.dataset.gt || 'DEFAULT';
+                    const color = gtColors[gt] || gtColors['DEFAULT'];
+                    const codigo = card.dataset.codigo;
+                    const bitola = card.dataset.dimensao;
+
+                    mapHtml += `
+                        <div class="item-block" style="width: ${width}px; background-color: ${color};" title="${codigo} | ${bitola} | ${comprimento}mm">
+                            <span>${codigo}</span>
+                            <span>${bitola}</span>
+                            <span>${comprimento}mm</span>
+                        </div>
+                    `;
+                });
+
+                mapHtml += `
+                        </div>
+                    </body>
+                    </html>
+                `;
+                
+                const mapWindow = window.open('', 'MapaDoForno', 'width=1200,height=400,scrollbars=yes,resizable=yes');
+                mapWindow.document.open();
+                mapWindow.document.write(mapHtml);
+                mapWindow.document.close();
+            }
+
+            elements.btnExportPdf.addEventListener('click', generateVisualMap);
+
             // --- Toggle Tema ---
             elements.themeToggle.addEventListener('change', () => {
                 const isDark = elements.themeToggle.checked;
@@ -2504,7 +2559,6 @@
                 const isDark = elements.themeToggle.checked;
                 document.body.classList.toggle('dark-theme', isDark);
                 document.body.classList.toggle('light-theme', !isDark);
-                // Não precisa setar o src aqui pois já está correto no HTML
                 updateStepper(1);
                 atualizarConfiguracaoForno('grande');
             }
