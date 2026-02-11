@@ -2487,6 +2487,7 @@
                 filtrarItensPendentes();
             }
 
+// SUBSTITUA A FUNÇÃO INTEIRA POR ESTA VERSÃO CORRIGIDA E SIMPLIFICADA
 async function aplicarFiltroEmpilhamento() {
     const selectFiltro = document.getElementById('filtro-intervalo-empilhamento');
     const intervalo = selectFiltro.value;
@@ -2500,60 +2501,63 @@ async function aplicarFiltroEmpilhamento() {
         const [tetoMinimo, tetoMaximo] = intervalo.split('-').map(Number);
         if (isNaN(tetoMinimo) || isNaN(tetoMaximo)) throw new Error("Intervalo inválido.");
 
-        const itensDisponiveis = listaOriginalArranjo.map(item => ({...item, isEmpilhado: false}));
-
-        const novoArranjo = [];
-        const novosPendentes = [...listaOriginalPendentes];
+        // 1. Prepara as listas de trabalho
+        const itensParaProcessar = [...listaOriginalArranjo]; // Copia para não modificar a original
         const idsUsados = new Set();
+        const novoArranjo = [];
+        let novosPendentes = [...listaOriginalPendentes]; // Começa com os pendentes que já vieram do n8n
         
-        const basesPotenciais = itensDisponiveis
-            .filter(item => getEspessura({ dataset: { Dimensões: item.Dimensões } }) >= tetoMinimo && getEspessura({ dataset: { Dimensões: item.Dimensões } }) <= tetoMaximo)
-            .sort((a, b) => getEspessura({ dataset: { Dimensões: b.Dimensões } }) - getEspessura({ dataset: { Dimensões: a.Dimensões } }));
+        // Ordena para priorizar as maiores bases primeiro
+        itensParaProcessar.sort((a, b) => b.bitola - a.bitola);
 
-        for (const base of basesPotenciais) {
-            if (idsUsados.has(base.op)) continue; 
+        // 2. Itera para encontrar pares
+        for (let i = 0; i < itensParaProcessar.length; i++) {
+            const base = itensParaProcessar[i];
+            
+            // Se o item já foi usado (como parceiro de uma base maior), pule.
+            if (idsUsados.has(base.op)) continue;
 
-            let parceiroEncontrado = null;
+            // Verifica se o item atual pode ser uma "base"
+            if (base.bitola >= tetoMinimo && base.bitola <= tetoMaximo) {
+                let parceiroEncontrado = null;
+                let indiceParceiro = -1;
 
-            for (let i = 0; i < itensDisponiveis.length; i++) {
-                const parceiroPotencial = itensDisponiveis[i];
-                if (base === parceiroPotencial || idsUsados.has(parceiroPotencial.op)) {
-                    continue;
+                // Procura um "parceiro" para esta "base"
+                for (let j = 0; j < itensParaProcessar.length; j++) {
+                    const parceiroPotencial = itensParaProcessar[j];
+                    if (i === j || idsUsados.has(parceiroPotencial.op)) continue;
+
+                    const espessuraDobrada = parceiroPotencial.bitola * 2;
+                    if (molasPlanasCodigos.has(parceiroPotencial.Código) && espessuraDobrada >= tetoMinimo && espessuraDobrada <= tetoMaximo) {
+                        parceiroEncontrado = parceiroPotencial;
+                        indiceParceiro = j;
+                        break; 
+                    }
                 }
 
-                const espessuraParceiro = getEspessura({ dataset: { Dimensões: parceiroPotencial.Dimensões } });
-                const espessuraDobrada = espessuraParceiro * 2;
-                
-                // CORREÇÃO LÓGICA: O código da mola plana vem do campo 'Código', não 'codigo'
-                if (molasPlanasCodigos.has(parceiroPotencial.Código) && espessuraDobrada >= tetoMinimo && espessuraDobrada <= tetoMaximo) {
-                    parceiroEncontrado = parceiroPotencial;
-                    break; 
-                }
-            }
+                // Se encontrou um par, processa-os
+                if (parceiroEncontrado) {
+                    base.isEmpilhado = false;
+                    parceiroEncontrado.isEmpilhado = true;
+                    
+                    novoArranjo.push(base);
+                    novoArranjo.push(parceiroEncontrado);
 
-            if (parceiroEncontrado) {
-                // --- PONTO DA CORREÇÃO ---
-                // A mola base não recebe a tag.
-                base.isEmpilhado = false; 
-                // APENAS a mola parceira recebe a tag "2X".
-                parceiroEncontrado.isEmpilhado = true;
-                
-                // A ordem é mantida: primeiro a base, depois a parceira.
-                novoArranjo.push(base);
-                novoArranjo.push(parceiroEncontrado);
-                
-                idsUsados.add(base.op);
-                idsUsados.add(parceiroEncontrado.op);
+                    idsUsados.add(base.op);
+                    idsUsados.add(parceiroEncontrado.op);
+                }
             }
         }
-        
-        for (const item of itensDisponiveis) {
+
+        // 3. Adiciona os itens restantes (que não formaram par) aos pendentes
+        for (const item of itensParaProcessar) {
             if (!idsUsados.has(item.op)) {
                 item.isEmpilhado = false;
                 novosPendentes.push(item);
             }
         }
         
+        // 4. Renderiza o resultado final
         popularLista('arranjo-producao-lista', novoArranjo, false);
         popularLista('itens-pendentes-lista', novosPendentes, true);
         
