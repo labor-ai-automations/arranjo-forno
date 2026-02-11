@@ -2487,7 +2487,6 @@
                 filtrarItensPendentes();
             }
 
-// SUBSTITUA A FUNÇÃO INTEIRA POR ESTA VERSÃO CORRIGIDA E SIMPLIFICADA
 async function aplicarFiltroEmpilhamento() {
     const selectFiltro = document.getElementById('filtro-intervalo-empilhamento');
     const intervalo = selectFiltro.value;
@@ -2501,41 +2500,35 @@ async function aplicarFiltroEmpilhamento() {
         const [tetoMinimo, tetoMaximo] = intervalo.split('-').map(Number);
         if (isNaN(tetoMinimo) || isNaN(tetoMaximo)) throw new Error("Intervalo inválido.");
 
-        // 1. Prepara as listas de trabalho
-        const itensParaProcessar = [...listaOriginalArranjo]; // Copia para não modificar a original
+        const itensParaProcessar = [...listaOriginalArranjo];
         const idsUsados = new Set();
         const novoArranjo = [];
-        let novosPendentes = [...listaOriginalPendentes]; // Começa com os pendentes que já vieram do n8n
+        let novosPendentes = [...listaOriginalPendentes];
         
-        // Ordena para priorizar as maiores bases primeiro
         itensParaProcessar.sort((a, b) => b.bitola - a.bitola);
 
-        // 2. Itera para encontrar pares
         for (let i = 0; i < itensParaProcessar.length; i++) {
             const base = itensParaProcessar[i];
             
-            // Se o item já foi usado (como parceiro de uma base maior), pule.
             if (idsUsados.has(base.op)) continue;
 
-            // Verifica se o item atual pode ser uma "base"
             if (base.bitola >= tetoMinimo && base.bitola <= tetoMaximo) {
                 let parceiroEncontrado = null;
                 let indiceParceiro = -1;
 
-                // Procura um "parceiro" para esta "base"
                 for (let j = 0; j < itensParaProcessar.length; j++) {
                     const parceiroPotencial = itensParaProcessar[j];
                     if (i === j || idsUsados.has(parceiroPotencial.op)) continue;
 
                     const espessuraDobrada = parceiroPotencial.bitola * 2;
-                    if (molasPlanasCodigos.has(parceiroPotencial.Código) && espessuraDobrada >= tetoMinimo && espessuraDobrada <= tetoMaximo) {
+                    // --- ESTA É A LINHA CORRIGIDA ---
+                    if (molasPlanasCodigos.has(parceiroPotencial.codigo) && espessuraDobrada >= tetoMinimo && espessuraDobrada <= tetoMaximo) {
                         parceiroEncontrado = parceiroPotencial;
                         indiceParceiro = j;
                         break; 
                     }
                 }
 
-                // Se encontrou um par, processa-os
                 if (parceiroEncontrado) {
                     base.isEmpilhado = false;
                     parceiroEncontrado.isEmpilhado = true;
@@ -2549,7 +2542,6 @@ async function aplicarFiltroEmpilhamento() {
             }
         }
 
-        // 3. Adiciona os itens restantes (que não formaram par) aos pendentes
         for (const item of itensParaProcessar) {
             if (!idsUsados.has(item.op)) {
                 item.isEmpilhado = false;
@@ -2557,7 +2549,6 @@ async function aplicarFiltroEmpilhamento() {
             }
         }
         
-        // 4. Renderiza o resultado final
         popularLista('arranjo-producao-lista', novoArranjo, false);
         popularLista('itens-pendentes-lista', novosPendentes, true);
         
