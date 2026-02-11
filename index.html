@@ -1512,7 +1512,7 @@
             // --- CARREGAR DADOS INICIAIS ---
             async function carregarMolasPlanas() {
                 try {
-                    const { data, error } = await _supabase.from('mapeamento_molas_planas').select('PRODUTO');
+                    const { data, error } = await _supabase.from('mapeamento_molas_planas').select('PRODUTO').limit(10000);
                     if (error) throw error;
                     molasPlanasCodigos = new Set(data.map(item => item.PRODUTO));
                     console.log(`${molasPlanasCodigos.size} códigos de molas planas carregados.`);
