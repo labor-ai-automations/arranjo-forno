@@ -470,6 +470,14 @@
             margin: 2px 0; 
             font-size: 0.9rem; 
         }
+
+        .item-card .card-detalhes {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-top: 8px;
+            padding-top: 5px;
+            border-top: 1px solid var(--border-color);
+        }
         
         .item-card.dragging { 
             opacity: 0.5; 
@@ -520,6 +528,7 @@
             text-align: left; 
             border-bottom: 1px solid var(--border-color); 
             vertical-align: middle; 
+            white-space: nowrap;
         }
         
         th { 
@@ -898,6 +907,7 @@
         <div class="left-actions">
             <button id="btn-master-manager" class="nav-btn">🛠️ Itens Mestre</button>
             <button id="btn-history" class="nav-btn">📜 Histórico</button>
+            <button id="btn-registro-barras" class="nav-btn">📦 Registro de Barras</button>
         </div>
         <div class="logo-area">
             <img id="logo-fama" src="https://ctfamadobrasil.com.br/wp-content/uploads/2025/12/Gemini_Generated_Image_v8cib8v8cib8v8ci-removebg-preview.png" alt="Logo Molas Fama">
@@ -1015,7 +1025,6 @@
             <!-- Botões de Exportação -->
             <div class="export-bar">
                 <button id="btn-export-excel" class="btn btn-success">Exportar Excel</button>
-                <button id="btn-export-pdf" class="btn btn-primary">Exportar PDF</button>
                 <button id="btn-send-email" class="btn btn-secondary">Enviar E-mail</button>
             </div>
         </div>
@@ -1083,14 +1092,51 @@
             <div class="table-container">
                 <table id="table-master-items">
                     <thead>
-                        <tr>
-                            <th>Código</th>
-                            <th>Descrição</th>
-                            <th>Dimensão</th>
-                            <th>Peso (kg)</th>
-                            <th>GT</th>
-                            <th style="width: 150px;">Ações</th>
-                        </tr>
+                        <!-- Cabeçalho gerado via JS -->
+                    </thead>
+                    <tbody>
+                        <!-- Linhas geradas via JS -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+    
+    <!-- VIEW REGISTRO DE BARRAS -->
+    <main id="view-registro-barras" class="container hidden">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+            <h2>Registro de Barras</h2>
+            <button id="btn-voltar-producao-registro" class="btn btn-secondary">← Voltar para Produção</button>
+        </div>
+    
+        <div class="card">
+            <div class="search-bar">
+                <input type="search" id="search-registro-barras" class="search-input-text" placeholder="Pesquisar em todos os campos...">
+            </div>
+            
+            <div class="pagination-toolbar">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span style="color: var(--text-secondary); font-size: 0.9rem;">Exibir:</span>
+                    <select id="registro-items-per-page" class="pagination-select">
+                        <option value="15" selected>15</option>
+                        <option value="25">25</option>
+                        <option value="50">50</option>
+                        <option value="100">100</option>
+                        <option value="all">Todos</option>
+                    </select>
+                </div>
+                
+                <div class="pagination-controls">
+                    <button id="btn-registro-prev" class="btn btn-sm btn-secondary" disabled>Anterior</button>
+                    <span id="registro-page-info" class="page-info">Página 1</span>
+                    <button id="btn-registro-next" class="btn btn-sm btn-secondary">Próximo</button>
+                </div>
+            </div>
+    
+            <div class="table-container">
+                <table id="table-registro-barras">
+                    <thead>
+                        <!-- Cabeçalho gerado via JS -->
                     </thead>
                     <tbody>
                         <!-- Linhas geradas via JS -->
@@ -1244,15 +1290,6 @@
             const n8nGerarArranjoUrl = 'https://n8n-n8n.znxk1t.easypanel.host/webhook/gerar-arranjo';
             const n8nAtualizarGTUrl = 'https://n8n-n8n.znxk1t.easypanel.host/webhook/atualizar-itens-mestre'; 
             
-            // --- NEW: Paleta de Cores para o Mapa Visual ---
-            const gtColors = { 
-                'GT23': '#D92D20', 
-                'GT170': '#FBBF24', 
-                'GT152': '#88110D', 
-                'GT77': '#F97316', 
-                'DEFAULT': '#3B82F6' 
-            };
-
             // --- SISTEMA DE DIALOG CUSTOMIZADO (Substitui alert/confirm) ---
             const dialogOverlay = document.getElementById('custom-dialog-overlay');
             const dialogTitle = document.getElementById('custom-dialog-title');
@@ -1325,11 +1362,12 @@
             };
 
             // --- Variáveis de Estado Global ---
+            let searchTimeout = null;
+            
             // Itens Mestre
             let currentMasterPage = 1;
             let itemsPerPage = 10;
-            let totalItems = 0;
-            let searchTimeout = null;
+            let totalMasterItems = 0;
             
             // Histórico
             let currentHistoryPage = 1;
@@ -1337,6 +1375,11 @@
             let totalHistoryItems = 0;
             let historySearchTimeout = null;
             let selectedGTsFilter = [];
+            
+            // Registro Barras
+            let currentRegistroPage = 1;
+            let registroItemsPerPage = 15;
+            let totalRegistroItems = 0;
             
             // Estado Atual da Produção
             let gtsAtuais = [];
@@ -1352,12 +1395,15 @@
                 viewPrincipal: document.getElementById('view-principal'),
                 viewGerenciador: document.getElementById('view-gerenciador'),
                 viewHistorico: document.getElementById('view-historico'),
+                viewRegistroBarras: document.getElementById('view-registro-barras'),
 
                 // Navigation Buttons
                 btnMasterManager: document.getElementById('btn-master-manager'),
                 btnHistory: document.getElementById('btn-history'),
+                btnRegistroBarras: document.getElementById('btn-registro-barras'),
                 btnVoltarProducaoMaster: document.getElementById('btn-voltar-producao-master'),
                 btnVoltarProducaoHistory: document.getElementById('btn-voltar-producao-history'),
+                btnVoltarProducaoRegistro: document.getElementById('btn-voltar-producao-registro'),
                 btnResetProduction: document.getElementById('btn-reset-production'),
                 btnBackToHistory: document.getElementById('btn-back-to-history'),
 
@@ -1391,11 +1437,10 @@
                 
                 // Exportação
                 btnExportExcel: document.getElementById('btn-export-excel'),
-                btnExportPdf: document.getElementById('btn-export-pdf'),
 
                 // Gerenciador Mestre
                 searchMasterItems: document.getElementById('search-master-items'),
-                tableMasterItemsBody: document.querySelector('#table-master-items tbody'),
+                tableMasterItems: document.getElementById('table-master-items'),
                 btnAddMasterItem: document.getElementById('btn-add-master-item'),
                 newItemCodigo: document.getElementById('new-item-codigo'),
                 newItemDescricao: document.getElementById('new-item-descricao'),
@@ -1406,6 +1451,14 @@
                 btnPrevPage: document.getElementById('btn-prev-page'),
                 btnNextPage: document.getElementById('btn-next-page'),
                 pageInfo: document.getElementById('page-info'),
+                
+                // Registro de Barras
+                searchRegistroBarras: document.getElementById('search-registro-barras'),
+                tableRegistroBarras: document.getElementById('table-registro-barras'),
+                registroItemsPerPageSelect: document.getElementById('registro-items-per-page'),
+                btnRegistroPrev: document.getElementById('btn-registro-prev'),
+                btnRegistroNext: document.getElementById('btn-registro-next'),
+                registroPageInfo: document.getElementById('registro-page-info'),
 
                 // Histórico (Elementos de Filtro Atualizados)
                 tableHistoryBody: document.querySelector('#table-history tbody'),
@@ -1475,7 +1528,6 @@
                     elements.gtDropdown.innerHTML = '<div style="padding:0.5rem 1rem;color:var(--color-danger)">Erro ao carregar GTs</div>';
                 }
             }
-            // CORREÇÃO: Mover os listeners de clique para fora da função async e adicioná-los uma vez.
             elements.gtDisplay.addEventListener('click', (e) => {
                 e.stopPropagation();
                 elements.gtDropdown.classList.toggle('open');
@@ -1511,6 +1563,7 @@
                 elements.viewPrincipal.classList.add('hidden');
                 elements.viewGerenciador.classList.add('hidden');
                 elements.viewHistorico.classList.add('hidden');
+                elements.viewRegistroBarras.classList.add('hidden');
                 document.getElementById(viewId).classList.remove('hidden');
             }
 
@@ -1526,16 +1579,16 @@
                 currentHistoryPage = 1;
                 fetchHistory();
             });
-
-            elements.btnVoltarProducaoMaster.addEventListener('click', () => {
-                resetarProducao();
-                showView('view-principal');
-            });
             
-            elements.btnVoltarProducaoHistory.addEventListener('click', () => {
-                resetarProducao();
-                showView('view-principal');
+            elements.btnRegistroBarras.addEventListener('click', () => {
+                showView('view-registro-barras');
+                currentRegistroPage = 1;
+                fetchRegistroBarras();
             });
+
+            elements.btnVoltarProducaoMaster.addEventListener('click', () => showView('view-principal'));
+            elements.btnVoltarProducaoHistory.addEventListener('click', () => showView('view-principal'));
+            elements.btnVoltarProducaoRegistro.addEventListener('click', () => showView('view-principal'));
             
             elements.btnBackToHistory.addEventListener('click', () => {
                 showView('view-historico');
@@ -1794,8 +1847,128 @@
                     showAlert('Erro ao processar os dados do histórico: ' + e.message, 'Erro', 'error');
                 }
             }
+            
+             // --- Lógica das Tabelas Dinâmicas ---
 
-            // --- Lógica de Itens Mestre ---
+            const columnAliases = {
+                'created_at': 'Data',
+                'codigo_item': 'Código',
+                'comprimento_mm': 'Comprimento (mm)',
+                'ordem_producao': 'OP',
+                'gt_utilizado': 'GT Utilizado',
+                'usuario': 'Usuário',
+                'descricao': 'Descrição',
+                'dimensao': 'Dimensão',
+                'peso_kg': 'Peso (kg)',
+                'gt': 'GT'
+            };
+
+            function renderDynamicReadOnlyTable(tableElement, data) {
+                const thead = tableElement.querySelector('thead');
+                const tbody = tableElement.querySelector('tbody');
+                thead.innerHTML = '';
+                tbody.innerHTML = '';
+
+                if (!data || data.length === 0) {
+                    const columnCount = thead.rows.length > 0 ? thead.rows[0].cells.length : 5;
+                    tbody.innerHTML = `<tr><td colspan="${columnCount}" style="text-align:center;">Nenhum item encontrado.</td></tr>`;
+                    return;
+                }
+
+                const headers = Object.keys(data[0]).filter(key => key !== 'id');
+                const headerRow = document.createElement('tr');
+                headers.forEach(key => {
+                    const th = document.createElement('th');
+                    th.textContent = columnAliases[key] || key.replace(/_/g, ' ');
+                    headerRow.appendChild(th);
+                });
+                thead.appendChild(headerRow);
+
+                data.forEach(item => {
+                    const tr = document.createElement('tr');
+                    headers.forEach(key => {
+                        const td = document.createElement('td');
+                        let value = item[key];
+                        if (key === 'created_at' && value) {
+                            value = new Date(value).toLocaleString('pt-BR');
+                        }
+                        td.textContent = value ?? '';
+                        tr.appendChild(td);
+                    });
+                    tbody.appendChild(tr);
+                });
+            }
+            
+            async function fetchRegistroBarras(searchTerm = '') {
+                const tableElement = elements.tableRegistroBarras;
+                const tbody = tableElement.querySelector('tbody');
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">Carregando...</td></tr>';
+                elements.btnRegistroPrev.disabled = true;
+                elements.btnRegistroNext.disabled = true;
+                if(searchTerm === '') searchTerm = elements.searchRegistroBarras.value;
+            
+                try {
+                    let query = _supabase.from('registro_barras_producao').select('*', { count: 'exact' });
+            
+                    if (searchTerm) {
+                        // Esta busca é mais complexa pois não sabemos as colunas.
+                        // Uma abordagem é buscar em colunas conhecidas que são de texto.
+                        const textColumns = ['codigo_item', 'ordem_producao', 'gt_utilizado', 'usuario'];
+                        const orConditions = textColumns.map(col => `${col}.ilike.%${searchTerm}%`).join(',');
+                        query = query.or(orConditions);
+                    }
+            
+                    query = query.order('created_at', { ascending: false });
+            
+                    if (registroItemsPerPage !== 'all') {
+                        const from = (currentRegistroPage - 1) * registroItemsPerPage;
+                        const to = from + registroItemsPerPage - 1;
+                        query = query.range(from, to);
+                    }
+            
+                    const { data, count, error } = await query;
+                    if (error) throw error;
+            
+                    totalRegistroItems = count || 0;
+                    renderDynamicReadOnlyTable(tableElement, data);
+                    updateRegistroPaginationControls();
+                } catch (err) {
+                    console.error('Erro ao buscar registro de barras:', err);
+                    tbody.innerHTML = `<tr><td colspan="6" style="color:var(--color-danger)">Erro: ${err.message}</td></tr>`;
+                }
+            }
+            
+            function updateRegistroPaginationControls() {
+                if (registroItemsPerPage === 'all') {
+                    elements.registroPageInfo.textContent = `Mostrando todos (${totalRegistroItems})`;
+                    elements.btnRegistroPrev.disabled = true;
+                    elements.btnRegistroNext.disabled = true;
+                } else {
+                    const totalPages = Math.ceil(totalRegistroItems / registroItemsPerPage);
+                    if (totalPages === 0) currentRegistroPage = 1;
+                    elements.registroPageInfo.textContent = `Página ${currentRegistroPage} de ${totalPages || 1} (Total: ${totalRegistroItems})`;
+                    elements.btnRegistroPrev.disabled = currentRegistroPage <= 1;
+                    elements.btnRegistroNext.disabled = currentRegistroPage >= totalPages;
+                }
+            }
+
+            elements.registroItemsPerPageSelect.addEventListener('change', (e) => {
+                registroItemsPerPage = e.target.value === 'all' ? 'all' : parseInt(e.target.value, 10);
+                currentRegistroPage = 1;
+                fetchRegistroBarras();
+            });
+            elements.btnRegistroPrev.addEventListener('click', () => { if (currentRegistroPage > 1) { currentRegistroPage--; fetchRegistroBarras(); } });
+            elements.btnRegistroNext.addEventListener('click', () => {
+                const maxPages = registroItemsPerPage === 'all' ? 1 : Math.ceil(totalRegistroItems / registroItemsPerPage);
+                if (currentRegistroPage < maxPages) { currentRegistroPage++; fetchRegistroBarras(); }
+            });
+            elements.searchRegistroBarras.addEventListener('input', (e) => {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(() => { currentRegistroPage = 1; fetchRegistroBarras(e.target.value); }, 500); 
+            });
+
+
+            // --- Lógica de Itens Mestre (com tabela dinâmica editável) ---
             elements.itemsPerPageSelect.addEventListener('change', (e) => {
                 itemsPerPage = e.target.value === 'all' ? 'all' : parseInt(e.target.value);
                 currentMasterPage = 1;
@@ -1803,7 +1976,7 @@
             });
             elements.btnPrevPage.addEventListener('click', () => { if (currentMasterPage > 1) { currentMasterPage--; fetchMasterItems(); } });
             elements.btnNextPage.addEventListener('click', () => {
-                const maxPages = itemsPerPage === 'all' ? 1 : Math.ceil(totalItems / itemsPerPage);
+                const maxPages = itemsPerPage === 'all' ? 1 : Math.ceil(totalMasterItems / itemsPerPage);
                 if (currentMasterPage < maxPages) { currentMasterPage++; fetchMasterItems(); }
             });
             elements.searchMasterItems.addEventListener('input', (e) => {
@@ -1812,7 +1985,9 @@
             });
 
             async function fetchMasterItems(searchTerm = '') {
-                elements.tableMasterItemsBody.innerHTML = '<tr><td colspan="6" style="text-align:center;">Carregando...</td></tr>';
+                const tableElement = elements.tableMasterItems;
+                const tbody = tableElement.querySelector('tbody');
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">Carregando...</td></tr>';
                 elements.btnPrevPage.disabled = true;
                 elements.btnNextPage.disabled = true;
                 if(searchTerm === '') searchTerm = elements.searchMasterItems.value;
@@ -1831,81 +2006,133 @@
                     }
                     const { data, count, error } = await query;
                     if (error) throw error;
-                    totalItems = count || 0;
+                    totalMasterItems = count || 0;
                     renderMasterTable(data);
-                    updatePaginationControls();
+                    updateMasterPaginationControls();
                 } catch (err) {
-                    elements.tableMasterItemsBody.innerHTML = `<tr><td colspan="6" style="color:var(--color-danger)">Erro: ${err.message}</td></tr>`;
+                    tbody.innerHTML = `<tr><td colspan="6" style="color:var(--color-danger)">Erro: ${err.message}</td></tr>`;
                 }
             }
 
-            function updatePaginationControls() {
+            function updateMasterPaginationControls() {
                 if (itemsPerPage === 'all') {
-                    elements.pageInfo.textContent = `Mostrando todos (${totalItems})`;
+                    elements.pageInfo.textContent = `Mostrando todos (${totalMasterItems})`;
                     elements.btnPrevPage.disabled = true;
                     elements.btnNextPage.disabled = true;
                 } else {
-                    const totalPages = Math.ceil(totalItems / itemsPerPage);
+                    const totalPages = Math.ceil(totalMasterItems / itemsPerPage);
                     if (totalPages === 0) currentMasterPage = 1;
-                    elements.pageInfo.textContent = `Página ${currentMasterPage} de ${totalPages || 1} (Total: ${totalItems})`;
+                    elements.pageInfo.textContent = `Página ${currentMasterPage} de ${totalPages || 1} (Total: ${totalMasterItems})`;
                     elements.btnPrevPage.disabled = currentMasterPage <= 1;
                     elements.btnNextPage.disabled = currentMasterPage >= totalPages;
                 }
             }
 
             function renderMasterTable(items) {
-                elements.tableMasterItemsBody.innerHTML = '';
+                const tableElement = elements.tableMasterItems;
+                const thead = tableElement.querySelector('thead');
+                const tbody = tableElement.querySelector('tbody');
+                thead.innerHTML = '';
+                tbody.innerHTML = '';
+
                 if (!items || items.length === 0) {
-                    elements.tableMasterItemsBody.innerHTML = '<tr><td colspan="6" style="text-align:center;">Nenhum item encontrado.</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">Nenhum item encontrado.</td></tr>';
                     return;
                 }
+
+                const headers = Object.keys(items[0]).filter(key => key !== 'id');
+                const headerRow = document.createElement('tr');
+                headers.forEach(key => {
+                    const th = document.createElement('th');
+                    th.textContent = columnAliases[key] || key.replace(/_/g, ' ');
+                    headerRow.appendChild(th);
+                });
+                const thActions = document.createElement('th');
+                thActions.textContent = 'Ações';
+                headerRow.appendChild(thActions);
+                thead.appendChild(headerRow);
+                
                 items.forEach(item => {
                     const tr = document.createElement('tr');
-                    tr.innerHTML = `
-                        <td><input type="text" class="table-input inp-codigo" value="${item.codigo_item || ''}" disabled></td>
-                        <td><input type="text" class="table-input inp-descricao" value="${item.descricao || ''}"></td>
-                        <td><input type="text" class="table-input inp-dimensao" value="${item.dimensao || ''}"></td>
-                        <td><input type="number" class="table-input inp-peso" value="${item.peso_kg || 0}" step="0.01"></td>
-                        <td><input type="text" class="table-input inp-gt" value="${item.gt || ''}"></td>
-                        <td class="actions-cell">
-                            <button class="btn btn-sm btn-success btn-save-row">💾</button>
-                            <button class="btn btn-sm btn-danger btn-delete-row">🗑️</button>
-                        </td>
+                    tr.dataset.itemId = item.id;
+
+                    headers.forEach(key => {
+                        const td = document.createElement('td');
+                        const input = document.createElement('input');
+                        input.type = key === 'peso_kg' ? 'number' : 'text';
+                        if (key === 'peso_kg') input.step = '0.01';
+                        input.className = 'table-input';
+                        input.dataset.key = key;
+                        input.value = item[key] ?? '';
+                        if (key === 'codigo_item') input.disabled = true; // Código não pode ser alterado
+                        td.appendChild(input);
+                        tr.appendChild(td);
+                    });
+
+                    const tdActions = document.createElement('td');
+                    tdActions.className = 'actions-cell';
+                    tdActions.innerHTML = `
+                        <button class="btn btn-sm btn-success btn-save-row" title="Salvar">💾</button>
+                        <button class="btn btn-sm btn-danger btn-delete-row" title="Excluir">🗑️</button>
                     `;
-                    const btnSave = tr.querySelector('.btn-save-row');
-                    const btnDelete = tr.querySelector('.btn-delete-row');
-                    const itemId = item.id; 
-
-                    btnSave.addEventListener('click', async () => {
-                        const newDesc = tr.querySelector('.inp-descricao').value;
-                        const newDim = tr.querySelector('.inp-dimensao').value;
-                        const newPeso = parseFloat(tr.querySelector('.inp-peso').value) || 0;
-                        const newGt = tr.querySelector('.inp-gt').value;
-                        btnSave.disabled = true;
-                        try {
-                            const { error } = await _supabase.from('itens_mestre').update({ 
-                                descricao: newDesc, 
-                                dimensao: newDim, 
-                                peso_kg: newPeso,
-                                gt: newGt 
-                            }).eq('id', itemId);
-                            if (error) throw error;
-                            showAlert('Item atualizado com sucesso!', 'Sucesso', 'success');
-                        } catch (e) { showAlert('Erro ao atualizar: ' + e.message, 'Erro', 'error'); } finally { btnSave.disabled = false; }
-                    });
-
-                    btnDelete.addEventListener('click', async () => {
-                        if(await showConfirm(`Tem certeza que deseja excluir o item ${item.codigo_item}?`)) {
-                            btnDelete.disabled = true;
-                            try {
-                                const { error } = await _supabase.from('itens_mestre').delete().eq('id', itemId);
-                                if (error) throw error;
-                                fetchMasterItems();
-                            } catch (e) { showAlert('Erro ao excluir: ' + e.message, 'Erro', 'error'); btnDelete.disabled = false; }
-                        }
-                    });
-                    elements.tableMasterItemsBody.appendChild(tr);
+                    tr.appendChild(tdActions);
+                    tbody.appendChild(tr);
                 });
+
+                // Add event listeners after rendering
+                tbody.querySelectorAll('.btn-save-row').forEach(btn => {
+                    btn.addEventListener('click', handleSaveMasterItem);
+                });
+                tbody.querySelectorAll('.btn-delete-row').forEach(btn => {
+                    btn.addEventListener('click', handleDeleteMasterItem);
+                });
+            }
+
+            async function handleSaveMasterItem(event) {
+                const btn = event.currentTarget;
+                const tr = btn.closest('tr');
+                const itemId = tr.dataset.itemId;
+                const inputs = tr.querySelectorAll('input.table-input');
+                
+                const updateData = {};
+                inputs.forEach(input => {
+                    const key = input.dataset.key;
+                    if (!input.disabled) { // Não incluir campos desabilitados como 'codigo_item'
+                        updateData[key] = input.type === 'number' ? parseFloat(input.value) || 0 : input.value;
+                    }
+                });
+
+                btn.disabled = true;
+                try {
+                    const { error } = await _supabase.from('itens_mestre').update(updateData).eq('id', itemId);
+                    if (error) throw error;
+                    showAlert('Item atualizado com sucesso!', 'Sucesso', 'success');
+                } catch (e) {
+                    showAlert('Erro ao atualizar: ' + e.message, 'Erro', 'error');
+                } finally {
+                    btn.disabled = false;
+                }
+            }
+
+            async function handleDeleteMasterItem(event) {
+                const btn = event.currentTarget;
+                const tr = btn.closest('tr');
+                const itemId = tr.dataset.itemId;
+                const codigoItem = tr.querySelector('input[data-key="codigo_item"]').value;
+
+                if (await showConfirm(`Tem certeza que deseja excluir o item ${codigoItem}?`)) {
+                    btn.disabled = true;
+                    try {
+                        const { error } = await _supabase.from('itens_mestre').delete().eq('id', itemId);
+                        if (error) throw error;
+                        tr.remove(); // Remove a linha da UI para feedback imediato
+                        totalMasterItems--;
+                        updateMasterPaginationControls();
+                    } catch (e) {
+                        showAlert('Erro ao excluir: ' + e.message, 'Erro', 'error');
+                        btn.disabled = false;
+                    }
+                }
             }
 
             elements.btnAddMasterItem.addEventListener('click', async () => {
@@ -2036,12 +2263,11 @@
                 elements.modalManualOverlay.classList.remove('open');
             });
 
-            // SUBSTITUIR ESTE BLOCO INTEIRO
             elements.modalInputCodigo.addEventListener('input', (e) => {
                 const val = e.target.value.trim().toUpperCase();
                 
-                // Limpa o peso guardado a cada nova digitação
                 elements.modalInputCodigo.dataset.pesoSelecionado = '0';
+                elements.modalInputCodigo.dataset.detalhesSelecionado = '{}';
 
                 clearTimeout(autocompleteTimeout);
                 elements.autocompleteList.innerHTML = '';
@@ -2051,10 +2277,9 @@
 
                 autocompleteTimeout = setTimeout(async () => {
                     try {
-                        // BUSCA 1: Na tabela itens_mestre para as sugestões
                         const { data: itensMestre, error: erroMestre } = await _supabase
                             .from('itens_mestre')
-                            .select('codigo_item, bitola, gt') 
+                            .select('codigo_item, dimensao, gt, peso_kg, descricao') 
                             .ilike('codigo_item', `${val}%`) 
                             .limit(5);
 
@@ -2065,38 +2290,19 @@
                             itensMestre.forEach(item => {
                                 const li = document.createElement('li');
                                 li.className = 'autocomplete-item';
-                                li.innerHTML = `<strong>${item.codigo_item}</strong><small>${item.bitola || 'S/D'} - GT ${item.gt || '?'}</small>`;
+                                li.innerHTML = `<strong>${item.codigo_item}</strong><small>${item.dimensao || 'S/D'} - GT ${item.gt || '?'}</small>`;
                                 
-                                // Lógica de clique agora faz a segunda busca
-                                li.addEventListener('click', async () => {
-                                    // Preenche os dados da primeira busca
+                                li.addEventListener('click', () => {
                                     elements.modalInputCodigo.value = item.codigo_item;
-                                    elements.modalInputBitola.value = item.bitola || '';
+                                    elements.modalInputBitola.value = item.dimensao || '';
                                     elements.modalInputGt.value = item.gt || '';
-                                    
+                                    elements.modalInputCodigo.dataset.pesoSelecionado = item.peso_kg || 0;
+                                    // Guardar outros detalhes que podem ser úteis
+                                    const detalhes = { descricao: item.descricao };
+                                    elements.modalInputCodigo.dataset.detalhesSelecionado = JSON.stringify(detalhes);
+
                                     elements.autocompleteList.innerHTML = '';
                                     elements.autocompleteList.classList.remove('visible');
-
-                                    // BUSCA 2: Na tabela produtos_peso para obter o peso
-                                    try {
-                                        const { data: pesoData, error: erroPeso } = await _supabase
-                                            .from('produtos_peso')
-                                            .select('peso_kg')
-                                            .eq('codigo_produto', item.codigo_item)
-                                            .single(); // .single() é mais eficiente para buscar um único item
-
-                                        if (erroPeso && erroPeso.code !== 'PGRST116') { // Ignora erro "not found"
-                                            throw erroPeso;
-                                        }
-                                        
-                                        // Guarda o peso no dataset para ser usado na confirmação
-                                        const peso = pesoData ? pesoData.peso_kg : 0;
-                                        elements.modalInputCodigo.dataset.pesoSelecionado = peso;
-
-                                    } catch (err) {
-                                        console.error("Erro ao buscar peso do produto:", err.message);
-                                        elements.modalInputCodigo.dataset.pesoSelecionado = '0'; // Garante valor padrão em caso de erro
-                                    }
                                 });
 
                                 elements.autocompleteList.appendChild(li);
@@ -2127,8 +2333,8 @@
                 const gt = elements.modalInputGt.value.trim();
                 
                 const peso = parseFloat(elements.modalInputCodigo.dataset.pesoSelecionado) || 0;
-                elements.modalInputCodigo.dataset.pesoSelecionado = '0';
-
+                const detalhes = JSON.parse(elements.modalInputCodigo.dataset.detalhesSelecionado || '{}');
+                
                 if (!codigo || !op || !qtd) {
                     showAlert("Código, OP e Quantidade são obrigatórios.", "Campos Faltando");
                     return;
@@ -2137,12 +2343,11 @@
                 const novoItem = {
                     ordemProducao: op,
                     codigo: codigo,
-                    descricao: "Item Manual",
+                    descricao: detalhes.descricao || "Item Manual",
                     dimensao: bitola,
                     gt: gt,
                     quantidade: qtd,
-                    peso_kg: peso,
-                    comprimento_mm: 'N/A' // Comprimento não aplicável para itens manuais
+                    peso_kg: peso
                 };
                 
                 listaOriginalPendentes.push(novoItem);
@@ -2304,24 +2509,29 @@
                 card.dataset.gt = item.gt || '';
                 card.dataset.quantidade = item.quantidade || '0';
                 card.dataset.peso = item.peso_kg || '0';
-                card.dataset.comprimento = item.comprimento_mm || '0'; // NEW: Store length
 
                 let gtHtml = `<b>GT:</b> ${item.gt || 'N/A'}`;
                 if (isPendente && (!item.gt || item.gt.trim() === '')) {
                     gtHtml = `<b>GT:</b> <input type="text" class="gt-input" placeholder="N/A" onkeydown="reavaliarItem(event, this.parentElement.parentElement)">`;
                 }
 
-                // NEW: Calculate total weight for display
                 const peso_total_do_card = (parseFloat(item.quantidade || 0) * parseFloat(item.peso_kg || 0)).toFixed(1);
                 
+                let detalhesHtml = '';
+                if (item.detalhes && typeof item.detalhes === 'object' && Object.keys(item.detalhes).length > 0) {
+                    const detalhesArray = Object.entries(item.detalhes).map(([key, value]) => `${key}: ${value}`);
+                    detalhesHtml = `<div class="card-detalhes">${detalhesArray.join(' | ')}</div>`;
+                }
+
                 card.innerHTML = `
                     <span class="delete-btn" onclick="removerCard(this.parentElement)">×</span>
-                    <p><b>Ordem de Produção:</b> ${item.ordemProducao || 'N/A'}</p>
+                    <p><b>OP:</b> ${item.ordemProducao || 'N/A'}</p>
                     <p><b>Código:</b> ${item.codigo || 'N/A'}</p>
                     <p>${item.descricao || 'N/A'}</p>
                     <p><b>Bitola:</b> ${item.dimensao || 'N/A'}</p>
-                    <p><b>Qtd:</b> ${item.quantidade || '0'} <small style="color: var(--text-secondary); margin-left: 10px;">(${peso_total_do_card} kg | ${item.comprimento_mm || 'N/A'} mm)</small></p>
+                    <p><b>Qtd:</b> ${item.quantidade || '0'} <small style="color: var(--text-secondary); margin-left: 10px;">(${peso_total_do_card} kg)</small></p>
                     <p class="gt-display" onclick="editarGT(event, this.parentElement)">${gtHtml}</p>
+                    ${detalhesHtml}
                 `;
                 
                 card.addEventListener('dragstart', handleDragStart);
@@ -2389,11 +2599,10 @@
 
                         if (corresponde && cardElement.parentElement.id !== 'arranjo-producao-lista') {
                             elements.arranjoProducaoLista.appendChild(cardElement);
-                            reordenarArranjo();
                         } else if (!corresponde && cardElement.parentElement.id !== 'itens-pendentes-lista') {
                             elements.itensPendentesLista.appendChild(cardElement);
                         }
-                        atualizarTotalizador();
+                        reordenarArranjo();
                     } catch (error) {
                         showAlert(error.message, 'Erro', 'error');
                         input.disabled = false;
@@ -2404,10 +2613,7 @@
                     cancelarEdicao(event, cardElement);
                 }
             }
-
-            // --- UPDATED: reordenarArranjo ---
-            // The function no longer sorts by bitola, as the backend now provides the pre-sorted list.
-            // It now just updates the UI components that depend on the list's state.
+            
             function reordenarArranjo() {
                 atualizarTotalizador();
                 popularFiltroBitolaPendentes();
@@ -2438,7 +2644,6 @@
                     const targetList = zone.querySelector('div[id$="-lista"]');
                     targetList.appendChild(draggableElement);
 
-                    // Call the updated reordenarArranjo regardless of the target list
                     reordenarArranjo();
                 });
             });
@@ -2483,65 +2688,6 @@
                 }
             });
 
-            // --- NEW: Visual Map Generation ---
-            function generateVisualMap() {
-                const itemCards = document.getElementById('arranjo-producao-lista').querySelectorAll('.item-card');
-                if (itemCards.length === 0) {
-                    showAlert("Não há itens no arranjo para gerar o mapa.", "Aviso");
-                    return;
-                }
-
-                let mapHtml = `
-                    <!DOCTYPE html>
-                    <html lang="pt-BR">
-                    <head>
-                        <title>Mapa Visual do Forno</title>
-                        <style>
-                            body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; margin: 0; padding: 20px; background-color: #f0f1f3; }
-                            .print-btn { position: fixed; top: 10px; right: 10px; padding: 8px 16px; background-color: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; z-index: 100; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
-                            @media print { .print-btn, h1 { display: none; } .conveyor-belt { border: none; padding: 0; } }
-                            h1 { text-align: center; color: #333; margin-bottom: 20px;}
-                            .conveyor-belt { display: flex; align-items: center; background-color: #ccc; border: 2px solid #555; height: 120px; padding: 5px; overflow-x: auto; white-space: nowrap; border-radius: 8px; }
-                            .item-block { flex-shrink: 0; height: 110px; margin-right: 2px; border: 1px solid rgba(0,0,0,0.2); color: white; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 5px; box-sizing: border-box; font-size: 11px; white-space: normal; overflow: hidden; border-radius: 3px; }
-                            .item-block span { display: block; font-weight: bold; }
-                        </style>
-                    </head>
-                    <body>
-                        <button class="print-btn" onclick="window.print()">Imprimir Mapa</button>
-                        <h1>Mapa Visual da Carga do Forno</h1>
-                        <div class="conveyor-belt">
-                `;
-
-                itemCards.forEach(card => {
-                    const comprimento = parseFloat(card.dataset.comprimento) || 0;
-                    const width = comprimento * 0.1; // Scale: 1mm = 0.1px
-                    const gt = card.dataset.gt || 'DEFAULT';
-                    const color = gtColors[gt] || gtColors['DEFAULT'];
-                    const codigo = card.dataset.codigo;
-                    const bitola = card.dataset.dimensao;
-
-                    mapHtml += `
-                        <div class="item-block" style="width: ${width}px; background-color: ${color};" title="${codigo} | ${bitola} | ${comprimento}mm">
-                            <span>${codigo}</span>
-                            <span>${bitola}</span>
-                            <span>${comprimento}mm</span>
-                        </div>
-                    `;
-                });
-
-                mapHtml += `
-                        </div>
-                    </body>
-                    </html>
-                `;
-                
-                const mapWindow = window.open('', 'MapaDoForno', 'width=1200,height=400,scrollbars=yes,resizable=yes');
-                mapWindow.document.open();
-                mapWindow.document.write(mapHtml);
-                mapWindow.document.close();
-            }
-
-            elements.btnExportPdf.addEventListener('click', generateVisualMap);
 
             // --- Toggle Tema ---
             elements.themeToggle.addEventListener('change', () => {
