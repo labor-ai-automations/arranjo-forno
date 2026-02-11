@@ -2275,45 +2275,55 @@
 
                 if (val.length < 2) return; 
 
-                autocompleteTimeout = setTimeout(async () => {
-                    try {
-                        const { data: itensMestre, error: erroMestre } = await _supabase
-                            .from('itens_mestre')
-                            .select('codigo_item, dimensao, gt, peso_kg, descricao') 
-                            .ilike('codigo_item', `${val}%`) 
-                            .limit(5);
+elements.modalInputCodigo.addEventListener('input', (e) => {
+    const val = e.target.value.trim().toUpperCase();
+    elements.modalInputCodigo.dataset.pesoSelecionado = '0';
+    elements.modalInputCodigo.dataset.detalhesSelecionado = '{}';
 
-                        if (erroMestre) throw erroMestre;
+    clearTimeout(autocompleteTimeout);
+    elements.autocompleteList.innerHTML = '';
+    elements.autocompleteList.classList.remove('visible');
 
-                        elements.autocompleteList.innerHTML = ''; 
-                        if (itensMestre && itensMestre.length > 0) {
-                            itensMestre.forEach(item => {
-                                const li = document.createElement('li');
-                                li.className = 'autocomplete-item';
-                                li.innerHTML = `<strong>${item.codigo_item}</strong><small>${item.dimensao || 'S/D'} - GT ${item.gt || '?'}</small>`;
-                                
-                                li.addEventListener('click', () => {
-                                    elements.modalInputCodigo.value = item.codigo_item;
-                                    elements.modalInputBitola.value = item.dimensao || '';
-                                    elements.modalInputGt.value = item.gt || '';
-                                    elements.modalInputCodigo.dataset.pesoSelecionado = item.peso_kg || 0;
-                                    // Guardar outros detalhes que podem ser úteis
-                                    const detalhes = { descricao: item.descricao };
-                                    elements.modalInputCodigo.dataset.detalhesSelecionado = JSON.stringify(detalhes);
+    if (val.length < 2) return; 
 
-                                    elements.autocompleteList.innerHTML = '';
-                                    elements.autocompleteList.classList.remove('visible');
-                                });
+    autocompleteTimeout = setTimeout(async () => {
+        try {
+            // BUSCA: Note que usamos codigo_item e dimensao (nomes reais da tabela)
+            const { data: itensMestre, error: erroMestre } = await _supabase
+                .from('itens_mestre')
+                .select('codigo_item, dimensao, gt, peso_kg, descricao') 
+                .ilike('codigo_item', `${val}%`) 
+                .limit(5);
 
-                                elements.autocompleteList.appendChild(li);
-                            });
-                            elements.autocompleteList.classList.add('visible');
-                        }
-                    } catch (err) {
-                        console.error("Falha ao executar a busca do autocomplete:", err.message);
-                    }
-                }, 300);
-            });
+            if (erroMestre) throw erroMestre;
+
+            elements.autocompleteList.innerHTML = ''; 
+            if (itensMestre && itensMestre.length > 0) {
+                itensMestre.forEach(item => {
+                    const li = document.createElement('li');
+                    li.className = 'autocomplete-item';
+                    // Mapeamento correto dos campos retornados
+                    li.innerHTML = `<strong>${item.codigo_item}</strong><small>${item.dimensao || 'S/D'} - GT ${item.gt || '?'}</small>`;
+                    
+                    li.addEventListener('click', () => {
+                        elements.modalInputCodigo.value = item.codigo_item;
+                        elements.modalInputBitola.value = item.dimensao || '';
+                        elements.modalInputGt.value = item.gt || '';
+                        elements.modalInputCodigo.dataset.pesoSelecionado = item.peso_kg || 0;
+                        elements.modalInputCodigo.dataset.detalhesSelecionado = JSON.stringify({ descricao: item.descricao });
+
+                        elements.autocompleteList.innerHTML = '';
+                        elements.autocompleteList.classList.remove('visible');
+                    });
+                    elements.autocompleteList.appendChild(li);
+                });
+                elements.autocompleteList.classList.add('visible');
+            }
+        } catch (err) {
+            console.error("Erro no autocomplete:", err.message);
+        }
+    }, 300);
+});
 
 
             // Fechar autocomplete se clicar fora
