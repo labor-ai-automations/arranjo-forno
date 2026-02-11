@@ -2252,7 +2252,7 @@
                                 if (receita.intervalo) {
                                     const option = document.createElement('option');
                                     option.value = receita.intervalo;
-                                    option.textContent = `Intervalo ${receita.intervalo}`;
+                                    option.textContent = `Intervalo ${receita.intervalo.replace('-', ' a ')} mm`;
                                     selectFiltro.appendChild(option);
                                 }
                             });
@@ -2390,13 +2390,13 @@
                 }
 
                 const novoItem = {
-                    ordemProducao: op,
+                    op: op, // CORREÇÃO: Usar 'op'
                     codigo: codigo,
                     descricao: elements.modalInputCodigo.dataset.descricaoSelecionada || "Item Manual",
-                    dimensao: elements.modalInputBitola.value.trim(),
+                    bitola: elements.modalInputBitola.value.trim(), // Assumindo que a dimensão do autocomplete é a bitola
                     gt: elements.modalInputGt.value.trim(),
                     quantidade: qtd,
-                    peso_kg: parseFloat(elements.modalInputCodigo.dataset.pesoSelecionado) || 0
+                    peso_unit: parseFloat(elements.modalInputCodigo.dataset.pesoSelecionado) || 0 // CORREÇÃO: Usar 'peso_unit'
                 };
                 
                 listaOriginalPendentes.push(novoItem);
@@ -2417,17 +2417,15 @@
                 } catch (e) { return 0; }
             }
             
+            // CORREÇÃO: Função ajustada para ler 'item.bitola' diretamente dos dados brutos.
             function popularSeletorBitolaReferencia() {
                 const seletor = document.getElementById('bitola-referencia-select');
                 const currentValue = seletor.value;
                 seletor.innerHTML = '<option value="">Selecione a bitola...</option>';
-                const todosOsCards = listaOriginalArranjo.concat(listaOriginalPendentes);
-                const espessuras = new Set(todosOsCards.map(item => {
-                    try {
-                        const partes = (item.dimensao || '0 X 0').split('X');
-                        if (partes.length < 2) return 0;
-                        return parseFloat(partes[1].trim().replace(',', '.')) || 0;
-                    } catch (e) { return 0; }
+                const todosOsItens = listaOriginalArranjo.concat(listaOriginalPendentes);
+                
+                const espessuras = new Set(todosOsItens.map(item => {
+                    return parseFloat(String(item.bitola).replace(',', '.')) || 0;
                 }).filter(esp => esp > 0));
 
                 Array.from(espessuras).sort((a, b) => a - b).forEach(esp => {
@@ -2504,18 +2502,18 @@
 
                     let todosOsItens = todosOsCards.map(card => ({
                         id: card.id,
-                        ordemProducao: card.dataset.ordemProducao,
+                        op: card.dataset.ordemProducao,
                         codigo: card.dataset.codigo,
                         descricao: card.dataset.descricao,
-                        dimensao: card.dataset.dimensao,
+                        dimensao: card.dataset.dimensao, // Mantém para getEspessura
+                        bitola: getEspessura(card), // Usa getEspessura para ter o valor numérico
                         gt: card.dataset.gt,
                         quantidade: parseInt(card.dataset.quantidade),
-                        peso_kg: parseFloat(card.dataset.peso),
-                        espessura: getEspessura(card),
+                        peso_unit: parseFloat(card.dataset.peso),
                         isEmpilhado: false
                     }));
 
-                    todosOsItens.sort((a, b) => a.espessura - b.espessura);
+                    todosOsItens.sort((a, b) => a.bitola - b.bitola);
 
                     const novoArranjo = [];
                     const novosPendentes = [];
@@ -2525,13 +2523,13 @@
                         if (idsUsados.has(todosOsItens[i].id)) continue;
 
                         const baseItem = todosOsItens[i];
-                        if (baseItem.espessura < tetoMinimo || baseItem.espessura > tetoMaximo) continue;
+                        if (baseItem.bitola < tetoMinimo || baseItem.bitola > tetoMaximo) continue;
                         
                         let parceiroEncontrado = null;
                         for (let j = i + 1; j < todosOsItens.length; j++) {
                             if (idsUsados.has(todosOsItens[j].id)) continue;
                             const parceiroPotencial = todosOsItens[j];
-                            const espessuraDobrada = parceiroPotencial.espessura * 2;
+                            const espessuraDobrada = parceiroPotencial.bitola * 2;
                             
                             if (molasPlanasCodigos.has(parceiroPotencial.codigo) && espessuraDobrada >= tetoMinimo && espessuraDobrada <= tetoMaximo) {
                                 parceiroEncontrado = parceiroPotencial;
@@ -2620,6 +2618,7 @@
                 });
             }
 
+            // CORREÇÃO: Função ajustada para mapear corretamente os dados recebidos da automação (op, bitola, peso_unit).
             function criarCard(containerId, item, isPendente) {
                 const container = document.getElementById(containerId);
                 if (!container) {
@@ -2633,13 +2632,14 @@
                 card.draggable = true;
                 card.id = item.id || `${containerId}-item-${Date.now()}-${index}`;
                 
-                card.dataset.ordemProducao = item.ordemProducao || 'N/A';
+                // Mapeamento CORRETO dos dados do JSON para os datasets
+                card.dataset.ordemProducao = item.op || 'N/A';
                 card.dataset.codigo = item.codigo || 'N/A';
-                card.dataset.descricao = item.descricao || 'N/A';
-                card.dataset.dimensao = item.dimensao || 'N/A';
+                card.dataset.descricao = item.descricao || 'Descrição N/A';
+                card.dataset.dimensao = `N/A X ${item.bitola}`; // Construindo a dimensão a partir da bitola
                 card.dataset.gt = item.gt || '';
                 card.dataset.quantidade = item.quantidade || '0';
-                card.dataset.peso = item.peso_kg || '0';
+                card.dataset.peso = item.peso_unit || '0'; // Usando o nome correto do campo de peso
 
                 const empilhamentoTag = item.isEmpilhado ? '<span class="tag-2x">2X</span>' : '';
                 let gtHtml = `<b>GT:</b> ${item.gt || 'N/A'}`;
@@ -2647,7 +2647,7 @@
                     gtHtml = `<b>GT:</b> <input type="text" class="gt-input" placeholder="N/A" onkeydown="reavaliarItem(event, this.parentElement.parentElement)">`;
                 }
 
-                const peso_total_do_card = (parseFloat(item.quantidade || 0) * parseFloat(item.peso_kg || 0)).toFixed(1);
+                const peso_total_do_card = (parseFloat(item.quantidade || 0) * parseFloat(item.peso_unit || 0)).toFixed(1);
                 
                 let detalhesHtml = '';
                 if (item.detalhes && typeof item.detalhes === 'object' && Object.keys(item.detalhes).length > 0) {
@@ -2655,12 +2655,13 @@
                     detalhesHtml = `<div class="card-detalhes">${detalhesArray.join(' | ')}</div>`;
                 }
 
+                // Renderização CORRETA no HTML
                 card.innerHTML = `
                     <span class="delete-btn" onclick="removerCard(this.parentElement)">×</span>
-                    <p><b>OP:</b> ${item.ordemProducao || 'N/A'} ${empilhamentoTag}</p>
+                    <p><b>OP:</b> ${item.op || 'N/A'} ${empilhamentoTag}</p>
                     <p><b>Código:</b> ${item.codigo || 'N/A'}</p>
-                    <p>${item.descricao || 'N/A'}</p>
-                    <p><b>Bitola:</b> ${item.dimensao || 'N/A'}</p>
+                    <p>${item.descricao || 'Descrição N/A'}</p>
+                    <p><b>Bitola:</b> N/A X ${item.bitola}</p>
                     <p><b>Qtd:</b> ${item.quantidade || '0'} <small style="color: var(--text-secondary); margin-left: 10px;">(${peso_total_do_card} kg)</small></p>
                     <p class="gt-display" onclick="editarGT(event, this.parentElement)">${gtHtml}</p>
                     ${detalhesHtml}
