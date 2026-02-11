@@ -2263,11 +2263,11 @@
                 elements.modalManualOverlay.classList.remove('open');
             });
 
+            // *** CÓDIGO CORRIGIDO 1: AUTOCOMPLETE ***
             elements.modalInputCodigo.addEventListener('input', (e) => {
                 const val = e.target.value.trim().toUpperCase();
-                
                 elements.modalInputCodigo.dataset.pesoSelecionado = '0';
-                elements.modalInputCodigo.dataset.detalhesSelecionado = '{}';
+                elements.modalInputCodigo.dataset.descricaoSelecionada = '';
 
                 clearTimeout(autocompleteTimeout);
                 elements.autocompleteList.innerHTML = '';
@@ -2275,56 +2275,38 @@
 
                 if (val.length < 2) return; 
 
-elements.modalInputCodigo.addEventListener('input', (e) => {
-    const val = e.target.value.trim().toUpperCase();
-    elements.modalInputCodigo.dataset.pesoSelecionado = '0';
-    elements.modalInputCodigo.dataset.detalhesSelecionado = '{}';
+                autocompleteTimeout = setTimeout(async () => {
+                    try {
+                        const { data: itensMestre, error } = await _supabase
+                            .from('itens_mestre')
+                            .select('codigo_item, dimensao, gt, peso_kg, descricao') 
+                            .ilike('codigo_item', `${val}%`) 
+                            .limit(5);
 
-    clearTimeout(autocompleteTimeout);
-    elements.autocompleteList.innerHTML = '';
-    elements.autocompleteList.classList.remove('visible');
+                        if (error) throw error;
 
-    if (val.length < 2) return; 
-
-    autocompleteTimeout = setTimeout(async () => {
-        try {
-            // BUSCA: Note que usamos codigo_item e dimensao (nomes reais da tabela)
-            const { data: itensMestre, error: erroMestre } = await _supabase
-                .from('itens_mestre')
-                .select('codigo_item, dimensao, gt, peso_kg, descricao') 
-                .ilike('codigo_item', `${val}%`) 
-                .limit(5);
-
-            if (erroMestre) throw erroMestre;
-
-            elements.autocompleteList.innerHTML = ''; 
-            if (itensMestre && itensMestre.length > 0) {
-                itensMestre.forEach(item => {
-                    const li = document.createElement('li');
-                    li.className = 'autocomplete-item';
-                    // Mapeamento correto dos campos retornados
-                    li.innerHTML = `<strong>${item.codigo_item}</strong><small>${item.dimensao || 'S/D'} - GT ${item.gt || '?'}</small>`;
-                    
-                    li.addEventListener('click', () => {
-                        elements.modalInputCodigo.value = item.codigo_item;
-                        elements.modalInputBitola.value = item.dimensao || '';
-                        elements.modalInputGt.value = item.gt || '';
-                        elements.modalInputCodigo.dataset.pesoSelecionado = item.peso_kg || 0;
-                        elements.modalInputCodigo.dataset.detalhesSelecionado = JSON.stringify({ descricao: item.descricao });
-
-                        elements.autocompleteList.innerHTML = '';
-                        elements.autocompleteList.classList.remove('visible');
-                    });
-                    elements.autocompleteList.appendChild(li);
-                });
-                elements.autocompleteList.classList.add('visible');
-            }
-        } catch (err) {
-            console.error("Erro no autocomplete:", err.message);
-        }
-    }, 300);
-});
-
+                        if (itensMestre && itensMestre.length > 0) {
+                            itensMestre.forEach(item => {
+                                const li = document.createElement('li');
+                                li.className = 'autocomplete-item';
+                                li.innerHTML = `<strong>${item.codigo_item}</strong><small>${item.dimensao || 'S/D'} - GT ${item.gt || '?'}</small>`;
+                                
+                                li.addEventListener('click', () => {
+                                    elements.modalInputCodigo.value = item.codigo_item;
+                                    elements.modalInputBitola.value = item.dimensao || '';
+                                    elements.modalInputGt.value = item.gt || '';
+                                    elements.modalInputCodigo.dataset.pesoSelecionado = item.peso_kg || 0;
+                                    elements.modalInputCodigo.dataset.descricaoSelecionada = item.descricao || '';
+                                    elements.autocompleteList.innerHTML = '';
+                                    elements.autocompleteList.classList.remove('visible');
+                                });
+                                elements.autocompleteList.appendChild(li);
+                            });
+                            elements.autocompleteList.classList.add('visible');
+                        }
+                    } catch (err) { console.error(err); }
+                }, 300);
+            });
 
             // Fechar autocomplete se clicar fora
             document.addEventListener('click', (e) => {
@@ -2335,36 +2317,31 @@ elements.modalInputCodigo.addEventListener('input', (e) => {
                 }
             });
 
+            // *** CÓDIGO CORRIGIDO 2: CONFIRMAÇÃO MANUAL ***
             elements.btnManualConfirm.addEventListener('click', () => {
                 const codigo = elements.modalInputCodigo.value.trim();
                 const op = elements.modalInputOp.value.trim();
-                const qtd = elements.modalInputQtd.value.trim();
-                const bitola = elements.modalInputBitola.value.trim();
-                const gt = elements.modalInputGt.value.trim();
+                const qtd = parseInt(elements.modalInputQtd.value);
                 
-                const peso = parseFloat(elements.modalInputCodigo.dataset.pesoSelecionado) || 0;
-                const detalhes = JSON.parse(elements.modalInputCodigo.dataset.detalhesSelecionado || '{}');
-                
-                if (!codigo || !op || !qtd) {
-                    showAlert("Código, OP e Quantidade são obrigatórios.", "Campos Faltando");
+                if (!codigo || !op || isNaN(qtd)) {
+                    showAlert("Código, OP e Quantidade são obrigatórios.", "Atenção");
                     return;
                 }
 
                 const novoItem = {
                     ordemProducao: op,
                     codigo: codigo,
-                    descricao: detalhes.descricao || "Item Manual",
-                    dimensao: bitola,
-                    gt: gt,
+                    descricao: elements.modalInputCodigo.dataset.descricaoSelecionada || "Item Manual",
+                    dimensao: elements.modalInputBitola.value.trim(),
+                    gt: elements.modalInputGt.value.trim(),
                     quantidade: qtd,
-                    peso_kg: peso
+                    peso_kg: parseFloat(elements.modalInputCodigo.dataset.pesoSelecionado) || 0
                 };
                 
                 listaOriginalPendentes.push(novoItem);
                 criarCard('itens-pendentes-lista', novoItem, true);
                 elements.modalManualOverlay.classList.remove('open');
                 atualizarTotalizador();
-                popularFiltroBitolaPendentes();
             });
 
 
