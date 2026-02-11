@@ -510,6 +510,18 @@
             transform: scale(1.2);
         }
 
+        /* Tag 2X para empilhamento */
+        .tag-2x {
+            background-color: var(--color-success);
+            color: white;
+            font-size: 0.7rem;
+            font-weight: 700;
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin-left: 8px;
+            vertical-align: middle;
+        }
+
         /* --- Tabelas --- */
         .table-container { 
             overflow-x: auto; 
@@ -969,7 +981,7 @@
             
             <!-- Bloco de controle de ordenação -->
             <div class="card" style="margin-bottom: 1.5rem; background-color: var(--bg-main);">
-                <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 1.5rem; align-items: center;">
+                <div style="display: grid; grid-template-columns: 1fr 1fr 2fr; gap: 1.5rem; align-items: center;">
                     <div>
                         <label for="bitola-referencia-select" class="config-label" style="margin-bottom: 0.5rem;">Ponto de Partida (Bitola)</label>
                         <select id="bitola-referencia-select">
@@ -977,6 +989,15 @@
                             <!-- Opções serão adicionadas dinamicamente via JS -->
                         </select>
                     </div>
+                    
+                    <div>
+                        <label for="filtro-intervalo-empilhamento" class="config-label" style="margin-bottom: 0.5rem;">Aplicar Empilhamento (2X)</label>
+                        <select id="filtro-intervalo-empilhamento">
+                            <option value="">Nenhum</option>
+                            <!-- Opções populadas via JS -->
+                        </select>
+                    </div>
+
                     <div>
                         <label class="config-label" style="margin-bottom: 0.5rem;">Ações de Ordenação</label>
                         <div style="display: flex; gap: 1rem;">
@@ -1363,6 +1384,7 @@
 
             // --- Variáveis de Estado Global ---
             let searchTimeout = null;
+            let molasPlanasCodigos = new Set();
             
             // Itens Mestre
             let currentMasterPage = 1;
@@ -1487,6 +1509,18 @@
                 btnManualConfirm: document.getElementById('btn-manual-confirm')
             };
 
+            // --- CARREGAR DADOS INICIAIS ---
+            async function carregarMolasPlanas() {
+                try {
+                    const { data, error } = await _supabase.from('mapeamento_molas_planas').select('PRODUTO');
+                    if (error) throw error;
+                    molasPlanasCodigos = new Set(data.map(item => item.PRODUTO));
+                    console.log(`${molasPlanasCodigos.size} códigos de molas planas carregados.`);
+                } catch (err) {
+                    console.error('Erro ao carregar mapeamento de molas planas:', err);
+                }
+            }
+            
             // --- INICIALIZAÇÃO DO MULTI-SELECT DE GTs ---
             async function initGtMultiSelect() {
                 try {
@@ -2191,7 +2225,6 @@
                     elements.btnResetProduction.classList.remove('hidden');
                     elements.btnBackToHistory.classList.add('hidden');
                     
-                    // Store the original state
                     listaOriginalArranjo = data.arranjo_producao || [];
                     listaOriginalPendentes = data.itens_pendentes || [];
 
@@ -2201,6 +2234,32 @@
                     atualizarTotalizador();
                     popularSeletorBitolaReferencia();
                     popularFiltroBitolaPendentes();
+
+                    // Popular filtro de empilhamento
+                    try {
+                        const selectFiltro = document.getElementById('filtro-intervalo-empilhamento');
+                        selectFiltro.innerHTML = '<option value="">Nenhum</option>';
+                        
+                        const { data: receitas, error } = await _supabase
+                            .from('receitas_forno')
+                            .select('intervalo')
+                            .eq('forno', fornoAtivo);
+                            
+                        if (error) throw error;
+
+                        if (receitas && receitas.length > 0) {
+                            receitas.forEach(receita => {
+                                if (receita.intervalo) {
+                                    const option = document.createElement('option');
+                                    option.value = receita.intervalo;
+                                    option.textContent = `Intervalo ${receita.intervalo}`;
+                                    selectFiltro.appendChild(option);
+                                }
+                            });
+                        }
+                    } catch (e) {
+                        console.error("Erro ao carregar receitas de empilhamento:", e);
+                    }
 
                 } catch (error) {
                     showAlert('Ocorreu um erro ao gerar o arranjo: ' + error.message, 'Erro', 'error');
@@ -2225,7 +2284,6 @@
                     totalPeso += qtd * peso;
                 });
 
-                // Atualiza total de molas (lógica existente)
                 const totalizadorDisplay = document.getElementById('totalizador-display');
                 totalizadorDisplay.textContent = `Total de Molas: ${totalMolas}`;
                 totalizadorDisplay.classList.remove('total-low', 'total-mid', 'total-high');
@@ -2237,7 +2295,6 @@
                     totalizadorDisplay.classList.add('total-high');
                 }
 
-                // Atualiza o novo totalizador de peso
                 const totalizadorPeso = document.getElementById('totalizador-peso');
                 if(totalizadorPeso) {
                     totalizadorPeso.textContent = `Carga Total: ${totalPeso.toFixed(1)} kg`;
@@ -2245,7 +2302,6 @@
             }
 
             // --- ADIÇÃO MANUAL E AUTOCOMPLETE ---
-            
             elements.btnAddManual.addEventListener('click', () => {
                 elements.modalInputCodigo.value = '';
                 elements.modalInputOp.value = '';
@@ -2263,62 +2319,58 @@
                 elements.modalManualOverlay.classList.remove('open');
             });
 
-            // *** CÓDIGO CORRIGIDO 1: AUTOCOMPLETE ***
-elements.modalInputCodigo.addEventListener('input', (e) => {
-    const val = e.target.value.trim().toUpperCase();
-    elements.modalInputCodigo.dataset.pesoSelecionado = '0';
-    elements.modalInputCodigo.dataset.descricaoSelecionada = '';
+            elements.modalInputCodigo.addEventListener('input', (e) => {
+                const val = e.target.value.trim().toUpperCase();
+                elements.modalInputCodigo.dataset.pesoSelecionado = '0';
+                elements.modalInputCodigo.dataset.descricaoSelecionada = '';
 
-    clearTimeout(autocompleteTimeout);
-    elements.autocompleteList.innerHTML = '';
-    elements.autocompleteList.classList.remove('visible');
-
-    if (val.length < 2) return; 
-
-    autocompleteTimeout = setTimeout(async () => {
-        try {
-            // TENTATIVA 1: Busca usando os nomes que aparecem na sua tabela
-            const { data: itensMestre, error } = await _supabase
-                .from('itens_mestre')
-                .select('*') // Buscamos tudo para garantir que pegamos os nomes certos
-                .ilike('codigo_item', `${val}%`) 
-                .limit(5);
-
-            if (error) throw error;
-
-            if (itensMestre && itensMestre.length > 0) {
+                clearTimeout(autocompleteTimeout);
                 elements.autocompleteList.innerHTML = '';
-                itensMestre.forEach(item => {
-                    const li = document.createElement('li');
-                    li.className = 'autocomplete-item';
-                    
-                    // Ajuste de mapeamento: usamos codigo_item e dimensao
-                    const codigoDisplay = item.codigo_item || item.codigo || 'S/C';
-                    const bitolaDisplay = item.dimensao || item.bitola || 'S/D';
-                    
-                    li.innerHTML = `<strong>${codigoDisplay}</strong><small>${bitolaDisplay} - GT ${item.gt || '?'}</small>`;
-                    
-                    li.addEventListener('click', () => {
-                        elements.modalInputCodigo.value = codigoDisplay;
-                        elements.modalInputBitola.value = bitolaDisplay;
-                        elements.modalInputGt.value = item.gt || '';
-                        elements.modalInputCodigo.dataset.pesoSelecionado = item.peso_kg || 0;
-                        elements.modalInputCodigo.dataset.descricaoSelecionada = item.descricao || '';
-                        
-                        elements.autocompleteList.innerHTML = '';
-                        elements.autocompleteList.classList.remove('visible');
-                    });
-                    elements.autocompleteList.appendChild(li);
-                });
-                elements.autocompleteList.classList.add('visible');
-            }
-        } catch (err) { 
-            console.error("Erro no Autocomplete:", err.message); 
-        }
-    }, 300);
-});
+                elements.autocompleteList.classList.remove('visible');
 
-            // Fechar autocomplete se clicar fora
+                if (val.length < 2) return; 
+
+                autocompleteTimeout = setTimeout(async () => {
+                    try {
+                        const { data: itensMestre, error } = await _supabase
+                            .from('itens_mestre')
+                            .select('*')
+                            .ilike('codigo_item', `${val}%`) 
+                            .limit(5);
+
+                        if (error) throw error;
+
+                        if (itensMestre && itensMestre.length > 0) {
+                            elements.autocompleteList.innerHTML = '';
+                            itensMestre.forEach(item => {
+                                const li = document.createElement('li');
+                                li.className = 'autocomplete-item';
+                                
+                                const codigoDisplay = item.codigo_item || 'S/C';
+                                const bitolaDisplay = item.dimensao || 'S/D';
+                                
+                                li.innerHTML = `<strong>${codigoDisplay}</strong><small>${bitolaDisplay} - GT ${item.gt || '?'}</small>`;
+                                
+                                li.addEventListener('click', () => {
+                                    elements.modalInputCodigo.value = codigoDisplay;
+                                    elements.modalInputBitola.value = bitolaDisplay;
+                                    elements.modalInputGt.value = item.gt || '';
+                                    elements.modalInputCodigo.dataset.pesoSelecionado = item.peso_kg || 0;
+                                    elements.modalInputCodigo.dataset.descricaoSelecionada = item.descricao || '';
+                                    
+                                    elements.autocompleteList.innerHTML = '';
+                                    elements.autocompleteList.classList.remove('visible');
+                                });
+                                elements.autocompleteList.appendChild(li);
+                            });
+                            elements.autocompleteList.classList.add('visible');
+                        }
+                    } catch (err) { 
+                        console.error("Erro no Autocomplete:", err.message); 
+                    }
+                }, 300);
+            });
+
             document.addEventListener('click', (e) => {
                 const isClickInsideAutocomplete = elements.autocompleteList.contains(e.target);
                 const isClickOnInput = e.target === elements.modalInputCodigo;
@@ -2327,7 +2379,6 @@ elements.modalInputCodigo.addEventListener('input', (e) => {
                 }
             });
 
-            // *** CÓDIGO CORRIGIDO 2: CONFIRMAÇÃO MANUAL ***
             elements.btnManualConfirm.addEventListener('click', () => {
                 const codigo = elements.modalInputCodigo.value.trim();
                 const op = elements.modalInputOp.value.trim();
@@ -2355,8 +2406,7 @@ elements.modalInputCodigo.addEventListener('input', (e) => {
             });
 
 
-            // --- Lógica de Ordenação e Filtros ---
-            
+            // --- Lógica de Ordenação, Filtros e Empilhamento ---
             function getEspessura(cardElement) {
                 const dimensao = cardElement.dataset.dimensao || '0 X 0';
                 try {
@@ -2393,6 +2443,7 @@ elements.modalInputCodigo.addEventListener('input', (e) => {
                 popularFiltroBitolaPendentes(); 
                 filtrarItensPendentes();
                 document.getElementById('bitola-referencia-select').value = "";
+                document.getElementById('filtro-intervalo-empilhamento').value = "";
             }
             
             function aplicarOrdenacaoDirecional(direcao) {
@@ -2433,6 +2484,89 @@ elements.modalInputCodigo.addEventListener('input', (e) => {
                 filtrarItensPendentes();
             }
 
+            async function aplicarFiltroEmpilhamento() {
+                const selectFiltro = document.getElementById('filtro-intervalo-empilhamento');
+                const intervalo = selectFiltro.value;
+
+                if (!intervalo) {
+                    resetarOrdenacao();
+                    return;
+                }
+
+                try {
+                    const [tetoMinimo, tetoMaximo] = intervalo.split('-').map(Number);
+                    if (isNaN(tetoMinimo) || isNaN(tetoMaximo)) throw new Error("Intervalo inválido.");
+                    
+                    const todosOsCards = [
+                        ...Array.from(document.getElementById('arranjo-producao-lista').children),
+                        ...Array.from(document.getElementById('itens-pendentes-lista').children)
+                    ];
+
+                    let todosOsItens = todosOsCards.map(card => ({
+                        id: card.id,
+                        ordemProducao: card.dataset.ordemProducao,
+                        codigo: card.dataset.codigo,
+                        descricao: card.dataset.descricao,
+                        dimensao: card.dataset.dimensao,
+                        gt: card.dataset.gt,
+                        quantidade: parseInt(card.dataset.quantidade),
+                        peso_kg: parseFloat(card.dataset.peso),
+                        espessura: getEspessura(card),
+                        isEmpilhado: false
+                    }));
+
+                    todosOsItens.sort((a, b) => a.espessura - b.espessura);
+
+                    const novoArranjo = [];
+                    const novosPendentes = [];
+                    const idsUsados = new Set();
+
+                    for (let i = 0; i < todosOsItens.length; i++) {
+                        if (idsUsados.has(todosOsItens[i].id)) continue;
+
+                        const baseItem = todosOsItens[i];
+                        if (baseItem.espessura < tetoMinimo || baseItem.espessura > tetoMaximo) continue;
+                        
+                        let parceiroEncontrado = null;
+                        for (let j = i + 1; j < todosOsItens.length; j++) {
+                            if (idsUsados.has(todosOsItens[j].id)) continue;
+                            const parceiroPotencial = todosOsItens[j];
+                            const espessuraDobrada = parceiroPotencial.espessura * 2;
+                            
+                            if (molasPlanasCodigos.has(parceiroPotencial.codigo) && espessuraDobrada >= tetoMinimo && espessuraDobrada <= tetoMaximo) {
+                                parceiroEncontrado = parceiroPotencial;
+                                break;
+                            }
+                        }
+
+                        if (parceiroEncontrado) {
+                            baseItem.isEmpilhado = true;
+                            parceiroEncontrado.isEmpilhado = true;
+                            novoArranjo.push(baseItem, parceiroEncontrado);
+                            idsUsados.add(baseItem.id);
+                            idsUsados.add(parceiroEncontrado.id);
+                        }
+                    }
+
+                    for (const item of todosOsItens) {
+                        if (!idsUsados.has(item.id)) {
+                            item.isEmpilhado = false;
+                            novosPendentes.push(item);
+                        }
+                    }
+                    
+                    popularLista('arranjo-producao-lista', novoArranjo, false);
+                    popularLista('itens-pendentes-lista', novosPendentes, true);
+                    
+                    atualizarTotalizador();
+                    popularFiltroBitolaPendentes(); 
+                    filtrarItensPendentes();
+
+                } catch (err) {
+                    showAlert(`Erro ao aplicar o filtro de empilhamento: ${err.message}`, 'Erro', 'error');
+                    selectFiltro.value = '';
+                }
+            }
 
             function popularFiltroBitolaPendentes() {
                 const seletor = document.getElementById('filter-bitola-pendentes');
@@ -2469,6 +2603,7 @@ elements.modalInputCodigo.addEventListener('input', (e) => {
             document.getElementById('btn-reset-filter').addEventListener('click', resetarOrdenacao);
             document.getElementById('btn-ordem-crescente').addEventListener('click', () => aplicarOrdenacaoDirecional('crescente'));
             document.getElementById('btn-ordem-decrescente').addEventListener('click', () => aplicarOrdenacaoDirecional('decrescente'));
+            document.getElementById('filtro-intervalo-empilhamento').addEventListener('change', aplicarFiltroEmpilhamento);
             document.getElementById('search-pendentes').addEventListener('input', filtrarItensPendentes);
             document.getElementById('filter-bitola-pendentes').addEventListener('change', filtrarItensPendentes);
 
@@ -2496,9 +2631,8 @@ elements.modalInputCodigo.addEventListener('input', (e) => {
                 const card = document.createElement('div');
                 card.className = 'item-card';
                 card.draggable = true;
-                card.id = `${containerId}-item-${Date.now()}-${index}`;
+                card.id = item.id || `${containerId}-item-${Date.now()}-${index}`;
                 
-                // Datasets
                 card.dataset.ordemProducao = item.ordemProducao || 'N/A';
                 card.dataset.codigo = item.codigo || 'N/A';
                 card.dataset.descricao = item.descricao || 'N/A';
@@ -2507,6 +2641,7 @@ elements.modalInputCodigo.addEventListener('input', (e) => {
                 card.dataset.quantidade = item.quantidade || '0';
                 card.dataset.peso = item.peso_kg || '0';
 
+                const empilhamentoTag = item.isEmpilhado ? '<span class="tag-2x">2X</span>' : '';
                 let gtHtml = `<b>GT:</b> ${item.gt || 'N/A'}`;
                 if (isPendente && (!item.gt || item.gt.trim() === '')) {
                     gtHtml = `<b>GT:</b> <input type="text" class="gt-input" placeholder="N/A" onkeydown="reavaliarItem(event, this.parentElement.parentElement)">`;
@@ -2522,7 +2657,7 @@ elements.modalInputCodigo.addEventListener('input', (e) => {
 
                 card.innerHTML = `
                     <span class="delete-btn" onclick="removerCard(this.parentElement)">×</span>
-                    <p><b>OP:</b> ${item.ordemProducao || 'N/A'}</p>
+                    <p><b>OP:</b> ${item.ordemProducao || 'N/A'} ${empilhamentoTag}</p>
                     <p><b>Código:</b> ${item.codigo || 'N/A'}</p>
                     <p>${item.descricao || 'N/A'}</p>
                     <p><b>Bitola:</b> ${item.dimensao || 'N/A'}</p>
@@ -2704,6 +2839,7 @@ elements.modalInputCodigo.addEventListener('input', (e) => {
                 document.body.classList.toggle('light-theme', !isDark);
                 updateStepper(1);
                 atualizarConfiguracaoForno('grande');
+                carregarMolasPlanas();
             }
 
             initApp();
