@@ -2487,89 +2487,90 @@
                 filtrarItensPendentes();
             }
 
-            async function aplicarFiltroEmpilhamento() {
-                const selectFiltro = document.getElementById('filtro-intervalo-empilhamento');
-                const intervalo = selectFiltro.value;
+async function aplicarFiltroEmpilhamento() {
+    const selectFiltro = document.getElementById('filtro-intervalo-empilhamento');
+    const intervalo = selectFiltro.value;
 
-                if (!intervalo) {
-                    resetarOrdenacao();
-                    return;
+    if (!intervalo) {
+        resetarOrdenacao();
+        return;
+    }
+
+    try {
+        const [tetoMinimo, tetoMaximo] = intervalo.split('-').map(Number);
+        if (isNaN(tetoMinimo) || isNaN(tetoMaximo)) throw new Error("Intervalo inválido.");
+
+        // 1. Coleta todos os itens disponíveis no arranjo inicial
+        const itensDisponiveis = listaOriginalArranjo.map(item => ({...item, isEmpilhado: false}));
+
+        const novoArranjo = [];
+        const novosPendentes = [...listaOriginalPendentes]; // Começa com os pendentes originais
+        const idsUsados = new Set();
+
+        // Ordena as bases potenciais da maior para a menor, para otimizar o forno
+        const basesPotenciais = itensDisponiveis
+            .filter(item => getEspessura({ dataset: { dimensao: item.Dimensões } }) >= tetoMinimo && getEspessura({ dataset: { dimensao: item.Dimensões } }) <= tetoMaximo)
+            .sort((a, b) => getEspessura({ dataset: { dimensao: b.Dimensões } }) - getEspessura({ dataset: { dimensao: a.Dimensões } }));
+
+        // 2. Lógica de Pareamento Robusta
+        for (const base of basesPotenciais) {
+            if (idsUsados.has(base.codigo + base.op)) continue; // Se esta base já foi usada como parceira, pule
+
+            let parceiroEncontrado = null;
+            let indiceParceiro = -1;
+
+            // Procura o melhor parceiro para esta base
+            for (let i = 0; i < itensDisponiveis.length; i++) {
+                const parceiroPotencial = itensDisponiveis[i];
+                
+                // Um item não pode ser parceiro de si mesmo e não pode já ter sido usado
+                if (base === parceiroPotencial || idsUsados.has(parceiroPotencial.codigo + parceiroPotencial.op)) {
+                    continue;
                 }
 
-                try {
-                    const [tetoMinimo, tetoMaximo] = intervalo.split('-').map(Number);
-                    if (isNaN(tetoMinimo) || isNaN(tetoMaximo)) throw new Error("Intervalo inválido.");
-                    
-                    const todosOsCards = [
-                        ...Array.from(document.getElementById('arranjo-producao-lista').children),
-                        ...Array.from(document.getElementById('itens-pendentes-lista').children)
-                    ];
-
-                    let todosOsItens = todosOsCards.map(card => ({
-                        id: card.id,
-                        op: card.dataset.ordemProducao,
-                        codigo: card.dataset.codigo,
-                        Descrição: card.dataset.descricao,
-                        Dimensões: card.dataset.dimensao, 
-                        bitola: getEspessura(card), // Usa getEspessura para ter o valor numérico
-                        gt: card.dataset.gt,
-                        quantidade: parseInt(card.dataset.quantidade),
-                        peso_unit: parseFloat(card.dataset.peso),
-                        isEmpilhado: false
-                    }));
-
-                    todosOsItens.sort((a, b) => a.bitola - b.bitola);
-
-                    const novoArranjo = [];
-                    const novosPendentes = [];
-                    const idsUsados = new Set();
-
-                    for (let i = 0; i < todosOsItens.length; i++) {
-                        if (idsUsados.has(todosOsItens[i].id)) continue;
-
-                        const baseItem = todosOsItens[i];
-                        if (baseItem.bitola < tetoMinimo || baseItem.bitola > tetoMaximo) continue;
-                        
-                        let parceiroEncontrado = null;
-                        for (let j = i + 1; j < todosOsItens.length; j++) {
-                            if (idsUsados.has(todosOsItens[j].id)) continue;
-                            const parceiroPotencial = todosOsItens[j];
-                            const espessuraDobrada = parceiroPotencial.bitola * 2;
-                            
-                            if (molasPlanasCodigos.has(parceiroPotencial.codigo) && espessuraDobrada >= tetoMinimo && espessuraDobrada <= tetoMaximo) {
-                                parceiroEncontrado = parceiroPotencial;
-                                break;
-                            }
-                        }
-
-                        if (parceiroEncontrado) {
-                            baseItem.isEmpilhado = true;
-                            parceiroEncontrado.isEmpilhado = true;
-                            novoArranjo.push(baseItem, parceiroEncontrado);
-                            idsUsados.add(baseItem.id);
-                            idsUsados.add(parceiroEncontrado.id);
-                        }
-                    }
-
-                    for (const item of todosOsItens) {
-                        if (!idsUsados.has(item.id)) {
-                            item.isEmpilhado = false;
-                            novosPendentes.push(item);
-                        }
-                    }
-                    
-                    popularLista('arranjo-producao-lista', novoArranjo, false);
-                    popularLista('itens-pendentes-lista', novosPendentes, true);
-                    
-                    atualizarTotalizador();
-                    popularFiltroBitolaPendentes(); 
-                    filtrarItensPendentes();
-
-                } catch (err) {
-                    showAlert(`Erro ao aplicar o filtro de empilhamento: ${err.message}`, 'Erro', 'error');
-                    selectFiltro.value = '';
+                const espessuraParceiro = getEspessura({ dataset: { dimensao: parceiroPotencial.Dimensões } });
+                const espessuraDobrada = espessuraParceiro * 2;
+                
+                // Condições para ser um parceiro válido
+                if (molasPlanasCodigos.has(parceiroPotencial.codigo) && espessuraDobrada >= tetoMinimo && espessuraDobrada <= tetoMaximo) {
+                    parceiroEncontrado = parceiroPotencial;
+                    indiceParceiro = i;
+                    break; // Encontrou um parceiro, para de procurar para esta base
                 }
             }
+
+            // 3. Se um par foi formado, adicione-os ao novo arranjo
+            if (parceiroEncontrado) {
+                base.isEmpilhado = true;
+                parceiroEncontrado.isEmpilhado = true;
+                
+                novoArranjo.push(base);
+                novoArranjo.push(parceiroEncontrado);
+                
+                idsUsados.add(base.codigo + base.op);
+                idsUsados.add(parceiroEncontrado.codigo + parceiroEncontrado.op);
+            }
+        }
+        
+        // 4. Adiciona todos os itens não utilizados à lista de pendentes
+        for (const item of itensDisponiveis) {
+            if (!idsUsados.has(item.codigo + item.op)) {
+                item.isEmpilhado = false; // Garante que não tenha a tag 2X
+                novosPendentes.push(item);
+            }
+        }
+        
+        // 5. Renderiza o resultado final na tela
+        popularLista('arranjo-producao-lista', novoArranjo, false);
+        popularLista('itens-pendentes-lista', novosPendentes, true);
+        
+        atualizarTotalizador();
+
+    } catch (err) {
+        showAlert(`Erro ao aplicar o filtro de empilhamento: ${err.message}`, 'Erro', 'error');
+        selectFiltro.value = '';
+    }
+}
 
             function popularFiltroBitolaPendentes() {
                 const seletor = document.getElementById('filter-bitola-pendentes');
