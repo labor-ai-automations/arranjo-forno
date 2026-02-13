@@ -942,19 +942,16 @@
             <h2>Passo 1: Configuração</h2>
             <div class="config-grid">
                 <div>
-                    <label class="config-label">Seleção de Forno</label>
-                    <div class="btn-group" style="display: flex; gap: 1rem;">
-                        <button id="btn-forno-grande" class="active"><span>Forno Grande (1001)</span></button>
-                        <button id="btn-forno-pequeno"><span>Forno Pequeno (1002)</span></button>
-                    </div>
+<label class="config-label">Seleção de Fornos (Clique para Ativar)</label>
+<div class="btn-group" style="display: flex; gap: 1rem;">
+    <button id="btn-forno-grande" class="toggle-forno" data-forno="grande"><span>Forno Grande (1001)</span></button>
+    <button id="btn-forno-pequeno" class="toggle-forno" data-forno="pequeno"><span>Forno Pequeno (1002)</span></button>
+</div>
                 </div>
                 <div>
-                    <label id="config-titulo" class="config-label">Configuração do Forno Grande</label>
-                    <div class="form-group">
-                        <label for="qtde-gts-dinamico" style="font-size: 0.8rem; color: var(--text-secondary);">Quantidade</label>
-                        <select id="qtde-gts-dinamico"></select>
-                    </div>
-                    <div id="inputs-gts-dinamico"></div>
+<div id="container-configuracoes-fornos">
+    <!-- Injetado via JavaScript -->
+</div>
                 </div>
             </div>
             <div class="actions">
@@ -1674,21 +1671,78 @@
                 }
             };
             
-            const atualizarConfiguracaoForno = (tipoForno) => {
-                const config = fornosConfig[tipoForno];
-                const isGrande = tipoForno === 'grande';
-                elements.btnFornoGrande.classList.toggle('active', isGrande);
-                elements.btnFornoPequeno.classList.toggle('active', !isGrande);
-                elements.configTitulo.textContent = config.titulo;
-                elements.qtdeGtsDinamico.innerHTML = '';
-                config.opcoes.forEach(opt => {
-                    const optionEl = document.createElement('option');
-                    optionEl.value = opt.value;
-                    optionEl.textContent = opt.text;
-                    elements.qtdeGtsDinamico.appendChild(optionEl);
+const fornosAtivos = new Set(['grande']); 
+
+            function renderizarConfiguracoes() {
+                const container = document.getElementById('container-configuracoes-fornos');
+                if (!container) return;
+                container.innerHTML = '';
+
+                fornosAtivos.forEach(forno => {
+                    const config = fornosConfig[forno];
+                    const div = document.createElement('div');
+                    div.style.marginBottom = '1.5rem';
+                    div.style.padding = '1.5rem';
+                    div.style.backgroundColor = 'var(--bg-main)';
+                    div.style.borderRadius = 'var(--radius-md)';
+                    div.style.border = '1px solid var(--border-color)';
+                    
+                    div.innerHTML = `
+                        <label class="config-label" style="color: var(--color-primary); margin-bottom: 10px; font-weight: bold;">${config.titulo}</label>
+                        <div class="form-group">
+                            <label style="font-size: 0.8rem; color: var(--text-secondary);">Qtd. de GTs ativos para este forno:</label>
+                            <select class="qtde-gts-select" data-forno="${forno}" style="margin-top: 5px;">
+                                ${config.opcoes.map(opt => `<option value="${opt.value}">${opt.text}</option>`).join('')}
+                            </select>
+                        </div>
+                        <div class="inputs-gts-container" id="inputs-gts-${forno}" style="display: flex; flex-direction: column; gap: 8px; margin-top: 10px;"></div>
+                    `;
+                    container.appendChild(div);
+                    
+                    const select = div.querySelector('.qtde-gts-select');
+                    const gtsContainer = div.querySelector('.inputs-gts-container');
+                    
+                    select.addEventListener('change', (e) => gerarInputs(e.target.value, gtsContainer, forno));
+                    gerarInputs(select.value, gtsContainer, forno);
                 });
-                gerarInputs(elements.qtdeGtsDinamico.value, elements.inputsGtsDinamico);
+            }
+
+            document.querySelectorAll('.toggle-forno').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const forno = btn.dataset.forno;
+                    if (fornosAtivos.has(forno)) {
+                        if (fornosAtivos.size > 1) {
+                            fornosAtivos.delete(forno);
+                            btn.classList.remove('active');
+                        } else {
+                            showAlert("Ao menos um forno deve estar ativo.", "Atenção");
+                        }
+                    } else {
+                        fornosAtivos.add(forno);
+                        btn.classList.add('active');
+                    }
+                    renderizarConfiguracoes();
+                });
+            });
+
+            const gerarInputs = (qtde, container, forno) => {
+                container.innerHTML = '';
+                for (let i = 1; i <= qtde; i++) {
+                    const input = document.createElement('input');
+                    input.type = 'text';
+                    input.className = `gt-input-field-${forno}`;
+                    input.placeholder = `Código do GT ${i} (Ex: GT0${i})`;
+                    input.style.marginTop = '0.5rem';
+                    container.appendChild(input);
+                }
             };
+
+            elements.btnCarregarCsv.addEventListener('click', () => elements.csvFileInput.click());
+            elements.csvFileInput.addEventListener('change', () => {
+                if (elements.csvFileInput.files.length > 0) {
+                    elements.btnCarregarCsv.textContent = `Arquivo: ${elements.csvFileInput.files[0].name}`;
+                }
+            });
 
             elements.btnFornoGrande.addEventListener('click', () => atualizarConfiguracaoForno('grande'));
             elements.btnFornoPequeno.addEventListener('click', () => atualizarConfiguracaoForno('pequeno'));
@@ -2239,10 +2293,14 @@
 
                 const formData = new FormData();
                 formData.append('file', elements.csvFileInput.files[0], 'data.csv');
-                const fornoAtivo = elements.btnFornoGrande.classList.contains('active') ? 'grande' : 'pequeno';
-                formData.append('forno', fornoAtivo);
-                gtsAtuais = Array.from(elements.inputsGtsDinamico.querySelectorAll('input')).map(input => input.value).filter(Boolean);
-                formData.append('gts_selecionados', JSON.stringify(gtsAtuais));
+const configFornos = {};
+                fornosAtivos.forEach(forno => {
+                    const inputs = document.querySelectorAll(`.gt-input-field-${forno}`);
+                    configFornos[forno] = Array.from(inputs).map(input => input.value).filter(Boolean);
+                });
+                formData.append('config_fornos', JSON.stringify(configFornos));
+                // Mantemos gtsAtuais para compatibilidade de filtros na UI
+                gtsAtuais = Object.values(configFornos).flat();
                 
                 try {
                     const response = await fetch(n8nGerarArranjoUrl, { method: 'POST', body: formData });
@@ -2641,7 +2699,7 @@ async function aplicarFiltroEmpilhamento() {
                 const peso_total_do_card = (parseFloat(card.dataset.quantidade) * parseFloat(card.dataset.peso)).toFixed(1);
 
                 // --- CORREÇÃO DE RENDERIZAÇÃO ---
-                card.innerHTML = `
+card.innerHTML = `
                     <span class="delete-btn" onclick="removerCard(this.parentElement)">×</span>
                     <p><b>OP:</b> ${card.dataset.ordemProducao} ${empilhamentoTag}</p>
                     <p><b>Código:</b> ${card.dataset.codigo}</p>
@@ -2649,6 +2707,7 @@ async function aplicarFiltroEmpilhamento() {
                     <p><b>Bitola:</b> ${card.dataset.dimensao}</p>
                     <p><b>Qtd:</b> ${card.dataset.quantidade} <small style="color: var(--text-secondary); margin-left: 10px;">(${peso_total_do_card} kg)</small></p>
                     <p class="gt-display" onclick="editarGT(event, this.parentElement)">${gtHtml}</p>
+                    ${item.forno_destino ? `<p style="font-size: 0.8rem; color: #3B82F6; font-weight: bold; margin-top: 8px; border-top: 1px dashed var(--border-color); padding-top: 5px;">📍 DESTINO: FORNO ${item.forno_destino === 'grande' ? '1001' : '1002'}</p>` : ''}
                 `;
                 
                 card.addEventListener('dragstart', handleDragStart);
@@ -2818,12 +2877,13 @@ async function aplicarFiltroEmpilhamento() {
             });
             
             // --- Inicialização ---
-            function initApp() {
+function initApp() {
                 const isDark = elements.themeToggle.checked;
                 document.body.classList.toggle('dark-theme', isDark);
                 document.body.classList.toggle('light-theme', !isDark);
                 updateStepper(1);
-                atualizarConfiguracaoForno('grande');
+                document.getElementById('btn-forno-grande').classList.add('active');
+                renderizarConfiguracoes();
                 carregarMolasPlanas();
             }
 
