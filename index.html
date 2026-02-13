@@ -942,16 +942,14 @@
             <h2>Passo 1: Configuração</h2>
             <div class="config-grid">
                 <div>
-<label class="config-label">Seleção de Fornos (Clique para Ativar)</label>
-<div class="btn-group" style="display: flex; gap: 1rem;">
-    <button id="btn-forno-grande" class="toggle-forno" data-forno="grande"><span>Forno Grande (1001)</span></button>
-    <button id="btn-forno-pequeno" class="toggle-forno" data-forno="pequeno"><span>Forno Pequeno (1002)</span></button>
-</div>
+                    <label class="config-label">Seleção de Fornos (Clique para Ativar)</label>
+                    <div class="btn-group" style="display: flex; gap: 1rem;">
+                        <button id="btn-forno-grande" class="toggle-forno" data-forno="grande"><span>Forno Grande (1001)</span></button>
+                        <button id="btn-forno-pequeno" class="toggle-forno" data-forno="pequeno"><span>Forno Pequeno (1002)</span></button>
+                    </div>
                 </div>
-                <div>
-<div id="container-configuracoes-fornos">
-    <!-- Injetado via JavaScript -->
-</div>
+                <div id="container-configuracoes-fornos">
+                    <!-- Injetado via JavaScript -->
                 </div>
             </div>
             <div class="actions">
@@ -1436,13 +1434,6 @@
                 step1: document.getElementById('step-1'),
                 step2: document.getElementById('step-2'),
 
-                // Configuração Forno
-                btnFornoGrande: document.getElementById('btn-forno-grande'),
-                btnFornoPequeno: document.getElementById('btn-forno-pequeno'),
-                configTitulo: document.getElementById('config-titulo'),
-                qtdeGtsDinamico: document.getElementById('qtde-gts-dinamico'),
-                inputsGtsDinamico: document.getElementById('inputs-gts-dinamico'),
-
                 // Ações Principais
                 btnCarregarCsv: document.getElementById('btn-carregar-csv'),
                 csvFileInput: document.getElementById('csv-file-input'),
@@ -1660,42 +1651,31 @@
                 elements.stepNav2.classList.toggle('active', currentStep >= 2);
             };
             
-            const gerarInputs = (qtde, container) => {
-                container.innerHTML = '';
-                for (let i = 1; i <= qtde; i++) {
-                    const input = document.createElement('input');
-                    input.type = 'text';
-                    input.placeholder = `Código GT ${i}`;
-                    input.style.marginTop = '0.5rem';
-                    container.appendChild(input);
-                }
-            };
-            
-const fornosAtivos = new Set(['grande']); 
+            // ########## INÍCIO DO BLOCO DE CÓDIGO ALTERADO (C) ##########
+            const fornosAtivos = new Set(['grande']); 
 
             function renderizarConfiguracoes() {
                 const container = document.getElementById('container-configuracoes-fornos');
-                if (!container) return;
                 container.innerHTML = '';
 
                 fornosAtivos.forEach(forno => {
                     const config = fornosConfig[forno];
                     const div = document.createElement('div');
                     div.style.marginBottom = '1.5rem';
-                    div.style.padding = '1.5rem';
+                    div.style.padding = '1rem';
                     div.style.backgroundColor = 'var(--bg-main)';
                     div.style.borderRadius = 'var(--radius-md)';
                     div.style.border = '1px solid var(--border-color)';
                     
                     div.innerHTML = `
-                        <label class="config-label" style="color: var(--color-primary); margin-bottom: 10px; font-weight: bold;">${config.titulo}</label>
+                        <label class="config-label" style="color: var(--color-primary); margin-bottom: 10px;">${config.titulo}</label>
                         <div class="form-group">
-                            <label style="font-size: 0.8rem; color: var(--text-secondary);">Qtd. de GTs ativos para este forno:</label>
-                            <select class="qtde-gts-select" data-forno="${forno}" style="margin-top: 5px;">
+                            <label style="font-size: 0.8rem;">Qtd. de GTs ativos neste forno:</label>
+                            <select class="qtde-gts-select" data-forno="${forno}">
                                 ${config.opcoes.map(opt => `<option value="${opt.value}">${opt.text}</option>`).join('')}
                             </select>
                         </div>
-                        <div class="inputs-gts-container" id="inputs-gts-${forno}" style="display: flex; flex-direction: column; gap: 8px; margin-top: 10px;"></div>
+                        <div class="inputs-gts-container" id="inputs-gts-${forno}"></div>
                     `;
                     container.appendChild(div);
                     
@@ -1737,17 +1717,11 @@ const fornosAtivos = new Set(['grande']);
                 }
             };
 
-            elements.btnCarregarCsv.addEventListener('click', () => elements.csvFileInput.click());
-            elements.csvFileInput.addEventListener('change', () => {
-                if (elements.csvFileInput.files.length > 0) {
-                    elements.btnCarregarCsv.textContent = `Arquivo: ${elements.csvFileInput.files[0].name}`;
-                }
-            });
+            // Inicialização da nova lógica de fornos
+            document.getElementById('btn-forno-grande').classList.add('active');
+            renderizarConfiguracoes();
+            // ########## FIM DO BLOCO DE CÓDIGO ALTERADO (C) ##########
 
-            elements.btnFornoGrande.addEventListener('click', () => atualizarConfiguracaoForno('grande'));
-            elements.btnFornoPequeno.addEventListener('click', () => atualizarConfiguracaoForno('pequeno'));
-            elements.qtdeGtsDinamico.addEventListener('change', (e) => gerarInputs(e.target.value, elements.inputsGtsDinamico));
-            
             elements.btnCarregarCsv.addEventListener('click', () => elements.csvFileInput.click());
             elements.csvFileInput.addEventListener('change', () => {
                 if (elements.csvFileInput.files.length > 0) {
@@ -2291,16 +2265,18 @@ const fornosAtivos = new Set(['grande']);
                 elements.btnGerarArranjo.innerHTML = '<div class="spinner"></div> Gerando...';
                 elements.btnGerarArranjo.disabled = true;
 
+                // ########## INÍCIO DO BLOCO DE CÓDIGO ALTERADO (D) ##########
                 const formData = new FormData();
                 formData.append('file', elements.csvFileInput.files[0], 'data.csv');
-const configFornos = {};
+
+                const configFornos = {};
                 fornosAtivos.forEach(forno => {
                     const inputs = document.querySelectorAll(`.gt-input-field-${forno}`);
                     configFornos[forno] = Array.from(inputs).map(input => input.value).filter(Boolean);
                 });
+
                 formData.append('config_fornos', JSON.stringify(configFornos));
-                // Mantemos gtsAtuais para compatibilidade de filtros na UI
-                gtsAtuais = Object.values(configFornos).flat();
+                // ########## FIM DO BLOCO DE CÓDIGO ALTERADO (D) ##########
                 
                 try {
                     const response = await fetch(n8nGerarArranjoUrl, { method: 'POST', body: formData });
@@ -2322,10 +2298,11 @@ const configFornos = {};
                     
                     atualizarTotalizador();
                     
-                    // --- CHAMADAS DE CORREÇÃO INTEGRADAS ---
                     popularSeletorBitolaReferencia();
                     popularFiltroBitolaPendentes();
-                    popularFiltroEmpilhamento(fornoAtivo); // 'fornoAtivo' já contém 'grande' ou 'pequeno'
+                    // Assumindo que o primeiro forno ativo é o de referência para o empilhamento
+                    const primeiroFornoAtivo = fornosAtivos.values().next().value;
+                    popularFiltroEmpilhamento(primeiroFornoAtivo); 
 
                 } catch (error) {
                     showAlert('Ocorreu um erro ao gerar o arranjo: ' + error.message, 'Erro', 'error');
@@ -2545,78 +2522,78 @@ const configFornos = {};
                 filtrarItensPendentes();
             }
 
-async function aplicarFiltroEmpilhamento() {
-    const selectFiltro = document.getElementById('filtro-intervalo-empilhamento');
-    const intervalo = selectFiltro.value;
+            async function aplicarFiltroEmpilhamento() {
+                const selectFiltro = document.getElementById('filtro-intervalo-empilhamento');
+                const intervalo = selectFiltro.value;
 
-    if (!intervalo) {
-        resetarOrdenacao();
-        return;
-    }
-
-    try {
-        const [tetoMinimo, tetoMaximo] = intervalo.split('-').map(Number);
-        if (isNaN(tetoMinimo) || isNaN(tetoMaximo)) throw new Error("Intervalo inválido.");
-
-        const itensParaProcessar = [...listaOriginalArranjo];
-        const idsUsados = new Set();
-        const novoArranjo = [];
-        let novosPendentes = [...listaOriginalPendentes];
-        
-        itensParaProcessar.sort((a, b) => b.bitola - a.bitola);
-
-        for (let i = 0; i < itensParaProcessar.length; i++) {
-            const base = itensParaProcessar[i];
-            
-            if (idsUsados.has(base.op)) continue;
-
-            if (base.bitola >= tetoMinimo && base.bitola <= tetoMaximo) {
-                let parceiroEncontrado = null;
-                let indiceParceiro = -1;
-
-                for (let j = 0; j < itensParaProcessar.length; j++) {
-                    const parceiroPotencial = itensParaProcessar[j];
-                    if (i === j || idsUsados.has(parceiroPotencial.op)) continue;
-
-                    const espessuraDobrada = parceiroPotencial.bitola * 2;
-                    // --- ESTA É A LINHA CORRIGIDA ---
-                    if (molasPlanasCodigos.has(parceiroPotencial.codigo) && espessuraDobrada >= tetoMinimo && espessuraDobrada <= tetoMaximo) {
-                        parceiroEncontrado = parceiroPotencial;
-                        indiceParceiro = j;
-                        break; 
-                    }
+                if (!intervalo) {
+                    resetarOrdenacao();
+                    return;
                 }
 
-                if (parceiroEncontrado) {
-                    base.isEmpilhado = false;
-                    parceiroEncontrado.isEmpilhado = true;
+                try {
+                    const [tetoMinimo, tetoMaximo] = intervalo.split('-').map(Number);
+                    if (isNaN(tetoMinimo) || isNaN(tetoMaximo)) throw new Error("Intervalo inválido.");
+
+                    const itensParaProcessar = [...listaOriginalArranjo];
+                    const idsUsados = new Set();
+                    const novoArranjo = [];
+                    let novosPendentes = [...listaOriginalPendentes];
                     
-                    novoArranjo.push(base);
-                    novoArranjo.push(parceiroEncontrado);
+                    itensParaProcessar.sort((a, b) => b.bitola - a.bitola);
 
-                    idsUsados.add(base.op);
-                    idsUsados.add(parceiroEncontrado.op);
+                    for (let i = 0; i < itensParaProcessar.length; i++) {
+                        const base = itensParaProcessar[i];
+                        
+                        if (idsUsados.has(base.op)) continue;
+
+                        if (base.bitola >= tetoMinimo && base.bitola <= tetoMaximo) {
+                            let parceiroEncontrado = null;
+                            let indiceParceiro = -1;
+
+                            for (let j = 0; j < itensParaProcessar.length; j++) {
+                                const parceiroPotencial = itensParaProcessar[j];
+                                if (i === j || idsUsados.has(parceiroPotencial.op)) continue;
+
+                                const espessuraDobrada = parceiroPotencial.bitola * 2;
+                                // --- ESTA É A LINHA CORRIGIDA ---
+                                if (molasPlanasCodigos.has(parceiroPotencial.codigo) && espessuraDobrada >= tetoMinimo && espessuraDobrada <= tetoMaximo) {
+                                    parceiroEncontrado = parceiroPotencial;
+                                    indiceParceiro = j;
+                                    break; 
+                                }
+                            }
+
+                            if (parceiroEncontrado) {
+                                base.isEmpilhado = false;
+                                parceiroEncontrado.isEmpilhado = true;
+                                
+                                novoArranjo.push(base);
+                                novoArranjo.push(parceiroEncontrado);
+
+                                idsUsados.add(base.op);
+                                idsUsados.add(parceiroEncontrado.op);
+                            }
+                        }
+                    }
+
+                    for (const item of itensParaProcessar) {
+                        if (!idsUsados.has(item.op)) {
+                            item.isEmpilhado = false;
+                            novosPendentes.push(item);
+                        }
+                    }
+                    
+                    popularLista('arranjo-producao-lista', novoArranjo, false);
+                    popularLista('itens-pendentes-lista', novosPendentes, true);
+                    
+                    atualizarTotalizador();
+
+                } catch (err) {
+                    showAlert(`Erro ao aplicar o filtro de empilhamento: ${err.message}`, 'Erro', 'error');
+                    selectFiltro.value = '';
                 }
             }
-        }
-
-        for (const item of itensParaProcessar) {
-            if (!idsUsados.has(item.op)) {
-                item.isEmpilhado = false;
-                novosPendentes.push(item);
-            }
-        }
-        
-        popularLista('arranjo-producao-lista', novoArranjo, false);
-        popularLista('itens-pendentes-lista', novosPendentes, true);
-        
-        atualizarTotalizador();
-
-    } catch (err) {
-        showAlert(`Erro ao aplicar o filtro de empilhamento: ${err.message}`, 'Erro', 'error');
-        selectFiltro.value = '';
-    }
-}
 
             function popularFiltroBitolaPendentes() {
                 const seletor = document.getElementById('filter-bitola-pendentes');
@@ -2670,7 +2647,6 @@ async function aplicarFiltroEmpilhamento() {
                 });
             }
 
-            // CORREÇÃO: Função `criarCard` substituída pela versão mais robusta e completa.
             function criarCard(containerId, item, isPendente) {
                 const container = document.getElementById(containerId);
                 if (!container) return;
@@ -2681,11 +2657,10 @@ async function aplicarFiltroEmpilhamento() {
                 card.draggable = true;
                 card.id = item.id || `${containerId}-item-${Date.now()}-${index}`;
 
-                // --- CORREÇÃO DE MAPEAMENTO ---
                 card.dataset.ordemProducao = item.op || item.Item || 'N/A';
                 card.dataset.codigo = item.codigo || item.Código || 'N/A';
-                card.dataset.descricao = item.Descrição || 'Descrição N/A'; // <-- USA O CAMPO "Descrição"
-                card.dataset.dimensao = item.Dimensões || `N/A X ${item.bitola}`; // <-- USA O CAMPO "Dimensões"
+                card.dataset.descricao = item.Descrição || 'Descrição N/A';
+                card.dataset.dimensao = item.Dimensões || `N/A X ${item.bitola}`;
                 card.dataset.gt = item.gt || '';
                 card.dataset.quantidade = item.quantidade || item.Planejado || '0';
                 card.dataset.peso = item.peso_unit || item.peso_kg || '0';
@@ -2698,8 +2673,7 @@ async function aplicarFiltroEmpilhamento() {
 
                 const peso_total_do_card = (parseFloat(card.dataset.quantidade) * parseFloat(card.dataset.peso)).toFixed(1);
 
-                // --- CORREÇÃO DE RENDERIZAÇÃO ---
-card.innerHTML = `
+                card.innerHTML = `
                     <span class="delete-btn" onclick="removerCard(this.parentElement)">×</span>
                     <p><b>OP:</b> ${card.dataset.ordemProducao} ${empilhamentoTag}</p>
                     <p><b>Código:</b> ${card.dataset.codigo}</p>
@@ -2707,7 +2681,7 @@ card.innerHTML = `
                     <p><b>Bitola:</b> ${card.dataset.dimensao}</p>
                     <p><b>Qtd:</b> ${card.dataset.quantidade} <small style="color: var(--text-secondary); margin-left: 10px;">(${peso_total_do_card} kg)</small></p>
                     <p class="gt-display" onclick="editarGT(event, this.parentElement)">${gtHtml}</p>
-                    ${item.forno_destino ? `<p style="font-size: 0.8rem; color: #3B82F6; font-weight: bold; margin-top: 8px; border-top: 1px dashed var(--border-color); padding-top: 5px;">📍 DESTINO: FORNO ${item.forno_destino === 'grande' ? '1001' : '1002'}</p>` : ''}
+                    ${item.forno_destino ? `<p style="font-size: 0.75rem; color: var(--color-info); margin-top: 5px; font-weight: 600;">📍 Destino: Forno ${item.forno_destino === 'grande' ? '1001' : '1002'}</p>` : ''}
                 `;
                 
                 card.addEventListener('dragstart', handleDragStart);
@@ -2877,13 +2851,12 @@ card.innerHTML = `
             });
             
             // --- Inicialização ---
-function initApp() {
+            function initApp() {
                 const isDark = elements.themeToggle.checked;
                 document.body.classList.toggle('dark-theme', isDark);
                 document.body.classList.toggle('light-theme', !isDark);
                 updateStepper(1);
-                document.getElementById('btn-forno-grande').classList.add('active');
-                renderizarConfiguracoes();
+                // A chamada para `renderizarConfiguracoes` já foi feita no escopo global ao carregar o script.
                 carregarMolasPlanas();
             }
 
