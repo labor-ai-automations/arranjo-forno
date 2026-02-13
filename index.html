@@ -1004,39 +1004,28 @@
                 </div>
             </div>
 
-
-            <div class="arranjo-container">
-                <!-- Coluna Arranjo -->
-                <div class="arranjo-coluna">
-                    <div class="arranjo-header">
-                        <h3>ARRANJO DE PRODUÇÃO</h3>
-                        <div style="display: flex; align-items: center; gap: 1rem;">
-                            <div id="totalizador-display" class="totalizador total-low">Total de Molas: 0</div>
-                            <!-- Adicionar este novo totalizador de peso -->
-                            <div id="totalizador-peso" class="totalizador" style="border-color: var(--color-info); color: var(--color-info);">Carga Total: 0.0 kg</div>
-                        </div>
-                    </div>
-                    <div id="arranjo-producao-lista"></div>
-                </div>
-
-                <!-- Coluna Pendentes -->
-                <div class="arranjo-coluna">
+            <!-- INÍCIO DO BLOCO HTML ALTERADO -->
+            <div id="container-principal-arranjos" style="display: grid; gap: 1.5rem; align-items: start; margin-top: 2rem;">
+                <!-- Colunas dos Fornos Ativos -->
+                <div id="colunas-fornos-ativos" style="display: contents;"></div>
+            
+                <!-- Coluna Única de Pendentes -->
+                <div class="arranjo-coluna" style="border: 1px solid var(--border-color); background: var(--bg-card); padding: 1rem; border-radius: var(--radius-md);">
                     <div class="arranjo-header">
                         <h3>ITENS PENDENTES</h3>
-                        <!-- BOTÃO MANUAL -->
-                        <button id="btn-add-manual" class="btn btn-sm btn-secondary" style="padding: 0.25rem 0.75rem; font-size: 0.8rem;">+ Adicionar Manual</button>
+                        <button id="btn-add-manual" class="btn btn-sm btn-secondary">+ Adicionar Manual</button>
                     </div>
-                    <!-- Inserir este novo bloco de filtros para pendentes -->
-                    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 1rem; margin-bottom: 1rem; padding: 0.5rem; border: 1px solid var(--border-color); border-radius: var(--radius-md);">
+                    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 1rem; margin-bottom: 1rem; padding: 0.5rem;">
                         <input type="search" id="search-pendentes" placeholder="Pesquisar por Código/OP...">
                         <select id="filter-bitola-pendentes">
-                            <option value="">Filtrar bitola...</option>
-                            <!-- Opções serão adicionadas dinamicamente via JS -->
+                            <option value="">Bitola...</option>
                         </select>
                     </div>
-                    <div id="itens-pendentes-lista"></div>
+                    <div id="itens-pendentes-lista" style="min-height: 400px;"></div>
                 </div>
             </div>
+            <!-- FIM DO BLOCO HTML ALTERADO -->
+
 
             <!-- Botões de Exportação -->
             <div class="export-bar">
@@ -1623,10 +1612,11 @@
                 updateStepper(1);
                 elements.csvFileInput.value = '';
                 elements.btnCarregarCsv.textContent = 'Carregar Lista de Produção (.CSV)';
-                elements.arranjoProducaoLista.innerHTML = '';
-                elements.itensPendentesLista.innerHTML = '';
-                elements.totalizadorDisplay.textContent = 'Total de Molas: 0';
-                elements.totalizadorDisplay.className = 'totalizador total-low';
+                
+                // Limpa as esteiras e pendentes
+                document.getElementById('colunas-fornos-ativos').innerHTML = '';
+                document.getElementById('itens-pendentes-lista').innerHTML = '';
+                
                 listaOriginalArranjo = [];
                 listaOriginalPendentes = [];
                 
@@ -1651,7 +1641,6 @@
                 elements.stepNav2.classList.toggle('active', currentStep >= 2);
             };
             
-            // ########## INÍCIO DO BLOCO DE CÓDIGO ALTERADO (C) ##########
             const fornosAtivos = new Set(['grande']); 
 
             function renderizarConfiguracoes() {
@@ -1717,11 +1706,9 @@
                 }
             };
 
-            // Inicialização da nova lógica de fornos
             document.getElementById('btn-forno-grande').classList.add('active');
             renderizarConfiguracoes();
-            // ########## FIM DO BLOCO DE CÓDIGO ALTERADO (C) ##########
-
+            
             elements.btnCarregarCsv.addEventListener('click', () => elements.csvFileInput.click());
             elements.csvFileInput.addEventListener('change', () => {
                 if (elements.csvFileInput.files.length > 0) {
@@ -1894,14 +1881,12 @@
                     elements.btnResetProduction.classList.add('hidden');
                     elements.btnBackToHistory.classList.remove('hidden');
                     
-                    // Store the original state
                     listaOriginalArranjo = data.arranjo_producao || [];
                     listaOriginalPendentes = data.itens_pendentes || [];
 
-                    popularLista('arranjo-producao-lista', listaOriginalArranjo, false);
-                    popularLista('itens-pendentes-lista', listaOriginalPendentes, true);
+                    // Renderiza as esteiras com os dados do histórico
+                    renderizarEsteirasArranjo(data);
                     
-                    atualizarTotalizador();
                     popularSeletorBitolaReferencia();
                     popularFiltroBitolaPendentes();
 
@@ -1973,8 +1958,6 @@
                     let query = _supabase.from('registro_barras_producao').select('*', { count: 'exact' });
             
                     if (searchTerm) {
-                        // Esta busca é mais complexa pois não sabemos as colunas.
-                        // Uma abordagem é buscar em colunas conhecidas que são de texto.
                         const textColumns = ['codigo_item', 'ordem_producao', 'gt_utilizado', 'usuario'];
                         const orConditions = textColumns.map(col => `${col}.ilike.%${searchTerm}%`).join(',');
                         query = query.or(orConditions);
@@ -2235,7 +2218,7 @@
                 try {
                     const { data: receitas, error } = await _supabase
                         .from('receitas_forno')
-                        .select('bitola_min, bitola_max') // <-- USA OS NOMES CORRETOS
+                        .select('bitola_min, bitola_max') 
                         .eq('forno', fornoId === 'grande' ? '1001' : '1002');
                         
                     if (error) throw error;
@@ -2244,9 +2227,7 @@
                         receitas.forEach(receita => {
                             if (receita.bitola_min && receita.bitola_max) {
                                 const option = document.createElement('option');
-                                // O valor é a chave para a lógica, ex: "16-20"
                                 option.value = `${receita.bitola_min}-${receita.bitola_max}`;
-                                // O texto é o que o usuário vê
                                 option.textContent = `Intervalo ${receita.bitola_min} a ${receita.bitola_max} mm`;
                                 selectFiltro.appendChild(option);
                             }
@@ -2265,7 +2246,6 @@
                 elements.btnGerarArranjo.innerHTML = '<div class="spinner"></div> Gerando...';
                 elements.btnGerarArranjo.disabled = true;
 
-                // ########## INÍCIO DO BLOCO DE CÓDIGO ALTERADO (D) ##########
                 const formData = new FormData();
                 formData.append('file', elements.csvFileInput.files[0], 'data.csv');
 
@@ -2276,11 +2256,11 @@
                 });
 
                 formData.append('config_fornos', JSON.stringify(configFornos));
-                // ########## FIM DO BLOCO DE CÓDIGO ALTERADO (D) ##########
                 
                 try {
                     const response = await fetch(n8nGerarArranjoUrl, { method: 'POST', body: formData });
                     if (!response.ok) { const errorText = await response.text(); throw new Error(`${response.statusText}. Detalhes: ${errorText}`); }
+                    
                     const data = await response.json();
                     
                     elements.step1.classList.add('hidden');
@@ -2292,17 +2272,15 @@
                     
                     listaOriginalArranjo = data.arranjo_producao || [];
                     listaOriginalPendentes = data.itens_pendentes || [];
+                    
+                    // INÍCIO DO BLOCO JS ALTERADO
+                    // NOVA FUNÇÃO QUE CRIA AS ESTEIRAS E POPULA OS DADOS:
+                    renderizarEsteirasArranjo(data);
 
-                    popularLista('arranjo-producao-lista', listaOriginalArranjo, false);
-                    popularLista('itens-pendentes-lista', listaOriginalPendentes, true);
-                    
-                    atualizarTotalizador();
-                    
+                    // Funções de filtro globais que ainda podem ser úteis
                     popularSeletorBitolaReferencia();
                     popularFiltroBitolaPendentes();
-                    // Assumindo que o primeiro forno ativo é o de referência para o empilhamento
-                    const primeiroFornoAtivo = fornosAtivos.values().next().value;
-                    popularFiltroEmpilhamento(primeiroFornoAtivo); 
+                    // FIM DO BLOCO JS ALTERADO
 
                 } catch (error) {
                     showAlert('Ocorreu um erro ao gerar o arranjo: ' + error.message, 'Erro', 'error');
@@ -2312,37 +2290,100 @@
                 }
             });
 
-            // --- FUNÇÃO TOTALIZADOR (COM CÁLCULO DE PESO) ---
+            // --- INÍCIO DO BLOCO JS DE LÓGICA DE GESTÃO DE ESTEIRAS E TOTALIZAÇÃO (ALTERADO) ---
             function atualizarTotalizador() {
-                const container = document.getElementById('arranjo-producao-lista');
-                const cards = container.querySelectorAll('.item-card');
+                fornosAtivos.forEach(forno => {
+                    const lista = document.getElementById(`lista-arranjo-${forno}`);
+                    if (!lista) return;
+                    const cards = lista.querySelectorAll('.item-card');
+                    
+                    let totalMolas = 0;
+                    let totalPeso = 0;
+                    
+                    cards.forEach(card => {
+                        const qtd = parseInt(card.dataset.quantidade) || 0;
+                        const peso = parseFloat(card.dataset.peso) || 0;
+                        totalMolas += qtd;
+                        totalPeso += (qtd * peso);
+                    });
+
+                    const displayMolas = document.getElementById(`total-molas-${forno}`);
+                    if(displayMolas) displayMolas.textContent = `${totalMolas} Molas | ${(totalPeso/1000).toFixed(1)}T`;
+                });
+            }
+
+            function renderizarEsteirasArranjo(dados) {
+                const containerFornos = document.getElementById('colunas-fornos-ativos');
+                containerFornos.innerHTML = '';
                 
-                let totalMolas = 0;
-                let totalPeso = 0;
-                
-                cards.forEach(card => {
-                    const qtd = parseInt(card.dataset.quantidade) || 0;
-                    const peso = parseFloat(card.dataset.peso) || 0;
-                    totalMolas += qtd;
-                    totalPeso += qtd * peso;
+                const totalColunas = fornosAtivos.size + 1;
+                document.getElementById('container-principal-arranjos').style.gridTemplateColumns = `repeat(${totalColunas}, 1fr)`;
+
+                fornosAtivos.forEach(forno => {
+                    const idForno = forno === 'grande' ? '1001' : '1002';
+                    const col = document.createElement('div');
+                    col.className = 'arranjo-coluna';
+                    col.style = "border: 1px solid var(--border-color); background: var(--bg-card); padding: 1rem; border-radius: var(--radius-md);";
+                    col.innerHTML = `
+                        <div class="arranjo-header">
+                            <h3 style="color: var(--color-primary)">FORNO ${idForno}</h3>
+                            <div id="total-molas-${forno}" class="totalizador total-low" style="font-size:0.8rem">0 Molas</div>
+                        </div>
+                        <div class="card" style="margin-bottom: 1rem; padding: 0.8rem; background: var(--bg-main);">
+                            <label class="config-label" style="font-size:0.7rem">Receita de Empilhamento</label>
+                            <select class="filtro-empilhamento-forno" data-forno="${forno}">
+                                <option value="">Nenhum</option>
+                            </select>
+                        </div>
+                        <div id="lista-arranjo-${forno}" class="lista-drop-forno" data-forno="${forno}" style="min-height: 400px; border: 1px dashed var(--border-color); border-radius: 8px; padding: 10px;"></div>
+                    `;
+                    containerFornos.appendChild(col);
+                    popularFiltroReceitas(forno, col.querySelector('.filtro-empilhamento-forno'));
                 });
 
-                const totalizadorDisplay = document.getElementById('totalizador-display');
-                totalizadorDisplay.textContent = `Total de Molas: ${totalMolas}`;
-                totalizadorDisplay.classList.remove('total-low', 'total-mid', 'total-high');
-                if (totalMolas < 3750) {
-                    totalizadorDisplay.classList.add('total-low');
-                } else if (totalMolas >= 3750 && totalMolas <= 5500) {
-                    totalizadorDisplay.classList.add('total-mid');
-                } else {
-                    totalizadorDisplay.classList.add('total-high');
+                if(dados) {
+                    document.getElementById('itens-pendentes-lista').innerHTML = '';
+                    dados.arranjo_producao.forEach(item => {
+                        // O ID da lista agora é `lista-arranjo-grande` ou `lista-arranjo-pequeno`
+                        criarCard(`lista-arranjo-${item.forno_destino}`, item, false);
+                    });
+                    dados.itens_pendentes.forEach(item => {
+                        criarCard('itens-pendentes-lista', item, true);
+                    });
                 }
-
-                const totalizadorPeso = document.getElementById('totalizador-peso');
-                if(totalizadorPeso) {
-                    totalizadorPeso.textContent = `Carga Total: ${totalPeso.toFixed(1)} kg`;
-                }
+                vincularEventosDragDrop();
+                atualizarTotalizador();
             }
+
+            async function popularFiltroReceitas(tipoForno, selectElement) {
+                const idForno = tipoForno === 'grande' ? '1001' : '1002';
+                const { data } = await _supabase.from('receitas_forno').select('bitola_min, bitola_max').eq('forno', idForno);
+                data?.forEach(r => {
+                    const opt = document.createElement('option');
+                    opt.value = `${r.bitola_min}-${r.bitola_max}`;
+                    opt.textContent = `Intervalo ${r.bitola_min} a ${r.bitola_max} mm`;
+                    selectElement.appendChild(opt);
+                });
+            }
+
+            function vincularEventosDragDrop() {
+                const zonas = document.querySelectorAll('.lista-drop-forno, #itens-pendentes-lista');
+                zonas.forEach(zona => {
+                    zona.addEventListener('dragover', e => { e.preventDefault(); zona.style.border = '2px solid var(--color-primary)'; });
+                    zona.addEventListener('dragleave', () => { zona.style.border = '1px dashed var(--border-color)'; });
+                    zona.addEventListener('drop', e => {
+                        e.preventDefault();
+                        zona.style.border = '1px dashed var(--border-color)';
+                        const id = e.dataTransfer.getData('text');
+                        const card = document.getElementById(id);
+                        if (!card) return;
+                        zona.appendChild(card);
+                        atualizarTotalizador();
+                    });
+                });
+            }
+            // --- FIM DO BLOCO JS DE LÓGICA DE GESTÃO DE ESTEIRAS E TOTALIZAÇÃO ---
+
 
             // --- ADIÇÃO MANUAL E AUTOCOMPLETE ---
             elements.btnAddManual.addEventListener('click', () => {
@@ -2475,10 +2516,11 @@
             }
             
             function resetarOrdenacao() {
-                popularLista('arranjo-producao-lista', listaOriginalArranjo, false);
-                popularLista('itens-pendentes-lista', listaOriginalPendentes, true);
-                atualizarTotalizador();
-                popularFiltroBitolaPendentes(); 
+                // Esta função precisará de ajustes para lidar com múltiplas esteiras
+                renderizarEsteirasArranjo({
+                    arranjo_producao: listaOriginalArranjo,
+                    itens_pendentes: listaOriginalPendentes
+                });
                 filtrarItensPendentes();
                 document.getElementById('bitola-referencia-select').value = "";
                 document.getElementById('filtro-intervalo-empilhamento').value = "";
@@ -2493,30 +2535,29 @@
                     return;
                 }
 
-                const arranjoLista = document.getElementById('arranjo-producao-lista');
-                const pendentesLista = document.getElementById('itens-pendentes-lista');
-                
-                const cardsDoArranjoAtual = Array.from(arranjoLista.children);
+                document.querySelectorAll('.lista-drop-forno').forEach(arranjoLista => {
+                    const pendentesLista = document.getElementById('itens-pendentes-lista');
+                    const cardsDoArranjoAtual = Array.from(arranjoLista.children);
+                    
+                    const permanecemNoArranjo = [];
+                    const vaoParaPendentes = [];
 
-                const permanecemNoArranjo = [];
-                const vaoParaPendentes = [];
+                    cardsDoArranjoAtual.forEach(card => {
+                        const espessura = getEspessura(card);
+                        if ((direcao === 'crescente' && espessura >= valorReferencia) || (direcao === 'decrescente' && espessura <= valorReferencia)) {
+                            permanecemNoArranjo.push(card);
+                        } else {
+                            vaoParaPendentes.push(card);
+                        }
+                    });
 
-                cardsDoArranjoAtual.forEach(card => {
-                    const espessura = getEspessura(card);
-                    if ((direcao === 'crescente' && espessura >= valorReferencia) || (direcao === 'decrescente' && espessura <= valorReferencia)) {
-                        permanecemNoArranjo.push(card);
-                    } else {
-                        vaoParaPendentes.push(card);
-                    }
+                    permanecemNoArranjo.sort((a, b) => direcao === 'crescente' ? getEspessura(a) - getEspessura(b) : getEspessura(b) - getEspessura(a));
+                    
+                    arranjoLista.innerHTML = '';
+                    permanecemNoArranjo.forEach(card => arranjoLista.appendChild(card));
+                    vaoParaPendentes.forEach(card => pendentesLista.appendChild(card)); 
                 });
 
-                permanecemNoArranjo.sort((a, b) => direcao === 'crescente' ? getEspessura(a) - getEspessura(b) : getEspessura(b) - getEspessura(a));
-                
-                arranjoLista.innerHTML = '';
-                
-                permanecemNoArranjo.forEach(card => arranjoLista.appendChild(card));
-                vaoParaPendentes.forEach(card => pendentesLista.appendChild(card)); 
-                
                 atualizarTotalizador();
                 popularFiltroBitolaPendentes(); 
                 filtrarItensPendentes();
@@ -2556,7 +2597,6 @@
                                 if (i === j || idsUsados.has(parceiroPotencial.op)) continue;
 
                                 const espessuraDobrada = parceiroPotencial.bitola * 2;
-                                // --- ESTA É A LINHA CORRIGIDA ---
                                 if (molasPlanasCodigos.has(parceiroPotencial.codigo) && espessuraDobrada >= tetoMinimo && espessuraDobrada <= tetoMaximo) {
                                     parceiroEncontrado = parceiroPotencial;
                                     indiceParceiro = j;
@@ -2584,10 +2624,10 @@
                         }
                     }
                     
-                    popularLista('arranjo-producao-lista', novoArranjo, false);
-                    popularLista('itens-pendentes-lista', novosPendentes, true);
-                    
-                    atualizarTotalizador();
+                    renderizarEsteirasArranjo({
+                        arranjo_producao: novoArranjo,
+                        itens_pendentes: novosPendentes
+                    });
 
                 } catch (err) {
                     showAlert(`Erro ao aplicar o filtro de empilhamento: ${err.message}`, 'Erro', 'error');
@@ -2636,20 +2676,12 @@
 
             // --- Funções Auxiliares de Lista e DragDrop ---
             
-            function popularLista(containerId, items, isPendente) {
-                const container = document.getElementById(containerId);
-                container.innerHTML = '';
-                if (!items || items.length === 0) {
-                    return;
-                }
-                items.forEach(item => {
-                    criarCard(containerId, item, isPendente);
-                });
-            }
-
             function criarCard(containerId, item, isPendente) {
                 const container = document.getElementById(containerId);
-                if (!container) return;
+                if (!container) {
+                    console.warn(`Container com ID '${containerId}' não encontrado para criar o card.`);
+                    return;
+                };
                 
                 const index = container.children.length;
                 const card = document.createElement('div');
@@ -2745,14 +2777,7 @@
                         const gtDisplayElement = cardElement.querySelector('.gt-display');
                         gtDisplayElement.innerHTML = `<b>GT:</b> ${novoGT || 'N/A'}`;
 
-                        const corresponde = gtsAtuais.some(gtSelecionado => novoGT.includes(gtSelecionado));
-
-                        if (corresponde && cardElement.parentElement.id !== 'arranjo-producao-lista') {
-                            elements.arranjoProducaoLista.appendChild(cardElement);
-                        } else if (!corresponde && cardElement.parentElement.id !== 'itens-pendentes-lista') {
-                            elements.itensPendentesLista.appendChild(cardElement);
-                        }
-                        reordenarArranjo();
+                        atualizarTotalizador();
                     } catch (error) {
                         showAlert(error.message, 'Erro', 'error');
                         input.disabled = false;
@@ -2764,12 +2789,6 @@
                 }
             }
             
-            function reordenarArranjo() {
-                atualizarTotalizador();
-                popularFiltroBitolaPendentes();
-                filtrarItensPendentes();
-            }
-            
             function handleDragStart(e) {
                 e.target.classList.add('dragging');
                 e.dataTransfer.setData('text/plain', e.target.id);
@@ -2778,29 +2797,10 @@
             function handleDragEnd(e) {
                 e.target.classList.remove('dragging');
             }
-
-            const dropZones = [elements.arranjoProducaoLista.parentElement, elements.itensPendentesLista.parentElement];
-
-            dropZones.forEach(zone => {
-                zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
-                zone.addEventListener('dragleave', () => { zone.classList.remove('drag-over'); });
-                zone.addEventListener('drop', e => {
-                    e.preventDefault();
-                    zone.classList.remove('drag-over');
-                    const id = e.dataTransfer.getData('text');
-                    const draggableElement = document.getElementById(id);
-                    if (!draggableElement) return;
-                    
-                    const targetList = zone.querySelector('div[id$="-lista"]');
-                    targetList.appendChild(draggableElement);
-
-                    reordenarArranjo();
-                });
-            });
             
             // --- Exportação Excel ---
             elements.btnExportExcel.addEventListener('click', () => {
-                const itemCards = elements.arranjoProducaoLista.querySelectorAll('.item-card');
+                const itemCards = document.querySelectorAll('.lista-drop-forno .item-card');
                 if (itemCards.length === 0) {
                     showAlert("Não há itens no arranjo de produção para exportar.", "Aviso");
                     return;
@@ -2811,23 +2811,32 @@
                 elements.btnExportExcel.disabled = true;
 
                 try {
-                    const itemsParaExportar = [];
-                    itemsParaExportar.push([ "Ordem de Produção", "Código", "Descrição", "Bitola", "GT", "Quantidade" ]);
-                    
-                    itemCards.forEach(card => {
-                        itemsParaExportar.push([
-                            card.dataset.ordemProducao,
-                            card.dataset.codigo,
-                            card.dataset.descricao,
-                            card.dataset.dimensao,
-                            card.dataset.gt,
-                            card.dataset.quantidade
-                        ]);
+                    const wb = XLSX.utils.book_new();
+
+                    document.querySelectorAll('.lista-drop-forno').forEach(lista => {
+                        const fornoTipo = lista.dataset.forno;
+                        const fornoId = fornoTipo === 'grande' ? '1001' : '1002';
+                        const cardsDoForno = lista.querySelectorAll('.item-card');
+                        
+                        if (cardsDoForno.length > 0) {
+                            const itemsParaExportar = [
+                                ["Ordem de Produção", "Código", "Descrição", "Bitola", "GT", "Quantidade"]
+                            ];
+                            cardsDoForno.forEach(card => {
+                                itemsParaExportar.push([
+                                    card.dataset.ordemProducao,
+                                    card.dataset.codigo,
+                                    card.dataset.descricao,
+                                    card.dataset.dimensao,
+                                    card.dataset.gt,
+                                    card.dataset.quantidade
+                                ]);
+                            });
+                            const ws = XLSX.utils.aoa_to_sheet(itemsParaExportar);
+                            XLSX.utils.book_append_sheet(wb, ws, `Forno ${fornoId}`);
+                        }
                     });
 
-                    const wb = XLSX.utils.book_new();
-                    const ws = XLSX.utils.aoa_to_sheet(itemsParaExportar);
-                    XLSX.utils.book_append_sheet(wb, ws, "Arranjo de Produção");
                     XLSX.writeFile(wb, "Arranjo_Producao.xlsx");
 
                 } catch (error) {
@@ -2856,7 +2865,6 @@
                 document.body.classList.toggle('dark-theme', isDark);
                 document.body.classList.toggle('light-theme', !isDark);
                 updateStepper(1);
-                // A chamada para `renderizarConfiguracoes` já foi feita no escopo global ao carregar o script.
                 carregarMolasPlanas();
             }
 
