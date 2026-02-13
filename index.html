@@ -411,14 +411,17 @@
             min-height: 400px; 
             padding: 1rem; 
             border-radius: var(--radius-md); 
-            border: 2px dashed transparent; 
+            border: 1px solid var(--border-color);
+            background: var(--bg-card);
+            display: flex;
+            flex-direction: column;
             transition: var(--transition-speed); 
-            position: relative;
         }
         
         .arranjo-coluna.drag-over { 
             border-color: var(--color-primary); 
-            background-color: rgba(217, 45, 32, 0.05); 
+            background-color: rgba(217, 45, 32, 0.05);
+            box-shadow: 0 0 0 2px var(--color-primary);
         }
         
         .arranjo-header {
@@ -431,9 +434,9 @@
         }
 
         .arranjo-header h3 { 
-            font-size: 1rem; 
-            font-weight: 600; 
-            color: var(--text-secondary); 
+            font-size: 1.1rem; 
+            font-weight: 700; 
+            color: var(--text-primary); 
             margin: 0;
         }
 
@@ -443,15 +446,9 @@
             font-weight: 700;
             padding: 4px 10px;
             border-radius: 4px;
-            background-color: var(--bg-card);
+            background-color: var(--bg-main);
             border: 1px solid var(--border-color);
-            transition: color 0.3s, border-color 0.3s;
         }
-
-        /* Cores do Totalizador */
-        .total-low { color: var(--color-warning); border-color: var(--color-warning); }
-        .total-mid { color: var(--color-success); border-color: var(--color-success); }
-        .total-high { color: var(--color-primary); border-color: var(--color-primary); }
 
         /* Card do Item de Produção */
         .item-card { 
@@ -470,17 +467,10 @@
             margin: 2px 0; 
             font-size: 0.9rem; 
         }
-
-        .item-card .card-detalhes {
-            font-size: 0.75rem;
-            color: var(--text-secondary);
-            margin-top: 8px;
-            padding-top: 5px;
-            border-top: 1px solid var(--border-color);
-        }
         
         .item-card.dragging { 
-            opacity: 0.5; 
+            opacity: 0.4;
+            transform: scale(0.95);
         }
         
         .item-card .gt-input { 
@@ -546,6 +536,19 @@
             font-weight: 600;
             text-align: right;
             margin-bottom: 1rem;
+        }
+        
+        .lista-drop {
+            flex-grow: 1;
+            border: 1px dashed var(--border-color);
+            border-radius: 8px;
+            padding: 10px;
+            transition: var(--transition-speed);
+        }
+        
+        .lista-drop.drag-over {
+             border-color: var(--color-primary);
+             background-color: rgba(217, 45, 32, 0.05);
         }
 
         /* --- Tabelas --- */
@@ -732,16 +735,6 @@
             color: var(--text-secondary); 
             font-weight: 500; 
         }
-
-        /* Barra de Exportação (Final do Step 2) */
-        .export-bar { 
-            margin-top: 2rem; 
-            padding-top: 2rem; 
-            border-top: 1px solid var(--border-color); 
-            display: flex; 
-            justify-content: flex-end; 
-            gap: 1rem; 
-        }
         
         /* Barra de Aviso */
         .warning-bar {
@@ -912,7 +905,7 @@
                 justify-content: center; 
             }
             
-            .config-grid, .arranjo-container, .add-item-grid, .actions, .export-bar { 
+            .config-grid, .arranjo-container, .add-item-grid, .actions { 
                 grid-template-columns: 1fr; 
                 flex-direction: column; 
             }
@@ -927,10 +920,6 @@
             
             .stepper { 
                 gap: 1rem; 
-            }
-            
-            .export-bar { 
-                align-items: stretch; 
             }
             
             .search-bar { 
@@ -1005,21 +994,15 @@
             <div id="step-2-header">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
                     <h2 style="margin:0">Passo 2: Resultado</h2>
-                    
-                    <!-- Botão Padrão: Novo Arranjo -->
-                    <button id="btn-reset-production" onclick="resetarProducao()" class="btn btn-sm btn-secondary">
-                        ↺ Novo Arranjo
-                    </button>
-                    
-                    <!-- Botão Condicional: Voltar para Histórico (Só aparece quando vem do histórico) -->
-                    <button id="btn-back-to-history" class="btn btn-sm btn-info hidden">
-                        ← Voltar para Histórico
-                    </button>
+                    <div style="display: flex; gap: 1rem;">
+                        <button id="btn-reset-arranjos" class="btn btn-sm btn-secondary">↺ Resetar Arranjos</button>
+                        <button id="btn-reset-production" class="btn btn-sm btn-secondary">← Novo Arranjo</button>
+                        <button id="btn-back-to-history" class="btn btn-sm btn-info hidden">← Voltar para Histórico</button>
+                    </div>
                 </div>
             </div>
             
-            <!-- Bloco de controle de ordenação GLOBAL (escondido em modo paralelo) -->
-            <div id="global-filter-card" class="card" style="margin-bottom: 1.5rem; background-color: var(--bg-main);">
+            <div id="global-filter-card" class="card hidden" style="margin-bottom: 1.5rem; background-color: var(--bg-main);">
                 <div style="display: grid; grid-template-columns: 1fr 1fr 2fr; gap: 1.5rem; align-items: center;">
                     <div>
                         <label for="bitola-referencia-select" class="config-label" style="margin-bottom: 0.5rem;">Ponto de Partida (Bitola)</label>
@@ -1040,19 +1023,15 @@
                         <div style="display: flex; gap: 1rem;">
                             <button id="btn-ordem-crescente" class="btn btn-secondary" style="flex-grow: 1;">⬆ Crescente</button>
                             <button id="btn-ordem-decrescente" class="btn btn-secondary" style="flex-grow: 1;">⬇ Decrescente</button>
-                            <button id="btn-reset-filter" class="btn btn-secondary btn-sm" title="Limpar Ordenação">↺</button>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Container principal dos arranjos e pendentes -->
             <div id="container-principal-arranjos" style="display: grid; gap: 1.5rem; align-items: start; margin-top: 2rem;">
-                <!-- Colunas dos Fornos Ativos (gerado via JS) -->
                 <div id="colunas-fornos-ativos" style="display: contents;"></div>
             
-                <!-- Coluna Única de Pendentes -->
-                <div class="arranjo-coluna" style="border: 1px solid var(--border-color); background: var(--bg-card); padding: 1rem; border-radius: var(--radius-md);">
+                <div class="arranjo-coluna">
                     <div class="arranjo-header">
                         <h3>ITENS PENDENTES</h3>
                         <button id="btn-add-manual" class="btn btn-sm btn-secondary">+ Adicionar Manual</button>
@@ -1063,15 +1042,10 @@
                             <option value="">Bitola...</option>
                         </select>
                     </div>
-                    <div id="itens-pendentes-lista" class="lista-drop-geral" style="min-height: 400px;"></div>
+                    <div id="itens-pendentes-lista" class="lista-drop"></div>
                 </div>
             </div>
 
-            <!-- Botões de Exportação GLOBAL (escondido em modo paralelo) -->
-            <div id="global-export-bar" class="export-bar">
-                <button id="btn-export-excel" class="btn btn-success">Exportar Excel</button>
-                <button id="btn-send-email" class="btn btn-secondary">Enviar E-mail</button>
-            </div>
         </div>
     </main>
 
@@ -1097,7 +1071,6 @@
                     <label class="config-label">Dimensão/Bitola</label>
                     <input type="text" id="new-item-dimensao" placeholder="Ex: 50.8 X 500">
                 </div>
-                <!-- Adicionar este campo antes do GT Padrão -->
                 <div>
                     <label class="config-label">Peso Unit. (kg)</label>
                     <input type="number" id="new-item-peso" placeholder="Ex: 1.25" step="0.01">
@@ -1136,12 +1109,8 @@
 
             <div class="table-container">
                 <table id="table-master-items">
-                    <thead>
-                        <!-- Cabeçalho gerado via JS -->
-                    </thead>
-                    <tbody>
-                        <!-- Linhas geradas via JS -->
-                    </tbody>
+                    <thead></thead>
+                    <tbody></tbody>
                 </table>
             </div>
         </div>
@@ -1180,12 +1149,8 @@
     
             <div class="table-container">
                 <table id="table-registro-barras">
-                    <thead>
-                        <!-- Cabeçalho gerado via JS -->
-                    </thead>
-                    <tbody>
-                        <!-- Linhas geradas via JS -->
-                    </tbody>
+                    <thead></thead>
+                    <tbody></tbody>
                 </table>
             </div>
         </div>
@@ -1213,9 +1178,7 @@
                     <label style="font-size: 0.8rem; margin-bottom: 4px; color: var(--text-secondary);">Filtrar por GTs:</label>
                     <div class="multi-select-container" id="filter-history-gt-wrapper">
                         <div class="multi-select-display" id="filter-history-gt-display">Todos</div>
-                        <div class="multi-select-dropdown" id="filter-history-gt-dropdown">
-                            <!-- Opções geradas via JS -->
-                        </div>
+                        <div class="multi-select-dropdown" id="filter-history-gt-dropdown"></div>
                     </div>
                 </div>
 
@@ -1259,9 +1222,7 @@
                             <th style="text-align: center;">Ação</th>
                         </tr>
                     </thead>
-                    <tbody>
-                        <!-- Linhas geradas via JS -->
-                    </tbody>
+                    <tbody></tbody>
                 </table>
             </div>
         </div>
@@ -1275,12 +1236,9 @@
             <div class="modal-manual-grid">
                 <div>
                     <label>Código da Mola</label>
-                    <!-- Container relativo para o autocomplete -->
                     <div class="autocomplete-container">
                         <input type="text" id="manual-input-codigo" placeholder="Digite o código (ex: MT...) para buscar" autocomplete="off">
-                        <ul id="autocomplete-list" class="autocomplete-list">
-                            <!-- Itens gerados via JS -->
-                        </ul>
+                        <ul id="autocomplete-list" class="autocomplete-list"></ul>
                     </div>
                 </div>
                 <div>
@@ -1314,9 +1272,7 @@
             <span id="custom-dialog-icon" class="custom-dialog-icon">⚠️</span>
             <h3 id="custom-dialog-title" class="custom-dialog-title">Atenção</h3>
             <p id="custom-dialog-msg" class="custom-dialog-msg">Mensagem aqui</p>
-            <div id="custom-dialog-actions" class="custom-dialog-actions">
-                <!-- Botões injetados via JS -->
-            </div>
+            <div id="custom-dialog-actions" class="custom-dialog-actions"></div>
         </div>
     </div>
 
@@ -1342,7 +1298,6 @@
             const dialogActions = document.getElementById('custom-dialog-actions');
             const dialogIcon = document.getElementById('custom-dialog-icon');
 
-            // Função global para mostrar alertas
             window.showAlert = (message, title = 'Aviso', type = 'warning') => {
                 return new Promise((resolve) => {
                     dialogTitle.textContent = title;
@@ -1373,7 +1328,6 @@
                 });
             };
 
-            // Função global para mostrar confirmação (retorna true/false)
             window.showConfirm = (message, title = 'Confirmação') => {
                 return new Promise((resolve) => {
                     dialogTitle.textContent = title;
@@ -1428,23 +1382,31 @@
             let registroItemsPerPage = 15;
             let totalRegistroItems = 0;
             
-            // Estado Atual da Produção
-            let gtsAtuais = [];
+            // Estado Original da Produção (Backup)
             let listaOriginalArranjo = [];
             let listaOriginalPendentes = [];
+            
+            // --- ESTADO CENTRALIZADO DAS ESTEIRAS (O "CÉREBRO" INDIVIDUAL) ---
+            let estadoFornos = {};
+            let estadoPendentes = [];
+
+            function inicializarEstados() {
+                estadoFornos = {
+                    grande: { cards: [], receita: "" },
+                    pequeno: { cards: [], receita: "" }
+                };
+                estadoPendentes = [];
+            }
             
             // Autocomplete State
             let autocompleteTimeout = null;
 
             // --- Referências ao DOM ---
             const elements = {
-                // Views
                 viewPrincipal: document.getElementById('view-principal'),
                 viewGerenciador: document.getElementById('view-gerenciador'),
                 viewHistorico: document.getElementById('view-historico'),
                 viewRegistroBarras: document.getElementById('view-registro-barras'),
-
-                // Navigation Buttons
                 btnMasterManager: document.getElementById('btn-master-manager'),
                 btnHistory: document.getElementById('btn-history'),
                 btnRegistroBarras: document.getElementById('btn-registro-barras'),
@@ -1452,31 +1414,19 @@
                 btnVoltarProducaoHistory: document.getElementById('btn-voltar-producao-history'),
                 btnVoltarProducaoRegistro: document.getElementById('btn-voltar-producao-registro'),
                 btnResetProduction: document.getElementById('btn-reset-production'),
+                btnResetArranjos: document.getElementById('btn-reset-arranjos'),
                 btnBackToHistory: document.getElementById('btn-back-to-history'),
-
-                // Theme & Logo
                 themeToggle: document.getElementById('theme-toggle'),
                 logo: document.getElementById('logo-fama'),
-
-                // Stepper
                 stepNav1: document.getElementById('step-nav-1'),
                 stepNav2: document.getElementById('step-nav-2'),
                 step1: document.getElementById('step-1'),
                 step2: document.getElementById('step-2'),
-
-                // Ações Principais
                 btnCarregarCsv: document.getElementById('btn-carregar-csv'),
                 csvFileInput: document.getElementById('csv-file-input'),
                 btnGerarArranjo: document.getElementById('btn-gerar-arranjo'),
-                
-                // Listas Drag & Drop e Controle
                 itensPendentesLista: document.getElementById('itens-pendentes-lista'),
                 btnAddManual: document.getElementById('btn-add-manual'),
-                
-                // Exportação
-                btnExportExcel: document.getElementById('btn-export-excel'),
-
-                // Gerenciador Mestre
                 searchMasterItems: document.getElementById('search-master-items'),
                 tableMasterItems: document.getElementById('table-master-items'),
                 btnAddMasterItem: document.getElementById('btn-add-master-item'),
@@ -1489,16 +1439,12 @@
                 btnPrevPage: document.getElementById('btn-prev-page'),
                 btnNextPage: document.getElementById('btn-next-page'),
                 pageInfo: document.getElementById('page-info'),
-                
-                // Registro de Barras
                 searchRegistroBarras: document.getElementById('search-registro-barras'),
                 tableRegistroBarras: document.getElementById('table-registro-barras'),
                 registroItemsPerPageSelect: document.getElementById('registro-items-per-page'),
                 btnRegistroPrev: document.getElementById('btn-registro-prev'),
                 btnRegistroNext: document.getElementById('btn-registro-next'),
                 registroPageInfo: document.getElementById('registro-page-info'),
-
-                // Histórico (Elementos de Filtro Atualizados)
                 tableHistoryBody: document.querySelector('#table-history tbody'),
                 filterHistoryForno: document.getElementById('filter-history-forno'),
                 filterHistoryUser: document.getElementById('filter-history-user'),
@@ -1507,13 +1453,9 @@
                 btnHistoryPrev: document.getElementById('btn-history-prev'),
                 btnHistoryNext: document.getElementById('btn-history-next'),
                 historyPageInfo: document.getElementById('history-page-info'),
-                
-                // Multi Select Elements
                 gtWrapper: document.getElementById('filter-history-gt-wrapper'),
                 gtDisplay: document.getElementById('filter-history-gt-display'),
                 gtDropdown: document.getElementById('filter-history-gt-dropdown'),
-
-                // Modal Manual & Autocomplete
                 modalManualOverlay: document.getElementById('modal-adicionar-manual-overlay'),
                 modalInputCodigo: document.getElementById('manual-input-codigo'),
                 autocompleteList: document.getElementById('autocomplete-list'),
@@ -1540,181 +1482,95 @@
             // --- INICIALIZAÇÃO DO MULTI-SELECT DE GTs ---
             async function initGtMultiSelect() {
                 try {
-                    const { data, error } = await _supabase
-                        .from('itens_mestre')
-                        .select('gt');
-                        
+                    const { data, error } = await _supabase.from('itens_mestre').select('gt');
                     if (error) throw error;
-
-                    const uniqueGTs = [...new Set(data
-                        .map(item => item.gt)
-                        .filter(gt => gt && gt.trim() !== '')
-                    )].sort();
-
+                    const uniqueGTs = [...new Set(data.map(item => item.gt).filter(gt => gt && gt.trim() !== ''))].sort();
                     elements.gtDropdown.innerHTML = '';
-                    
                     if (uniqueGTs.length === 0) {
                         elements.gtDropdown.innerHTML = '<div style="padding:0.5rem 1rem;color:var(--text-secondary)">Nenhum GT encontrado</div>';
                         return;
                     }
-
                     uniqueGTs.forEach(gt => {
                         const label = document.createElement('label');
                         label.className = 'multi-select-option';
-                        label.innerHTML = `
-                            <input type="checkbox" value="${gt}">
-                            <span>${gt}</span>
-                        `;
+                        label.innerHTML = `<input type="checkbox" value="${gt}"><span>${gt}</span>`;
                         elements.gtDropdown.appendChild(label);
-                        
-                        const checkbox = label.querySelector('input');
-                        checkbox.addEventListener('change', () => {
-                            updateSelectedGTs();
-                        });
+                        label.querySelector('input').addEventListener('change', () => updateSelectedGTs());
                     });
-
                 } catch (e) {
                     console.error('Erro ao popular filtro de GTs:', e);
                     elements.gtDropdown.innerHTML = '<div style="padding:0.5rem 1rem;color:var(--color-danger)">Erro ao carregar GTs</div>';
                 }
             }
-            elements.gtDisplay.addEventListener('click', (e) => {
-                e.stopPropagation();
-                elements.gtDropdown.classList.toggle('open');
-            });
-            document.addEventListener('click', () => {
-                elements.gtDropdown.classList.remove('open');
-            });
-            elements.gtDropdown.addEventListener('click', (e) => {
-                e.stopPropagation();
-            });
-
+            elements.gtDisplay.addEventListener('click', (e) => { e.stopPropagation(); elements.gtDropdown.classList.toggle('open'); });
+            document.addEventListener('click', () => elements.gtDropdown.classList.remove('open'));
+            elements.gtDropdown.addEventListener('click', (e) => e.stopPropagation());
             initGtMultiSelect();
 
             function updateSelectedGTs() {
                 const checkboxes = elements.gtDropdown.querySelectorAll('input[type="checkbox"]:checked');
                 selectedGTsFilter = Array.from(checkboxes).map(cb => cb.value);
-                
-                if (selectedGTsFilter.length === 0) {
-                    elements.gtDisplay.textContent = 'Todos';
-                } else if (selectedGTsFilter.length <= 2) {
-                    elements.gtDisplay.textContent = selectedGTsFilter.join(', ');
-                } else {
-                    elements.gtDisplay.textContent = `${selectedGTsFilter.length} selecionados`;
-                }
-                
+                if (selectedGTsFilter.length === 0) elements.gtDisplay.textContent = 'Todos';
+                else if (selectedGTsFilter.length <= 2) elements.gtDisplay.textContent = selectedGTsFilter.join(', ');
+                else elements.gtDisplay.textContent = `${selectedGTsFilter.length} selecionados`;
                 currentHistoryPage = 1;
                 fetchHistory();
             }
-
 
             // --- Lógica de Navegação SPA ---
             function showView(viewId) {
-                elements.viewPrincipal.classList.add('hidden');
-                elements.viewGerenciador.classList.add('hidden');
-                elements.viewHistorico.classList.add('hidden');
-                elements.viewRegistroBarras.classList.add('hidden');
+                [elements.viewPrincipal, elements.viewGerenciador, elements.viewHistorico, elements.viewRegistroBarras].forEach(v => v.classList.add('hidden'));
                 document.getElementById(viewId).classList.remove('hidden');
             }
 
-            elements.btnMasterManager.addEventListener('click', () => {
-                showView('view-gerenciador');
-                currentMasterPage = 1;
-                fetchMasterItems();
-            });
-
-            elements.btnHistory.addEventListener('click', () => {
-                showView('view-historico');
-                initGtMultiSelect();
-                currentHistoryPage = 1;
-                fetchHistory();
-            });
-            
-            elements.btnRegistroBarras.addEventListener('click', () => {
-                showView('view-registro-barras');
-                currentRegistroPage = 1;
-                fetchRegistroBarras();
-            });
-
+            elements.btnMasterManager.addEventListener('click', () => { showView('view-gerenciador'); currentMasterPage = 1; fetchMasterItems(); });
+            elements.btnHistory.addEventListener('click', () => { showView('view-historico'); initGtMultiSelect(); currentHistoryPage = 1; fetchHistory(); });
+            elements.btnRegistroBarras.addEventListener('click', () => { showView('view-registro-barras'); currentRegistroPage = 1; fetchRegistroBarras(); });
             elements.btnVoltarProducaoMaster.addEventListener('click', () => showView('view-principal'));
             elements.btnVoltarProducaoHistory.addEventListener('click', () => showView('view-principal'));
             elements.btnVoltarProducaoRegistro.addEventListener('click', () => showView('view-principal'));
-            
-            elements.btnBackToHistory.addEventListener('click', () => {
-                showView('view-historico');
-                fetchHistory(); 
-            });
+            elements.btnBackToHistory.addEventListener('click', () => { showView('view-historico'); fetchHistory(); });
 
-            window.resetarProducao = function() {
+            elements.btnResetProduction.addEventListener('click', function() {
                 elements.step1.classList.remove('hidden');
                 elements.step2.classList.add('hidden');
                 updateStepper(1);
                 elements.csvFileInput.value = '';
                 elements.btnCarregarCsv.textContent = 'Carregar Lista de Produção (.CSV)';
-                
                 const existingWarning = document.getElementById('parallel-mode-warning');
                 if(existingWarning) existingWarning.remove();
-                
                 document.getElementById('colunas-fornos-ativos').innerHTML = '';
                 document.getElementById('itens-pendentes-lista').innerHTML = '';
-                
                 listaOriginalArranjo = [];
                 listaOriginalPendentes = [];
-                
                 elements.btnResetProduction.classList.remove('hidden');
                 elements.btnBackToHistory.classList.add('hidden');
-            };
+            });
 
             // --- Configuração dos Fornos ---
             const fornosConfig = {
-                grande: {
-                    titulo: 'Configuração do Forno Grande',
-                    opcoes: [ { value: '1', text: '1 GT' }, { value: '2', text: '2 GTs' }, { value: '3', text: '3 GTs' } ]
-                },
-                pequeno: {
-                    titulo: 'Configuração do Forno Pequeno',
-                    opcoes: [ { value: '1', text: '1 GT' }, { value: '2', text: '2 GTs' } ]
-                }
+                grande: { titulo: 'Configuração do Forno Grande', opcoes: [ { value: '1', text: '1 GT' }, { value: '2', text: '2 GTs' }, { value: '3', text: '3 GTs' } ] },
+                pequeno: { titulo: 'Configuração do Forno Pequeno', opcoes: [ { value: '1', text: '1 GT' }, { value: '2', text: '2 GTs' } ] }
             };
-            
             const updateStepper = (currentStep) => {
                 elements.stepNav1.classList.toggle('active', currentStep >= 1);
                 elements.stepNav2.classList.toggle('active', currentStep >= 2);
             };
-
             function renderizarConfiguracoes() {
                 const container = document.getElementById('container-configuracoes-fornos');
                 container.innerHTML = '';
-
                 fornosAtivos.forEach(forno => {
                     const config = fornosConfig[forno];
                     const div = document.createElement('div');
-                    div.style.marginBottom = '1.5rem';
-                    div.style.padding = '1rem';
-                    div.style.backgroundColor = 'var(--bg-main)';
-                    div.style.borderRadius = 'var(--radius-md)';
-                    div.style.border = '1px solid var(--border-color)';
-                    
-                    div.innerHTML = `
-                        <label class="config-label" style="color: var(--color-primary); margin-bottom: 10px;">${config.titulo}</label>
-                        <div class="form-group">
-                            <label style="font-size: 0.8rem;">Qtd. de GTs ativos neste forno:</label>
-                            <select class="qtde-gts-select" data-forno="${forno}">
-                                ${config.opcoes.map(opt => `<option value="${opt.value}">${opt.text}</option>`).join('')}
-                            </select>
-                        </div>
-                        <div class="inputs-gts-container" id="inputs-gts-${forno}"></div>
-                    `;
+                    div.style = 'margin-bottom: 1.5rem; padding: 1rem; background-color: var(--bg-main); border-radius: var(--radius-md); border: 1px solid var(--border-color);';
+                    div.innerHTML = `<label class="config-label" style="color: var(--color-primary); margin-bottom: 10px;">${config.titulo}</label><div class="form-group"><label style="font-size: 0.8rem;">Qtd. de GTs ativos:</label><select class="qtde-gts-select" data-forno="${forno}">${config.opcoes.map(opt => `<option value="${opt.value}">${opt.text}</option>`).join('')}</select></div><div class="inputs-gts-container" id="inputs-gts-${forno}"></div>`;
                     container.appendChild(div);
-                    
                     const select = div.querySelector('.qtde-gts-select');
                     const gtsContainer = div.querySelector('.inputs-gts-container');
-                    
                     select.addEventListener('change', (e) => gerarInputs(e.target.value, gtsContainer, forno));
                     gerarInputs(select.value, gtsContainer, forno);
                 });
             }
-
             document.querySelectorAll('.toggle-forno').forEach(btn => {
                 btn.addEventListener('click', () => {
                     const forno = btn.dataset.forno;
@@ -1722,9 +1578,7 @@
                         if (fornosAtivos.size > 1) {
                             fornosAtivos.delete(forno);
                             btn.classList.remove('active');
-                        } else {
-                            showAlert("Ao menos um forno deve estar ativo.", "Atenção");
-                        }
+                        } else showAlert("Ao menos um forno deve estar ativo.", "Atenção");
                     } else {
                         fornosAtivos.add(forno);
                         btn.classList.add('active');
@@ -1732,7 +1586,6 @@
                     renderizarConfiguracoes();
                 });
             });
-
             const gerarInputs = (qtde, container, forno) => {
                 container.innerHTML = '';
                 for (let i = 1; i <= qtde; i++) {
@@ -1744,16 +1597,10 @@
                     container.appendChild(input);
                 }
             };
-
             document.getElementById('btn-forno-grande').classList.add('active');
             renderizarConfiguracoes();
-            
             elements.btnCarregarCsv.addEventListener('click', () => elements.csvFileInput.click());
-            elements.csvFileInput.addEventListener('change', () => {
-                if (elements.csvFileInput.files.length > 0) {
-                    elements.btnCarregarCsv.textContent = `Arquivo: ${elements.csvFileInput.files[0].name}`;
-                }
-            });
+            elements.csvFileInput.addEventListener('change', () => { if (elements.csvFileInput.files.length > 0) elements.btnCarregarCsv.textContent = `Arquivo: ${elements.csvFileInput.files[0].name}`; });
 
             // --- Lógica do Histórico ---
             function formatarParametros(rawParams) {
@@ -1777,24 +1624,6 @@
                 const gtsDisplay = gtsList.map(g => g.replace(/['"]+/g, '')).join(', ') || "Nenhum";
                 return `<b>Forno:</b> ${forno} <span style="margin: 0 10px; color: var(--border-color);">|</span> <b>GTs:</b> ${gtsDisplay}`;
             }
-
-            elements.filterHistoryForno.addEventListener('change', () => { currentHistoryPage = 1; fetchHistory(); });
-            elements.filterHistoryUser.addEventListener('input', (e) => {
-                clearTimeout(historySearchTimeout);
-                historySearchTimeout = setTimeout(() => { currentHistoryPage = 1; fetchHistory(); }, 500);
-            });
-            elements.filterHistoryDate.addEventListener('change', () => { currentHistoryPage = 1; fetchHistory(); });
-            elements.historyItemsPerPageSelect.addEventListener('change', (e) => {
-                historyItemsPerPage = e.target.value === 'all' ? 'all' : parseInt(e.target.value);
-                currentHistoryPage = 1;
-                fetchHistory();
-            });
-            elements.btnHistoryPrev.addEventListener('click', () => { if (currentHistoryPage > 1) { currentHistoryPage--; fetchHistory(); } });
-            elements.btnHistoryNext.addEventListener('click', () => {
-                const maxPages = historyItemsPerPage === 'all' ? 1 : Math.ceil(totalHistoryItems / historyItemsPerPage);
-                if (currentHistoryPage < maxPages) { currentHistoryPage++; fetchHistory(); }
-            });
-
             async function fetchHistory() {
                 elements.tableHistoryBody.innerHTML = '<tr><td colspan="4" style="text-align:center;">Carregando histórico...</td></tr>';
                 elements.btnHistoryPrev.disabled = true;
@@ -1864,7 +1693,6 @@
                     elements.tableHistoryBody.innerHTML = `<tr><td colspan="4" style="color:var(--color-danger)">Erro ao carregar histórico: ${err.message}</td></tr>`;
                 }
             }
-
             function updateHistoryPaginationControls() {
                 if (historyItemsPerPage === 'all') {
                     elements.historyPageInfo.textContent = `Mostrando todos (${totalHistoryItems})`;
@@ -1878,7 +1706,6 @@
                     elements.btnHistoryNext.disabled = currentHistoryPage >= totalPages;
                 }
             }
-
             function renderHistoryTable(data) {
                 elements.tableHistoryBody.innerHTML = '';
                 if (data.length === 0) {
@@ -1905,7 +1732,6 @@
                     elements.tableHistoryBody.appendChild(tr);
                 });
             }
-
             function loadHistoryItemIntoView(jsonResultado) {
                 try {
                     let data = jsonResultado;
@@ -1920,54 +1746,35 @@
                     elements.btnResetProduction.classList.add('hidden');
                     elements.btnBackToHistory.classList.remove('hidden');
                     
-                    listaOriginalArranjo = data.arranjo_producao || [];
-                    listaOriginalPendentes = data.itens_pendentes || [];
-
-                    renderizarEsteirasArranjo(data);
+                    listaOriginalArranjo = (data.arranjo_producao || []).map((item, i) => ({...item, id: `hist-arr-${i}`}));
+                    listaOriginalPendentes = (data.itens_pendentes || []).map((item, i) => ({...item, id: `hist-pen-${i}`}));
                     
-                    // Conditionally show/hide global filters based on active ovens
-                    const globalFilterCard = document.getElementById('global-filter-card');
-                    const globalExportBar = document.getElementById('global-export-bar');
-                    if (fornosAtivos.size > 1) {
-                        globalFilterCard.style.display = 'none';
-                        globalExportBar.style.display = 'none';
-
-                        const step2Header = document.getElementById('step-2-header');
-                        const existingWarning = document.getElementById('parallel-mode-warning');
-                        if (!existingWarning) {
-                            const warningBar = document.createElement('div');
-                            warningBar.id = 'parallel-mode-warning';
-                            warningBar.className = 'warning-bar';
-                            warningBar.innerHTML = '⚠️ MODO DE PRODUÇÃO EM PARALELO ATIVO';
-                            step2Header.insertAdjacentElement('afterend', warningBar);
-                        }
-                    } else {
-                        globalFilterCard.style.display = 'block';
-                        globalExportBar.style.display = 'flex';
-                        popularSeletorBitolaReferencia();
-                    }
-
-                    popularFiltroBitolaPendentes();
+                    resetarArranjosParaOriginal();
 
                 } catch (e) {
                     showAlert('Erro ao processar os dados do histórico: ' + e.message, 'Erro', 'error');
                 }
             }
-            
-             // --- Lógica das Tabelas Dinâmicas ---
-            const columnAliases = {
-                'created_at': 'Data',
-                'codigo_item': 'Código',
-                'comprimento_mm': 'Comprimento (mm)',
-                'ordem_producao': 'OP',
-                'gt_utilizado': 'GT Utilizado',
-                'usuario': 'Usuário',
-                'descricao': 'Descrição',
-                'dimensao': 'Dimensão',
-                'peso_kg': 'Peso (kg)',
-                'gt': 'GT'
-            };
+            elements.filterHistoryForno.addEventListener('change', () => { currentHistoryPage = 1; fetchHistory(); });
+            elements.filterHistoryUser.addEventListener('input', (e) => {
+                clearTimeout(historySearchTimeout);
+                historySearchTimeout = setTimeout(() => { currentHistoryPage = 1; fetchHistory(); }, 500);
+            });
+            elements.filterHistoryDate.addEventListener('change', () => { currentHistoryPage = 1; fetchHistory(); });
+            elements.historyItemsPerPageSelect.addEventListener('change', (e) => {
+                historyItemsPerPage = e.target.value === 'all' ? 'all' : parseInt(e.target.value);
+                currentHistoryPage = 1;
+                fetchHistory();
+            });
+            elements.btnHistoryPrev.addEventListener('click', () => { if (currentHistoryPage > 1) { currentHistoryPage--; fetchHistory(); } });
+            elements.btnHistoryNext.addEventListener('click', () => {
+                const maxPages = historyItemsPerPage === 'all' ? 1 : Math.ceil(totalHistoryItems / historyItemsPerPage);
+                if (currentHistoryPage < maxPages) { currentHistoryPage++; fetchHistory(); }
+            });
 
+            
+            // --- Lógica das Tabelas Dinâmicas ---
+            const columnAliases = { 'created_at': 'Data', 'codigo_item': 'Código', 'comprimento_mm': 'Comprimento (mm)', 'ordem_producao': 'OP', 'gt_utilizado': 'GT Utilizado', 'usuario': 'Usuário', 'descricao': 'Descrição', 'dimensao': 'Dimensão', 'peso_kg': 'Peso (kg)', 'gt': 'GT' };
             function renderDynamicReadOnlyTable(tableElement, data) {
                 const thead = tableElement.querySelector('thead');
                 const tbody = tableElement.querySelector('tbody');
@@ -2003,7 +1810,6 @@
                     tbody.appendChild(tr);
                 });
             }
-            
             async function fetchRegistroBarras(searchTerm = '') {
                 const tableElement = elements.tableRegistroBarras;
                 const tbody = tableElement.querySelector('tbody');
@@ -2040,7 +1846,6 @@
                     tbody.innerHTML = `<tr><td colspan="6" style="color:var(--color-danger)">Erro: ${err.message}</td></tr>`;
                 }
             }
-            
             function updateRegistroPaginationControls() {
                 if (registroItemsPerPage === 'all') {
                     elements.registroPageInfo.textContent = `Mostrando todos (${totalRegistroItems})`;
@@ -2054,7 +1859,6 @@
                     elements.btnRegistroNext.disabled = currentRegistroPage >= totalPages;
                 }
             }
-
             elements.registroItemsPerPageSelect.addEventListener('change', (e) => {
                 registroItemsPerPage = e.target.value === 'all' ? 'all' : parseInt(e.target.value, 10);
                 currentRegistroPage = 1;
@@ -2069,24 +1873,6 @@
                 clearTimeout(searchTimeout);
                 searchTimeout = setTimeout(() => { currentRegistroPage = 1; fetchRegistroBarras(e.target.value); }, 500); 
             });
-
-
-            // --- Lógica de Itens Mestre (com tabela dinâmica editável) ---
-            elements.itemsPerPageSelect.addEventListener('change', (e) => {
-                itemsPerPage = e.target.value === 'all' ? 'all' : parseInt(e.target.value);
-                currentMasterPage = 1;
-                fetchMasterItems();
-            });
-            elements.btnPrevPage.addEventListener('click', () => { if (currentMasterPage > 1) { currentMasterPage--; fetchMasterItems(); } });
-            elements.btnNextPage.addEventListener('click', () => {
-                const maxPages = itemsPerPage === 'all' ? 1 : Math.ceil(totalMasterItems / itemsPerPage);
-                if (currentMasterPage < maxPages) { currentMasterPage++; fetchMasterItems(); }
-            });
-            elements.searchMasterItems.addEventListener('input', (e) => {
-                clearTimeout(searchTimeout);
-                searchTimeout = setTimeout(() => { currentMasterPage = 1; fetchMasterItems(e.target.value); }, 500); 
-            });
-
             async function fetchMasterItems(searchTerm = '') {
                 const tableElement = elements.tableMasterItems;
                 const tbody = tableElement.querySelector('tbody');
@@ -2116,7 +1902,6 @@
                     tbody.innerHTML = `<tr><td colspan="6" style="color:var(--color-danger)">Erro: ${err.message}</td></tr>`;
                 }
             }
-
             function updateMasterPaginationControls() {
                 if (itemsPerPage === 'all') {
                     elements.pageInfo.textContent = `Mostrando todos (${totalMasterItems})`;
@@ -2130,7 +1915,6 @@
                     elements.btnNextPage.disabled = currentMasterPage >= totalPages;
                 }
             }
-
             function renderMasterTable(items) {
                 const tableElement = elements.tableMasterItems;
                 const thead = tableElement.querySelector('thead');
@@ -2167,30 +1951,21 @@
                         input.className = 'table-input';
                         input.dataset.key = key;
                         input.value = item[key] ?? '';
-                        if (key === 'codigo_item') input.disabled = true; // Código não pode ser alterado
+                        if (key === 'codigo_item') input.disabled = true;
                         td.appendChild(input);
                         tr.appendChild(td);
                     });
 
                     const tdActions = document.createElement('td');
                     tdActions.className = 'actions-cell';
-                    tdActions.innerHTML = `
-                        <button class="btn btn-sm btn-success btn-save-row" title="Salvar">💾</button>
-                        <button class="btn btn-sm btn-danger btn-delete-row" title="Excluir">🗑️</button>
-                    `;
+                    tdActions.innerHTML = `<button class="btn btn-sm btn-success btn-save-row" title="Salvar">💾</button><button class="btn btn-sm btn-danger btn-delete-row" title="Excluir">🗑️</button>`;
                     tr.appendChild(tdActions);
                     tbody.appendChild(tr);
                 });
 
-                // Add event listeners after rendering
-                tbody.querySelectorAll('.btn-save-row').forEach(btn => {
-                    btn.addEventListener('click', handleSaveMasterItem);
-                });
-                tbody.querySelectorAll('.btn-delete-row').forEach(btn => {
-                    btn.addEventListener('click', handleDeleteMasterItem);
-                });
+                tbody.querySelectorAll('.btn-save-row').forEach(btn => btn.addEventListener('click', handleSaveMasterItem));
+                tbody.querySelectorAll('.btn-delete-row').forEach(btn => btn.addEventListener('click', handleDeleteMasterItem));
             }
-
             async function handleSaveMasterItem(event) {
                 const btn = event.currentTarget;
                 const tr = btn.closest('tr');
@@ -2200,7 +1975,7 @@
                 const updateData = {};
                 inputs.forEach(input => {
                     const key = input.dataset.key;
-                    if (!input.disabled) { // Não incluir campos desabilitados como 'codigo_item'
+                    if (!input.disabled) {
                         updateData[key] = input.type === 'number' ? parseFloat(input.value) || 0 : input.value;
                     }
                 });
@@ -2216,7 +1991,6 @@
                     btn.disabled = false;
                 }
             }
-
             async function handleDeleteMasterItem(event) {
                 const btn = event.currentTarget;
                 const tr = btn.closest('tr');
@@ -2228,7 +2002,7 @@
                     try {
                         const { error } = await _supabase.from('itens_mestre').delete().eq('id', itemId);
                         if (error) throw error;
-                        tr.remove(); // Remove a linha da UI para feedback imediato
+                        tr.remove();
                         totalMasterItems--;
                         updateMasterPaginationControls();
                     } catch (e) {
@@ -2237,7 +2011,6 @@
                     }
                 }
             }
-
             elements.btnAddMasterItem.addEventListener('click', async () => {
                 const codigo = elements.newItemCodigo.value.trim();
                 const descricao = elements.newItemDescricao.value.trim();
@@ -2249,13 +2022,7 @@
                 elements.btnAddMasterItem.innerHTML = '<div class="spinner"></div>';
                 elements.btnAddMasterItem.disabled = true;
                 try {
-                    const { data, error } = await _supabase.from('itens_mestre').insert([{ 
-                        codigo_item: codigo, 
-                        descricao, 
-                        dimensao, 
-                        peso_kg: peso,
-                        gt 
-                    }]).select();
+                    const { data, error } = await _supabase.from('itens_mestre').insert([{ codigo_item: codigo, descricao, dimensao, peso_kg: peso, gt }]).select();
                     if (error) throw error;
                     elements.newItemCodigo.value = '';
                     elements.newItemDescricao.value = '';
@@ -2267,35 +2034,20 @@
                     showAlert('Item criado com sucesso!', 'Sucesso', 'success');
                 } catch (e) { showAlert('Erro ao criar item: ' + e.message, 'Erro', 'error'); } finally { elements.btnAddMasterItem.innerHTML = '+ Criar'; elements.btnAddMasterItem.disabled = false; }
             });
-
-            // --- FUNÇÃO CORRIGIDA PARA POPULAR FILTRO DE EMPILHAMENTO (GLOBAL) ---
-            async function popularFiltroEmpilhamento(fornoId) {
-                const selectFiltro = document.getElementById('filtro-intervalo-empilhamento');
-                selectFiltro.innerHTML = '<option value="">Nenhum</option>'; // Reseta o filtro
-
-                try {
-                    const { data: receitas, error } = await _supabase
-                        .from('receitas_forno')
-                        .select('bitola_min, bitola_max') 
-                        .eq('forno', fornoId === 'grande' ? '1001' : '1002');
-                        
-                    if (error) throw error;
-
-                    if (receitas && receitas.length > 0) {
-                        receitas.forEach(receita => {
-                            if (receita.bitola_min && receita.bitola_max) {
-                                const option = document.createElement('option');
-                                option.value = `${receita.bitola_min}-${receita.bitola_max}`;
-                                option.textContent = `Intervalo ${receita.bitola_min} a ${receita.bitola_max} mm`;
-                                selectFiltro.appendChild(option);
-                            }
-                        });
-                    }
-                } catch (e) {
-                    console.error("Erro ao carregar receitas de empilhamento:", e);
-                    selectFiltro.innerHTML = '<option value="">Erro ao carregar</option>';
-                }
-            }
+            elements.itemsPerPageSelect.addEventListener('change', (e) => {
+                itemsPerPage = e.target.value === 'all' ? 'all' : parseInt(e.target.value);
+                currentMasterPage = 1;
+                fetchMasterItems();
+            });
+            elements.btnPrevPage.addEventListener('click', () => { if (currentMasterPage > 1) { currentMasterPage--; fetchMasterItems(); } });
+            elements.btnNextPage.addEventListener('click', () => {
+                const maxPages = itemsPerPage === 'all' ? 1 : Math.ceil(totalMasterItems / itemsPerPage);
+                if (currentMasterPage < maxPages) { currentMasterPage++; fetchMasterItems(); }
+            });
+            elements.searchMasterItems.addEventListener('input', (e) => {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(() => { currentMasterPage = 1; fetchMasterItems(e.target.value); }, 500); 
+            });
 
             // --- Lógica de Geração do Arranjo (N8N) ---
             elements.btnGerarArranjo.addEventListener('click', async () => {
@@ -2306,58 +2058,23 @@
 
                 const formData = new FormData();
                 formData.append('file', elements.csvFileInput.files[0], 'data.csv');
-
                 const configFornos = {};
-                fornosAtivos.forEach(forno => {
-                    const inputs = document.querySelectorAll(`.gt-input-field-${forno}`);
-                    configFornos[forno] = Array.from(inputs).map(input => input.value).filter(Boolean);
-                });
-
+                fornosAtivos.forEach(forno => { configFornos[forno] = Array.from(document.querySelectorAll(`.gt-input-field-${forno}`)).map(input => input.value).filter(Boolean); });
                 formData.append('config_fornos', JSON.stringify(configFornos));
                 
                 try {
                     const response = await fetch(n8nGerarArranjoUrl, { method: 'POST', body: formData });
                     if (!response.ok) { const errorText = await response.text(); throw new Error(`${response.statusText}. Detalhes: ${errorText}`); }
-                    
                     const data = await response.json();
                     
                     elements.step1.classList.add('hidden');
                     elements.step2.classList.remove('hidden');
                     updateStepper(2);
 
-                    elements.btnResetProduction.classList.remove('hidden');
-                    elements.btnBackToHistory.classList.add('hidden');
+                    listaOriginalArranjo = (data.arranjo_producao || []).map((item, i) => ({...item, id: `orig-arr-${i}`}));
+                    listaOriginalPendentes = (data.itens_pendentes || []).map((item, i) => ({...item, id: `orig-pen-${i}`}));
                     
-                    listaOriginalArranjo = data.arranjo_producao || [];
-                    listaOriginalPendentes = data.itens_pendentes || [];
-                    
-                    renderizarEsteirasArranjo(data);
-
-                    const globalFilterCard = document.getElementById('global-filter-card');
-                    const globalExportBar = document.getElementById('global-export-bar');
-
-                    if (fornosAtivos.size > 1) {
-                        globalFilterCard.style.display = 'none';
-                        globalExportBar.style.display = 'none';
-
-                        const step2Header = document.getElementById('step-2-header');
-                        const existingWarning = document.getElementById('parallel-mode-warning');
-                        if (!existingWarning) {
-                            const warningBar = document.createElement('div');
-                            warningBar.id = 'parallel-mode-warning';
-                            warningBar.className = 'warning-bar';
-                            warningBar.innerHTML = '⚠️ MODO DE PRODUÇÃO EM PARALELO ATIVO';
-                            step2Header.insertAdjacentElement('afterend', warningBar);
-                        }
-                    } else {
-                        globalFilterCard.style.display = 'grid';
-                        globalExportBar.style.display = 'flex';
-                        popularSeletorBitolaReferencia();
-                        const unicoForno = Array.from(fornosAtivos)[0];
-                        popularFiltroEmpilhamento(unicoForno);
-                    }
-                    
-                    popularFiltroBitolaPendentes();
+                    resetarArranjosParaOriginal();
 
                 } catch (error) {
                     showAlert('Ocorreu um erro ao gerar o arranjo: ' + error.message, 'Erro', 'error');
@@ -2366,50 +2083,11 @@
                     elements.btnGerarArranjo.disabled = false;
                 }
             });
-            
-            function atualizarTotalizadoresEBarras() {
-                fornosAtivos.forEach(forno => {
-                    const lista = document.getElementById(`lista-arranjo-${forno}`);
-                    if (!lista) return;
-                    
-                    const cards = lista.querySelectorAll('.item-card');
-                    let totalPeso = 0;
-                    
-                    cards.forEach(card => {
-                        const qtd = parseInt(card.dataset.quantidade) || 0;
-                        const peso = parseFloat(card.dataset.peso) || 0;
-                        totalPeso += (qtd * peso);
-                    });
 
-                    // Atualiza display de molas/toneladas
-                    const displayMolas = document.getElementById(`total-molas-${forno}`);
-                    if (displayMolas) displayMolas.textContent = `${cards.length} OPs | ${(totalPeso/1000).toFixed(1)}T`;
-                    
-                    // Atualiza barra de capacidade
-                    const capacityBarFill = document.getElementById(`capacity-bar-${forno}`);
-                    const capacityText = document.getElementById(`capacity-text-${forno}`);
-                    if (capacityBarFill && capacityText) {
-                        const maxCapacity = 60000; // 60 toneladas em kg
-                        const percentage = Math.min((totalPeso / maxCapacity) * 100, 100);
-                        
-                        capacityBarFill.style.width = `${percentage}%`;
-                        if (percentage > 85) {
-                            capacityBarFill.style.backgroundColor = 'var(--color-danger)';
-                        } else if (percentage > 60) {
-                            capacityBarFill.style.backgroundColor = 'var(--color-warning)';
-                        } else {
-                            capacityBarFill.style.backgroundColor = 'var(--color-success)';
-                        }
-                        
-                        capacityText.textContent = `${(totalPeso / 1000).toFixed(1)}T / 60.0T`;
-                    }
-                });
-            }
-
-            function renderizarEsteirasArranjo(dados) {
+            // --- MASTER RENDER & STATE MANAGEMENT ---
+            function renderizarLayoutStep2() {
                 const containerFornos = document.getElementById('colunas-fornos-ativos');
                 containerFornos.innerHTML = '';
-                
                 const totalColunas = fornosAtivos.size + 1;
                 document.getElementById('container-principal-arranjos').style.gridTemplateColumns = `repeat(${totalColunas}, 1fr)`;
 
@@ -2419,282 +2097,201 @@
 
                     const col = document.createElement('div');
                     col.className = 'arranjo-coluna';
-                    col.style = "border: 1px solid var(--border-color); background: var(--bg-card); padding: 1rem; border-radius: var(--radius-md); display: flex; flex-direction: column;";
                     col.innerHTML = `
                         <div class="arranjo-header">
-                            <h3 style="color: var(--color-primary)">FORNO ${tituloForno} (${idForno})</h3>
-                            <div id="total-molas-${forno}" class="totalizador">0 OPs | 0.0T</div>
+                            <h3>FORNO ${tituloForno} (${idForno})</h3>
+                            <div id="totalizador-${forno}" class="totalizador">0 OPs | 0.0T</div>
                         </div>
-                        
-                        <div class="capacity-bar-container">
-                            <div id="capacity-bar-${forno}" class="capacity-bar-fill"></div>
-                        </div>
+                        <div class="capacity-bar-container"><div id="capacity-bar-${forno}" class="capacity-bar-fill"></div></div>
                         <div id="capacity-text-${forno}" class="capacity-text">0.0T / 60.0T</div>
-
-                        <div class="card" style="margin-bottom: 1rem; padding: 0.8rem; background: var(--bg-main);">
+                        <div class="card card-filtros-internos" style="margin-bottom: 1rem; padding: 0.8rem; background: var(--bg-main);">
                             <div style="margin-bottom: 1rem;">
                                 <label class="config-label" style="font-size:0.7rem">Receita de Empilhamento (2X)</label>
-                                <select class="filtro-empilhamento-forno" data-forno="${forno}">
-                                    <option value="">Nenhum</option>
-                                </select>
+                                <select class="filtro-empilhamento-forno" data-forno="${forno}"><option value="">Nenhum</option></select>
                             </div>
                             <div>
                                 <label class="config-label" style="font-size:0.7rem;">Ordenação por Bitola</label>
-                                <select class="bitola-referencia-forno" data-forno="${forno}" style="margin-bottom: 0.5rem;">
-                                    <option value="">Ponto de partida...</option>
-                                </select>
+                                <select class="bitola-referencia-forno" data-forno="${forno}" style="margin-bottom: 0.5rem;"><option value="">Ponto de partida...</option></select>
                                 <div style="display:flex; gap: 0.5rem;">
                                     <button class="btn btn-sm btn-secondary btn-ordem-crescente-forno" style="flex-grow:1" data-forno="${forno}">⬆ Crescente</button>
                                     <button class="btn btn-sm btn-secondary btn-ordem-decrescente-forno" style="flex-grow:1" data-forno="${forno}">⬇ Decrescente</button>
                                 </div>
                             </div>
                         </div>
-
-                        <div id="lista-arranjo-${forno}" class="lista-drop-forno" data-forno="${forno}" style="flex-grow: 1; border: 1px dashed var(--border-color); border-radius: 8px; padding: 10px;"></div>
-                        
+                        <div id="lista-arranjo-${forno}" class="lista-drop" data-forno="${forno}"></div>
                         <button class="btn btn-success btn-sm btn-export-forno" style="margin-top: 1rem;" data-forno="${forno}">Exportar Forno ${idForno}</button>
                     `;
                     containerFornos.appendChild(col);
-
                     popularFiltroReceitas(forno, col.querySelector('.filtro-empilhamento-forno'));
-                    
-                    // Adicionar Event Listeners para os novos controles
                     col.querySelector('.filtro-empilhamento-forno').addEventListener('change', (e) => aplicarEmpilhamentoPorEsteira(e.target.dataset.forno));
                     col.querySelector('.btn-ordem-crescente-forno').addEventListener('click', (e) => aplicarOrdenacaoPorEsteira(e.target.dataset.forno, 'crescente'));
                     col.querySelector('.btn-ordem-decrescente-forno').addEventListener('click', (e) => aplicarOrdenacaoPorEsteira(e.target.dataset.forno, 'decrescente'));
                     col.querySelector('.btn-export-forno').addEventListener('click', (e) => exportarForno(e.target.dataset.forno));
                 });
-
-                if(dados) {
-                    document.getElementById('itens-pendentes-lista').innerHTML = '';
-                    dados.arranjo_producao.forEach(item => {
-                        criarCard(`lista-arranjo-${item.forno_destino}`, item, false);
-                    });
-                    dados.itens_pendentes.forEach(item => {
-                        criarCard('itens-pendentes-lista', item, true);
-                    });
-                }
-                vincularEventosDragDrop();
-                atualizarTotalizadoresEBarras();
-                fornosAtivos.forEach(popularSeletorBitolaPorEsteira);
-            }
-
-            async function popularFiltroReceitas(tipoForno, selectElement) {
-                const idForno = tipoForno === 'grande' ? '1001' : '1002';
-                const { data } = await _supabase.from('receitas_forno').select('bitola_min, bitola_max').eq('forno', idForno);
-                data?.forEach(r => {
-                    const opt = document.createElement('option');
-                    opt.value = `${r.bitola_min}-${r.bitola_max}`;
-                    opt.textContent = `Intervalo ${r.bitola_min} a ${r.bitola_max} mm`;
-                    selectElement.appendChild(opt);
-                });
-            }
-
-            function vincularEventosDragDrop() {
-                const zonas = document.querySelectorAll('.lista-drop-forno, #itens-pendentes-lista');
-                zonas.forEach(zona => {
-                    zona.addEventListener('dragover', e => { e.preventDefault(); zona.classList.add('drag-over'); });
-                    zona.addEventListener('dragleave', () => { zona.classList.remove('drag-over'); });
-                    zona.addEventListener('drop', e => {
-                        e.preventDefault();
-                        zona.classList.remove('drag-over');
-                        const id = e.dataTransfer.getData('text');
-                        const card = document.getElementById(id);
-                        if (!card) return;
-
-                        // Validação de intervalo de receita
-                        if (zona.classList.contains('lista-drop-forno')) {
-                            const forno = zona.dataset.forno;
-                            const recipeSelect = document.querySelector(`.filtro-empilhamento-forno[data-forno="${forno}"]`);
-                            const recipeValue = recipeSelect.value;
-
-                            if (recipeValue) {
-                                const [min, max] = recipeValue.split('-').map(Number);
-                                const cardBitola = getEspessura(card);
-                                if (cardBitola < min || cardBitola > max) {
-                                    showAlert(`A bitola ${cardBitola}mm está fora do intervalo da receita selecionada (${min}-${max}mm) para este forno.`, 'Ação Bloqueada', 'warning');
-                                    return; 
-                                }
-                            }
-                        }
-
-                        zona.appendChild(card);
-                        atualizarTotalizadoresEBarras();
-                        fornosAtivos.forEach(popularSeletorBitolaPorEsteira);
-                    });
-                });
-            }
-
-            // --- ADIÇÃO MANUAL E AUTOCOMPLETE ---
-            elements.btnAddManual.addEventListener('click', () => {
-                elements.modalInputCodigo.value = '';
-                elements.modalInputOp.value = '';
-                elements.modalInputQtd.value = '';
-                elements.modalInputBitola.value = '';
-                elements.modalInputGt.value = '';
-                elements.autocompleteList.innerHTML = '';
-                elements.autocompleteList.classList.remove('visible');
                 
-                elements.modalManualOverlay.classList.add('open');
-                setTimeout(() => elements.modalInputCodigo.focus(), 100);
-            });
+                const globalFilterCard = document.getElementById('global-filter-card');
+                const step2Header = document.getElementById('step-2-header');
+                let warningBar = document.getElementById('parallel-mode-warning');
 
-            elements.btnManualCancel.addEventListener('click', () => {
-                elements.modalManualOverlay.classList.remove('open');
-            });
-
-            elements.modalInputCodigo.addEventListener('input', (e) => {
-                const val = e.target.value.trim().toUpperCase();
-                elements.modalInputCodigo.dataset.pesoSelecionado = '0';
-                elements.modalInputCodigo.dataset.descricaoSelecionada = '';
-
-                clearTimeout(autocompleteTimeout);
-                elements.autocompleteList.innerHTML = '';
-                elements.autocompleteList.classList.remove('visible');
-
-                if (val.length < 2) return; 
-
-                autocompleteTimeout = setTimeout(async () => {
-                    try {
-                        const { data: itensMestre, error } = await _supabase
-                            .from('itens_mestre')
-                            .select('*')
-                            .ilike('codigo_item', `${val}%`) 
-                            .limit(5);
-
-                        if (error) throw error;
-
-                        if (itensMestre && itensMestre.length > 0) {
-                            elements.autocompleteList.innerHTML = '';
-                            itensMestre.forEach(item => {
-                                const li = document.createElement('li');
-                                li.className = 'autocomplete-item';
-                                
-                                const codigoDisplay = item.codigo_item || 'S/C';
-                                const bitolaDisplay = item.dimensao || 'S/D';
-                                
-                                li.innerHTML = `<strong>${codigoDisplay}</strong><small>${bitolaDisplay} - GT ${item.gt || '?'}</small>`;
-                                
-                                li.addEventListener('click', () => {
-                                    elements.modalInputCodigo.value = codigoDisplay;
-                                    elements.modalInputBitola.value = bitolaDisplay;
-                                    elements.modalInputGt.value = item.gt || '';
-                                    elements.modalInputCodigo.dataset.pesoSelecionado = item.peso_kg || 0;
-                                    elements.modalInputCodigo.dataset.descricaoSelecionada = item.descricao || '';
-                                    
-                                    elements.autocompleteList.innerHTML = '';
-                                    elements.autocompleteList.classList.remove('visible');
-                                });
-                                elements.autocompleteList.appendChild(li);
-                            });
-                            elements.autocompleteList.classList.add('visible');
-                        }
-                    } catch (err) { 
-                        console.error("Erro no Autocomplete:", err.message); 
+                if (fornosAtivos.size > 1) {
+                    globalFilterCard.classList.add('hidden');
+                    document.querySelectorAll('.card-filtros-internos').forEach(c => c.style.display = 'block');
+                    if (!warningBar) {
+                        warningBar = document.createElement('div');
+                        warningBar.id = 'parallel-mode-warning';
+                        warningBar.className = 'warning-bar';
+                        warningBar.innerHTML = '⚠️ MODO DE PRODUÇÃO EM PARALELO ATIVO';
+                        step2Header.insertAdjacentElement('afterend', warningBar);
                     }
-                }, 300);
-            });
-
-            document.addEventListener('click', (e) => {
-                const isClickInsideAutocomplete = elements.autocompleteList.contains(e.target);
-                const isClickOnInput = e.target === elements.modalInputCodigo;
-                if (!isClickInsideAutocomplete && !isClickOnInput) {
-                    elements.autocompleteList.classList.remove('visible');
+                } else {
+                    globalFilterCard.classList.remove('hidden');
+                    document.querySelectorAll('.card-filtros-internos').forEach(c => c.style.display = 'none');
+                    if (warningBar) warningBar.remove();
+                    const unicoForno = Array.from(fornosAtivos)[0];
+                    popularFiltroReceitas(unicoForno, document.getElementById('filtro-intervalo-empilhamento'));
                 }
-            });
-
-            elements.btnManualConfirm.addEventListener('click', () => {
-                const codigo = elements.modalInputCodigo.value.trim();
-                const op = elements.modalInputOp.value.trim();
-                const qtd = parseInt(elements.modalInputQtd.value);
+            }
+            
+            function renderizarTudoAPartirDoEstado() {
+                document.querySelectorAll('.lista-drop').forEach(lista => lista.innerHTML = '');
                 
-                if (!codigo || !op || isNaN(qtd)) {
-                    showAlert("Código, OP e Quantidade são obrigatórios.", "Atenção");
+                for (const forno in estadoFornos) {
+                    if (estadoFornos.hasOwnProperty(forno)) {
+                        const listaDOM = document.getElementById(`lista-arranjo-${forno}`);
+                        if (listaDOM) {
+                            estadoFornos[forno].cards.forEach(cardData => {
+                                criarCard(listaDOM, cardData);
+                            });
+                        }
+                    }
+                }
+                
+                estadoPendentes.forEach(cardData => {
+                    criarCard(elements.itensPendentesLista, cardData);
+                });
+
+                vincularEventosDragDrop();
+                atualizarInterfaceCompleta();
+            }
+
+            function atualizarInterfaceCompleta() {
+                fornosAtivos.forEach(forno => {
+                    const cardsNoForno = estadoFornos[forno] ? estadoFornos[forno].cards : [];
+                    let totalPeso = cardsNoForno.reduce((acc, card) => acc + ((card.quantidade || 0) * (card.peso_unit || 0)), 0);
+                    
+                    const totalizador = document.getElementById(`totalizador-${forno}`);
+                    if (totalizador) totalizador.textContent = `${cardsNoForno.length} OPs | ${(totalPeso / 1000).toFixed(1)}T`;
+
+                    const capacityBar = document.getElementById(`capacity-bar-${forno}`);
+                    const capacityText = document.getElementById(`capacity-text-${forno}`);
+                    if (capacityBar && capacityText) {
+                        const maxCapacity = 60000;
+                        const percentage = Math.min((totalPeso / maxCapacity) * 100, 100);
+                        capacityBar.style.width = `${percentage}%`;
+                        capacityBar.style.backgroundColor = percentage > 85 ? 'var(--color-danger)' : percentage > 60 ? 'var(--color-warning)' : 'var(--color-success)';
+                        capacityText.textContent = `${(totalPeso / 1000).toFixed(1)}T / 60.0T`;
+                    }
+                    
+                    const selectReceita = document.querySelector(`.filtro-empilhamento-forno[data-forno="${forno}"]`);
+                    if (selectReceita) selectReceita.value = estadoFornos[forno].receita || "";
+
+                    popularSeletorBitolaPorEsteira(forno);
+                });
+                
+                if (fornosAtivos.size === 1) popularSeletorBitolaReferencia();
+                popularFiltroBitolaPendentes();
+            }
+
+            function extrairDadosDoCard(cardElement) {
+                const data = cardElement.dataset;
+                return {
+                    id: data.id,
+                    op: data.ordemProducao,
+                    codigo: data.codigo,
+                    Descrição: data.descricao,
+                    Dimensões: data.dimensao,
+                    gt: data.gt,
+                    quantidade: parseInt(data.quantidade),
+                    peso_unit: parseFloat(data.peso),
+                    isEmpilhado: data.isEmpilhado === 'true',
+                    forno_destino: data.fornoDestino
+                };
+            }
+
+            function getFornoFromListId(listId) {
+                return listId.replace('lista-arranjo-', '');
+            }
+
+            // --- FUNÇÕES DE FILTRO INDEPENDENTES ---
+            function aplicarEmpilhamentoPorEsteira(forno) {
+                const selectFiltro = document.querySelector(`.filtro-empilhamento-forno[data-forno="${forno}"]`);
+                const intervalo = selectFiltro.value;
+                estadoFornos[forno].receita = intervalo;
+
+                if (!intervalo) {
+                    estadoFornos[forno].cards.forEach(card => card.isEmpilhado = false);
+                    renderizarTudoAPartirDoEstado();
                     return;
                 }
 
-                const novoItem = {
-                    op: op, 
-                    codigo: codigo,
-                    Descrição: elements.modalInputCodigo.dataset.descricaoSelecionada || "Item Manual",
-                    Dimensões: elements.modalInputBitola.value.trim(), 
-                    gt: elements.modalInputGt.value.trim(),
-                    quantidade: qtd,
-                    peso_unit: parseFloat(elements.modalInputCodigo.dataset.pesoSelecionado) || 0
-                };
-                
-                listaOriginalPendentes.push(novoItem);
-                criarCard('itens-pendentes-lista', novoItem, true);
-                elements.modalManualOverlay.classList.remove('open');
-                atualizarTotalizadoresEBarras();
-            });
-
-
-            // --- Lógica de Ordenação, Filtros e Empilhamento ---
-            function getEspessura(cardElement) {
-                if (!cardElement) return 0;
-                const dimensao = cardElement.dataset.dimensao || '0 X 0';
                 try {
-                    const partes = dimensao.split('X');
-                    if (partes.length < 2) return 0;
-                    const espessuraStr = partes[1].trim().replace(',', '.');
-                    return parseFloat(espessuraStr) || 0;
-                } catch (e) { return 0; }
-            }
-            
-            function popularSeletorBitolaReferencia() {
-                const seletor = document.getElementById('bitola-referencia-select');
-                const currentValue = seletor.value;
-                seletor.innerHTML = '<option value="">Selecione a bitola...</option>';
-                const todosOsItens = listaOriginalArranjo.concat(listaOriginalPendentes);
-                
-                const espessuras = new Set(todosOsItens.map(item => item.bitola).filter(esp => esp > 0));
+                    const [tetoMinimo, tetoMaximo] = intervalo.split('-').map(Number);
+                    
+                    let candidatos = [...estadoFornos[forno].cards, ...estadoPendentes];
+                    candidatos.forEach(c => c.isEmpilhado = false);
+                    
+                    const idsUsados = new Set();
+                    const novoArranjoEsteira = [];
+                    let novosPendentes = [];
 
-                Array.from(espessuras).sort((a, b) => a - b).forEach(esp => {
-                    seletor.innerHTML += `<option value="${esp}">${esp}</option>`;
-                });
-                seletor.value = currentValue;
-            }
+                    candidatos.sort((a, b) => getEspessura(b) - getEspessura(a));
 
-            function popularSeletorBitolaPorEsteira(forno) {
-                const seletor = document.querySelector(`.bitola-referencia-forno[data-forno="${forno}"]`);
-                if (!seletor) return;
-                const currentValue = seletor.value;
-                seletor.innerHTML = '<option value="">Ponto de partida...</option>';
-                
-                const lista = document.getElementById(`lista-arranjo-${forno}`);
-                const cards = Array.from(lista.children);
-                const espessuras = new Set(cards.map(getEspessura).filter(esp => esp > 0));
+                    for (let i = 0; i < candidatos.length; i++) {
+                        const base = candidatos[i];
+                        if (idsUsados.has(base.id)) continue;
 
-                Array.from(espessuras).sort((a, b) => a - b).forEach(esp => {
-                    seletor.innerHTML += `<option value="${esp}">${esp} mm</option>`;
-                });
-                seletor.value = currentValue;
-            }
-            
-            function resetarOrdenacao() {
-                renderizarEsteirasArranjo({
-                    arranjo_producao: listaOriginalArranjo,
-                    itens_pendentes: listaOriginalPendentes
-                });
-                filtrarItensPendentes();
-                document.getElementById('bitola-referencia-select').value = "";
-                document.getElementById('filtro-intervalo-empilhamento').value = "";
+                        const espessuraBase = getEspessura(base);
+                        if (espessuraBase >= tetoMinimo && espessuraBase <= tetoMaximo) {
+                            let parceiroEncontrado = null;
+                            for (let j = 0; j < candidatos.length; j++) {
+                                const p = candidatos[j];
+                                if (i === j || idsUsados.has(p.id)) continue;
+                                if (molasPlanasCodigos.has(p.codigo) && (getEspessura(p) * 2) >= tetoMinimo && (getEspessura(p) * 2) <= tetoMaximo) {
+                                    parceiroEncontrado = p;
+                                    break;
+                                }
+                            }
+                            if (parceiroEncontrado) {
+                                parceiroEncontrado.isEmpilhado = true;
+                                novoArranjoEsteira.push(base, parceiroEncontrado);
+                                idsUsados.add(base.id);
+                                idsUsados.add(parceiroEncontrado.id);
+                            }
+                        }
+                    }
+                    
+                    candidatos.forEach(c => { if (!idsUsados.has(c.id)) novosPendentes.push(c); });
+
+                    estadoFornos[forno].cards = novoArranjoEsteira;
+                    estadoPendentes = novosPendentes;
+                    
+                    renderizarTudoAPartirDoEstado();
+
+                } catch (err) {
+                    showAlert(`Erro ao aplicar empilhamento: ${err.message}`, 'Erro', 'error');
+                }
             }
 
             function aplicarOrdenacaoPorEsteira(forno, direcao) {
                 const seletor = document.querySelector(`.bitola-referencia-forno[data-forno="${forno}"]`);
                 const valorReferencia = parseFloat(seletor.value);
 
-                if (isNaN(valorReferencia) || seletor.value === "") {
-                    showAlert('Por favor, selecione uma Bitola de Partida para este forno.', 'Atenção');
+                if (isNaN(valorReferencia)) {
+                    showAlert('Selecione uma Bitola de Partida para este forno.', 'Atenção');
                     return;
                 }
-
-                const arranjoLista = document.getElementById(`lista-arranjo-${forno}`);
-                const pendentesLista = document.getElementById('itens-pendentes-lista');
-                const cardsAtuais = Array.from(arranjoLista.children);
                 
+                const cardsAtuais = [...estadoFornos[forno].cards];
                 const permanecem = [];
                 const paraPendentes = [];
 
@@ -2709,367 +2306,195 @@
 
                 permanecem.sort((a, b) => direcao === 'crescente' ? getEspessura(a) - getEspessura(b) : getEspessura(b) - getEspessura(a));
                 
-                arranjoLista.innerHTML = '';
-                permanecem.forEach(card => arranjoLista.appendChild(card));
-                paraPendentes.forEach(card => pendentesLista.appendChild(card)); 
-
-                atualizarTotalizadoresEBarras();
-                popularFiltroBitolaPendentes(); 
-                filtrarItensPendentes();
-                popularSeletorBitolaPorEsteira(forno);
+                estadoFornos[forno].cards = permanecem;
+                estadoPendentes.push(...paraPendentes);
+                
+                renderizarTudoAPartirDoEstado();
             }
             
-            function aplicarOrdenacaoGlobal(direcao) {
-                 const seletor = document.getElementById('bitola-referencia-select');
-                const valorReferencia = parseFloat(seletor.value);
-
-                if (isNaN(valorReferencia) || seletor.value === "") {
-                    showAlert('Por favor, selecione uma Bitola de Partida.', 'Atenção');
-                    return;
-                }
-                
-                const unicoForno = Array.from(fornosAtivos)[0];
-                const arranjoLista = document.getElementById(`lista-arranjo-${unicoForno}`);
-                
-                const todosOsCards = Array.from(document.querySelectorAll('.item-card'));
-                const paraArranjo = [];
-                const paraPendentes = [];
-                
-                todosOsCards.forEach(card => {
-                     const espessura = getEspessura(card);
-                     if ((direcao === 'crescente' && espessura >= valorReferencia) || (direcao === 'decrescente' && espessura <= valorReferencia)) {
-                        paraArranjo.push(card);
-                    } else {
-                        paraPendentes.push(card);
+            elements.btnResetArranjos.addEventListener('click', resetarArranjosParaOriginal);
+            
+            function resetarArranjosParaOriginal() {
+                inicializarEstados();
+                listaOriginalArranjo.forEach(item => {
+                    if (estadoFornos[item.forno_destino]) {
+                        estadoFornos[item.forno_destino].cards.push({...item});
                     }
                 });
-
-                paraArranjo.sort((a, b) => direcao === 'crescente' ? getEspessura(a) - getEspessura(b) : getEspessura(b) - getEspessura(a));
-
-                arranjoLista.innerHTML = '';
-                document.getElementById('itens-pendentes-lista').innerHTML = '';
-
-                paraArranjo.forEach(c => arranjoLista.appendChild(c));
-                paraPendentes.forEach(c => document.getElementById('itens-pendentes-lista').appendChild(c));
-                
-                atualizarTotalizadoresEBarras();
-                popularFiltroBitolaPendentes(); 
-                filtrarItensPendentes();
+                estadoPendentes = listaOriginalPendentes.map(item => ({...item}));
+                renderizarLayoutStep2();
+                renderizarTudoAPartirDoEstado();
             }
 
-            async function aplicarEmpilhamentoPorEsteira(forno) {
-                const selectFiltro = document.querySelector(`.filtro-empilhamento-forno[data-forno="${forno}"]`);
-                const intervalo = selectFiltro.value;
+            function vincularEventosDragDrop() {
+                const draggables = document.querySelectorAll('.item-card');
+                const containers = document.querySelectorAll('.lista-drop');
 
-                // Restaura o estado antes de aplicar um novo filtro
-                resetarOrdenacao();
+                draggables.forEach(draggable => {
+                    draggable.addEventListener('dragstart', () => draggable.classList.add('dragging'));
+                    draggable.addEventListener('dragend', () => draggable.classList.remove('dragging'));
+                });
 
-                if (!intervalo) return;
+                containers.forEach(container => {
+                    container.addEventListener('dragover', e => { e.preventDefault(); container.classList.add('drag-over'); });
+                    container.addEventListener('dragleave', () => container.classList.remove('drag-over'));
+                    container.addEventListener('drop', e => {
+                        e.preventDefault();
+                        container.classList.remove('drag-over');
+                        const draggable = document.querySelector('.dragging');
+                        if (!draggable) return;
 
-                try {
-                    const [tetoMinimo, tetoMaximo] = intervalo.split('-').map(Number);
-                    if (isNaN(tetoMinimo) || isNaN(tetoMaximo)) throw new Error("Intervalo inválido.");
-                    
-                    const arranjoLista = document.getElementById(`lista-arranjo-${forno}`);
-                    const pendentesLista = document.getElementById('itens-pendentes-lista');
-                    const itensParaProcessar = Array.from(document.querySelectorAll(`#lista-arranjo-${forno} .item-card, #itens-pendentes-lista .item-card`));
-                    
-                    const idsUsados = new Set();
-                    const novoArranjo = [];
-                    let novosPendentes = [];
-                    
-                    itensParaProcessar.forEach(c => c.dataset.isEmpilhado = 'false');
+                        const cardData = extrairDadosDoCard(draggable);
+                        const sourceList = draggable.parentElement;
 
-                    itensParaProcessar.sort((a, b) => getEspessura(b) - getEspessura(a));
+                        if (sourceList.id === container.id) return; // No change if dropped in the same list
 
-                    for (let i = 0; i < itensParaProcessar.length; i++) {
-                        const base = itensParaProcessar[i];
-                        if (idsUsados.has(base.id)) continue;
-
-                        const espessuraBase = getEspessura(base);
-                        if (espessuraBase >= tetoMinimo && espessuraBase <= tetoMaximo) {
-                            let parceiroEncontrado = null;
-
-                            for (let j = 0; j < itensParaProcessar.length; j++) {
-                                const parceiroPotencial = itensParaProcessar[j];
-                                if (i === j || idsUsados.has(parceiroPotencial.id)) continue;
-
-                                if (molasPlanasCodigos.has(parceiroPotencial.dataset.codigo)) {
-                                    const espessuraDobrada = getEspessura(parceiroPotencial) * 2;
-                                    if (espessuraDobrada >= tetoMinimo && espessuraDobrada <= tetoMaximo) {
-                                        parceiroEncontrado = parceiroPotencial;
-                                        break;
-                                    }
-                                }
-                            }
-
-                            if (parceiroEncontrado) {
-                                base.dataset.isEmpilhado = 'false';
-                                parceiroEncontrado.dataset.isEmpilhado = 'true';
-                                
-                                novoArranjo.push(base, parceiroEncontrado);
-                                idsUsados.add(base.id);
-                                idsUsados.add(parceiroEncontrado.id);
+                        // Remover do estado antigo
+                        if (sourceList.id === 'itens-pendentes-lista') {
+                            estadoPendentes = estadoPendentes.filter(c => c.id !== cardData.id);
+                        } else {
+                            const sourceForno = getFornoFromListId(sourceList.id);
+                            if (estadoFornos[sourceForno]) {
+                                estadoFornos[sourceForno].cards = estadoFornos[sourceForno].cards.filter(c => c.id !== cardData.id);
                             }
                         }
-                    }
-
-                    itensParaProcessar.forEach(item => {
-                        if (!idsUsados.has(item.id)) {
-                             // Itens do outro forno não devem ir para pendentes
-                            if (item.parentElement.id !== `lista-arranjo-${forno}` && item.parentElement.id !== 'itens-pendentes-lista') {
-                                // Mantém no outro forno
-                            } else {
-                                novosPendentes.push(item);
-                            }
+                        
+                        // Adicionar ao novo estado
+                        if (container.id === 'itens-pendentes-lista') {
+                             estadoPendentes.push(cardData);
+                        } else {
+                             const targetForno = getFornoFromListId(container.id);
+                             if (estadoFornos[targetForno]) {
+                                 estadoFornos[targetForno].cards.push(cardData);
+                             }
                         }
+                        
+                        renderizarTudoAPartirDoEstado();
                     });
-
-                    // Limpa e repopula a esteira do forno e os pendentes
-                    arranjoLista.innerHTML = '';
-                    novoArranjo.forEach(card => {
-                        const empilhamentoTag = card.dataset.isEmpilhado === 'true' ? '<span class="tag-2x">2X</span>' : '';
-                        card.querySelector('p:first-of-type').innerHTML = `<b>OP:</b> ${card.dataset.ordemProducao} ${empilhamentoTag}`;
-                        arranjoLista.appendChild(card);
-                    });
-
-                    novosPendentes.forEach(card => {
-                        const empilhamentoTag = card.dataset.isEmpilhado === 'true' ? '<span class="tag-2x">2X</span>' : '';
-                        card.querySelector('p:first-of-type').innerHTML = `<b>OP:</b> ${card.dataset.ordemProducao} ${empilhamentoTag}`;
-                        pendentesLista.appendChild(card);
-                    });
-                    
-                    atualizarTotalizadoresEBarras();
-                    filtrarItensPendentes();
-                    popularSeletorBitolaPorEsteira(forno);
-
-                } catch (err) {
-                    showAlert(`Erro ao aplicar o filtro de empilhamento: ${err.message}`, 'Erro', 'error');
-                    selectFiltro.value = '';
-                }
-            }
-
-
-            function popularFiltroBitolaPendentes() {
-                const seletor = document.getElementById('filter-bitola-pendentes');
-                seletor.innerHTML = '<option value="">Filtrar bitola...</option>';
-                const pendentesLista = document.getElementById('itens-pendentes-lista');
-                const cardsPendentes = Array.from(pendentesLista.children);
-                const espessuras = new Set(cardsPendentes.map(getEspessura).filter(esp => esp > 0));
-                Array.from(espessuras).sort((a, b) => a - b).forEach(esp => {
-                    seletor.innerHTML += `<option value="${esp}">${esp}</option>`;
                 });
             }
 
-            function filtrarItensPendentes() {
-                const searchTerm = document.getElementById('search-pendentes').value.toLowerCase();
-                const bitolaFilter = document.getElementById('filter-bitola-pendentes').value;
-                const pendentesLista = document.getElementById('itens-pendentes-lista');
-                const cards = Array.from(pendentesLista.children);
-
-                cards.forEach(card => {
-                    const cardText = (card.innerText || card.textContent).toLowerCase();
-                    const espessura = getEspessura(card).toString();
-                    
-                    const matchesSearch = searchTerm === '' || cardText.includes(searchTerm);
-                    const matchesBitola = bitolaFilter === '' || espessura === bitolaFilter;
-
-                    if (matchesSearch && matchesBitola) {
-                        card.style.display = 'block';
-                    } else {
-                        card.style.display = 'none';
-                    }
-                });
-            }
-            
-            document.getElementById('btn-reset-filter').addEventListener('click', resetarOrdenacao);
-            document.getElementById('btn-ordem-crescente').addEventListener('click', () => aplicarOrdenacaoGlobal('crescente'));
-            document.getElementById('btn-ordem-decrescente').addEventListener('click', () => aplicarOrdenacaoGlobal('decrescente'));
-            document.getElementById('filtro-intervalo-empilhamento').addEventListener('change', () => {
-                const unicoForno = Array.from(fornosAtivos)[0];
-                aplicarEmpilhamentoPorEsteira(unicoForno);
-            });
-            document.getElementById('search-pendentes').addEventListener('input', filtrarItensPendentes);
-            document.getElementById('filter-bitola-pendentes').addEventListener('change', filtrarItensPendentes);
-
-            // --- Funções Auxiliares de Lista e DragDrop ---
-            
-            function criarCard(containerId, item, isPendente) {
-                const container = document.getElementById(containerId);
-                if (!container) {
-                    console.warn(`Container com ID '${containerId}' não encontrado para criar o card.`);
-                    return;
-                };
-                
-                const index = container.children.length;
+            function criarCard(containerDOM, cardData) {
                 const card = document.createElement('div');
                 card.className = 'item-card';
                 card.draggable = true;
-                card.id = item.id || `${containerId}-item-${Date.now()}-${index}`;
+                
+                card.dataset.id = cardData.id;
+                card.dataset.ordemProducao = cardData.op || 'N/A';
+                card.dataset.codigo = cardData.codigo || 'N/A';
+                card.dataset.descricao = cardData.Descrição || 'N/A';
+                card.dataset.dimensao = cardData.Dimensões || 'N/A';
+                card.dataset.gt = cardData.gt || '';
+                card.dataset.quantidade = cardData.quantidade || 0;
+                card.dataset.peso = cardData.peso_unit || 0;
+                card.dataset.isEmpilhado = cardData.isEmpilhado || false;
+                card.dataset.fornoDestino = cardData.forno_destino || '';
 
-                card.dataset.ordemProducao = item.op || item.Item || 'N/A';
-                card.dataset.codigo = item.codigo || item.Código || 'N/A';
-                card.dataset.descricao = item.Descrição || 'Descrição N/A';
-                card.dataset.dimensao = item.Dimensões || `N/A X ${item.bitola}`;
-                card.dataset.gt = item.gt || '';
-                card.dataset.quantidade = item.quantidade || item.Planejado || '0';
-                card.dataset.peso = item.peso_unit || item.peso_kg || '0';
-
-                const empilhamentoTag = item.isEmpilhado ? '<span class="tag-2x">2X</span>' : '';
-                let gtHtml = `<b>GT:</b> ${card.dataset.gt || 'N/A'}`;
-                if (isPendente && (!card.dataset.gt || card.dataset.gt.trim() === '')) {
-                    gtHtml = `<b>GT:</b> <input type="text" class="gt-input" placeholder="N/A" onkeydown="reavaliarItem(event, this.parentElement.parentElement)">`;
-                }
-
-                const peso_total_do_card = (parseFloat(card.dataset.quantidade) * parseFloat(card.dataset.peso)).toFixed(1);
+                const empilhamentoTag = cardData.isEmpilhado ? '<span class="tag-2x">2X</span>' : '';
+                const pesoTotal = (parseFloat(card.dataset.quantidade) * parseFloat(card.dataset.peso)).toFixed(1);
 
                 card.innerHTML = `
-                    <span class="delete-btn" onclick="removerCard(this.parentElement)">×</span>
+                    <span class="delete-btn" onclick="removerCardPeloEstado('${cardData.id}')">×</span>
                     <p><b>OP:</b> ${card.dataset.ordemProducao} ${empilhamentoTag}</p>
                     <p><b>Código:</b> ${card.dataset.codigo}</p>
                     <p>${card.dataset.descricao}</p> 
                     <p><b>Bitola:</b> ${card.dataset.dimensao}</p>
-                    <p><b>Qtd:</b> ${card.dataset.quantidade} <small style="color: var(--text-secondary); margin-left: 10px;">(${peso_total_do_card} kg)</small></p>
-                    <p class="gt-display" onclick="editarGT(event, this.parentElement)">${gtHtml}</p>
-                    ${item.forno_destino ? `<p style="font-size: 0.75rem; color: var(--color-info); margin-top: 5px; font-weight: 600;">📍 Destino: Forno ${item.forno_destino === 'grande' ? '1001' : '1002'}</p>` : ''}
+                    <p><b>Qtd:</b> ${card.dataset.quantidade} <small style="color: var(--text-secondary); margin-left: 10px;">(${pesoTotal} kg)</small></p>
                 `;
-                
-                card.addEventListener('dragstart', handleDragStart);
-                card.addEventListener('dragend', handleDragEnd);
-                container.appendChild(card);
+                containerDOM.appendChild(card);
             }
 
-
-            window.removerCard = function(card) {
-                card.remove();
-                atualizarTotalizadoresEBarras();
-            }
-            
-            window.editarGT = function(event, cardElement) {
-                if (event.target.tagName === 'INPUT') { return; }
-                const gtDisplayElement = cardElement.querySelector('.gt-display');
-                const currentGT = cardElement.dataset.gt;
-                gtDisplayElement.innerHTML = `<b>GT:</b> <input type="text" class="gt-input" value="${currentGT}" onkeydown="reavaliarItem(event, this.parentElement.parentElement)" onblur="cancelarEdicao(event, this.parentElement.parentElement)">`;
-                const inputField = gtDisplayElement.querySelector('.gt-input');
-                if (inputField) {
-                    inputField.focus();
-                    inputField.select();
-                }
-            }
-
-            window.cancelarEdicao = function(event, cardElement) {
-                setTimeout(() => {
-                    const input = cardElement.querySelector('.gt-input');
-                    if (input && !input.disabled) {
-                        const currentGT = cardElement.dataset.gt;
-                        const gtDisplayElement = cardElement.querySelector('.gt-display');
-                        gtDisplayElement.innerHTML = `<b>GT:</b> ${currentGT || 'N/A'}`;
-                    }
-                }, 100);
-            }
-
-            window.reavaliarItem = async function(event, cardElement) {
-                if (event.key === 'Enter') {
-                    const input = event.target;
-                    const novoGT = input.value.trim();
-                    const codigoItem = cardElement.dataset.codigo;
-                    
-                    if (novoGT === cardElement.dataset.gt) {
-                        cancelarEdicao(event, cardElement);
+            window.removerCardPeloEstado = function(cardId) {
+                for (const forno in estadoFornos) {
+                    const index = estadoFornos[forno].cards.findIndex(c => c.id === cardId);
+                    if (index > -1) {
+                        estadoFornos[forno].cards.splice(index, 1);
+                        renderizarTudoAPartirDoEstado();
                         return;
                     }
-
-                    input.disabled = true;
-                    input.value = "Salvando...";
-
-                    try {
-                        const response = await fetch(n8nAtualizarGTUrl, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ codigo: codigoItem, gt: novoGT })
-                        });
-
-                        if (!response.ok) { throw new Error('Falha ao atualizar o GT no banco de dados.'); }
-
-                        cardElement.dataset.gt = novoGT;
-                        const gtDisplayElement = cardElement.querySelector('.gt-display');
-                        gtDisplayElement.innerHTML = `<b>GT:</b> ${novoGT || 'N/A'}`;
-
-                        atualizarTotalizadoresEBarras();
-                    } catch (error) {
-                        showAlert(error.message, 'Erro', 'error');
-                        input.disabled = false;
-                        input.value = novoGT;
-                        input.focus();
-                    }
-                } else if (event.key === 'Escape') {
-                    cancelarEdicao(event, cardElement);
+                }
+                const index = estadoPendentes.findIndex(c => c.id === cardId);
+                if (index > -1) {
+                    estadoPendentes.splice(index, 1);
+                    renderizarTudoAPartirDoEstado();
                 }
             }
             
-            function handleDragStart(e) {
-                e.target.classList.add('dragging');
-                e.dataTransfer.setData('text/plain', e.target.id);
-            }
-
-            function handleDragEnd(e) {
-                e.target.classList.remove('dragging');
+            function getEspessura(cardData) {
+                if (!cardData) return 0;
+                const dimensao = cardData.Dimensões || '0 X 0';
+                try {
+                    const partes = dimensao.split('X');
+                    if (partes.length < 2) return 0;
+                    return parseFloat(partes[1].trim().replace(',', '.')) || 0;
+                } catch (e) { return 0; }
             }
             
-            // --- Exportação Excel ---
-            function exportarForno(forno) {
-                const lista = document.getElementById(`lista-arranjo-${forno}`);
-                if (!lista) return;
+            function popularSeletorBitolaReferencia() {
+                const seletor = document.getElementById('bitola-referencia-select');
+                const currentValue = seletor.value;
+                seletor.innerHTML = '<option value="">Selecione a bitola...</option>';
+                const unicoForno = Array.from(fornosAtivos)[0];
+                if (!unicoForno || !estadoFornos[unicoForno]) return;
 
-                const cardsDoForno = lista.querySelectorAll('.item-card');
+                const todosOsItens = [...estadoFornos[unicoForno].cards, ...estadoPendentes];
+                const espessuras = new Set(todosOsItens.map(getEspessura).filter(esp => esp > 0));
+
+                Array.from(espessuras).sort((a, b) => a - b).forEach(esp => {
+                    seletor.innerHTML += `<option value="${esp}">${esp}</option>`;
+                });
+                seletor.value = currentValue;
+            }
+
+            async function popularFiltroReceitas(tipoForno, selectElement) {
+                const idForno = tipoForno === 'grande' ? '1001' : '1002';
+                const { data } = await _supabase.from('receitas_forno').select('bitola_min, bitola_max').eq('forno', idForno);
+                if(data) {
+                    selectElement.innerHTML = '<option value="">Nenhum</option>';
+                    data.forEach(r => {
+                        const opt = document.createElement('option');
+                        opt.value = `${r.bitola_min}-${r.bitola_max}`;
+                        opt.textContent = `Intervalo ${r.bitola_min} a ${r.bitola_max} mm`;
+                        selectElement.appendChild(opt);
+                    });
+                }
+            }
+
+            function popularSeletorBitolaPorEsteira(forno) {
+                const seletor = document.querySelector(`.bitola-referencia-forno[data-forno="${forno}"]`);
+                if (!seletor) return;
+                const currentValue = seletor.value;
+                seletor.innerHTML = '<option value="">Ponto de partida...</option>';
+                const cards = estadoFornos[forno] ? estadoFornos[forno].cards : [];
+                const espessuras = new Set(cards.map(getEspessura).filter(esp => esp > 0));
+                Array.from(espessuras).sort((a, b) => a - b).forEach(esp => seletor.innerHTML += `<option value="${esp}">${esp} mm</option>`);
+                seletor.value = currentValue;
+            }
+
+            function popularFiltroBitolaPendentes() {
+                const seletor = document.getElementById('filter-bitola-pendentes');
+                const currentValue = seletor.value;
+                seletor.innerHTML = '<option value="">Filtrar bitola...</option>';
+                const espessuras = new Set(estadoPendentes.map(getEspessura).filter(esp => esp > 0));
+                Array.from(espessuras).sort((a, b) => a - b).forEach(esp => seletor.innerHTML += `<option value="${esp}">${esp}</option>`);
+                seletor.value = currentValue;
+            }
+            
+            function exportarForno(forno) {
+                const cardsDoForno = estadoFornos[forno] ? estadoFornos[forno].cards : [];
                 if (cardsDoForno.length === 0) {
                     showAlert(`Não há itens no arranjo do forno ${forno} para exportar.`, "Aviso");
                     return;
                 }
-
-                const btn = document.querySelector(`.btn-export-forno[data-forno="${forno}"]`);
-                const originalText = btn.innerHTML;
-                btn.innerHTML = '<div class="spinner"></div>';
-                btn.disabled = true;
-
-                try {
-                    const wb = XLSX.utils.book_new();
-                    const fornoId = forno === 'grande' ? '1001' : '1002';
-
-                    const itemsParaExportar = [
-                        ["Ordem de Produção", "Código", "Descrição", "Bitola", "GT", "Quantidade"]
-                    ];
-                    cardsDoForno.forEach(card => {
-                        itemsParaExportar.push([
-                            card.dataset.ordemProducao,
-                            card.dataset.codigo,
-                            card.dataset.descricao,
-                            card.dataset.dimensao,
-                            card.dataset.gt,
-                            card.dataset.quantidade
-                        ]);
-                    });
-                    const ws = XLSX.utils.aoa_to_sheet(itemsParaExportar);
-                    XLSX.utils.book_append_sheet(wb, ws, `Forno ${fornoId}`);
-                    XLSX.writeFile(wb, `Arranjo_Forno_${fornoId}.xlsx`);
-
-                } catch (error) {
-                    showAlert(`Falha ao exportar para Excel: ${error.message}`, 'Erro', 'error');
-                } finally {
-                    btn.innerHTML = originalText;
-                    btn.disabled = false;
-                }
+                const itemsParaExportar = [["Ordem de Produção", "Código", "Descrição", "Bitola", "GT", "Quantidade"]];
+                cardsDoForno.forEach(card => itemsParaExportar.push([card.op, card.codigo, card.Descrição, card.Dimensões, card.gt, card.quantidade]));
+                const ws = XLSX.utils.aoa_to_sheet(itemsParaExportar);
+                const wb = XLSX.utils.book_new();
+                const fornoId = forno === 'grande' ? '1001' : '1002';
+                XLSX.utils.book_append_sheet(wb, ws, `Forno ${fornoId}`);
+                XLSX.writeFile(wb, `Arranjo_Forno_${fornoId}.xlsx`);
             }
-
-            elements.btnExportExcel.addEventListener('click', () => {
-                if (fornosAtivos.size === 1) {
-                    const unicoForno = Array.from(fornosAtivos)[0];
-                    exportarForno(unicoForno);
-                }
-            });
-
-
-            // --- Toggle Tema ---
+            
             elements.themeToggle.addEventListener('change', () => {
                 const isDark = elements.themeToggle.checked;
                 document.body.classList.toggle('dark-theme', isDark);
@@ -3079,14 +2504,14 @@
                     ? 'https://ctfamadobrasil.com.br/wp-content/uploads/2025/12/Gemini_Generated_Image_v8cib8v8cib8v8ci-removebg-preview.png' 
                     : 'https://ctfamadobrasil.com.br/wp-content/uploads/2025/09/logo.png';
             });
-            
-            // --- Inicialização ---
+
             function initApp() {
                 const isDark = elements.themeToggle.checked;
                 document.body.classList.toggle('dark-theme', isDark);
                 document.body.classList.toggle('light-theme', !isDark);
                 updateStepper(1);
                 carregarMolasPlanas();
+                inicializarEstados();
             }
 
             initApp();
