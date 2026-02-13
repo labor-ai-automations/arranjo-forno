@@ -2375,7 +2375,7 @@
                 }
             });
             
-            elements.modalInputCodigo.addEventListener('input', () => {
+elements.modalInputCodigo.addEventListener('input', () => {
                 clearTimeout(autocompleteTimeout);
                 const searchTerm = elements.modalInputCodigo.value.trim().toUpperCase();
                 if (searchTerm.length < 2) {
@@ -2384,24 +2384,29 @@
                 }
                 autocompleteTimeout = setTimeout(async () => {
                     try {
-                        // CORREÇÃO 1: Adiciona 'peso_kg' ao select e ajusta o .ilike
-                        const { data, error } = await _supabase.from('itens_mestre').select('codigo_item, descricao, bitola, gt, peso_kg').ilike('codigo_item', `${searchTerm}%`).limit(10);
+                        // CORREÇÃO 1: Seleciona apenas as colunas existentes: 'codigo_item', 'bitola', 'gt'
+                        const { data, error } = await _supabase.from('itens_mestre').select('codigo_item, bitola, gt').ilike('codigo_item', `${searchTerm}%`).limit(10);
+                        
                         if (error) throw error;
+
                         elements.autocompleteList.innerHTML = '';
                         if (data.length > 0) {
                             data.forEach(item => {
                                 const li = document.createElement('li');
                                 li.className = 'autocomplete-item';
-                                // CORREÇÃO 2: Usa 'descricao' se existir, senão usa 'bitola'
-                                li.innerHTML = `<strong>${item.codigo_item}</strong><small>${item.descricao || item.bitola || 'Sem detalhes'}</small>`;
+                                // CORREÇÃO 2: Exibe a 'bitola' como informação secundária, já que 'descricao' não existe.
+                                li.innerHTML = `<strong>${item.codigo_item}</strong><small>${item.bitola || 'Sem detalhes'}</small>`;
+                                
                                 li.addEventListener('click', () => {
                                     elements.modalInputCodigo.value = item.codigo_item;
-                                    // CORREÇÃO 3: Usa a coluna 'bitola' em vez de 'dimensao' que não existe
+                                    // CORREÇÃO 3: Preenche o campo de bitola com a coluna 'bitola'.
                                     elements.modalInputBitola.value = item.bitola || '';
                                     elements.modalInputGt.value = item.gt || '';
-                                    // CORREÇÃO 4: Guarda os dados que serão usados na confirmação
-                                    elements.modalInputCodigo.dataset.descricaoSelecionada = item.descricao || '';
-                                    elements.modalInputCodigo.dataset.pesoSelecionado = item.peso_kg || 0;
+
+                                    // Limpa dados que não podem ser obtidos desta tabela para evitar erros futuros.
+                                    elements.modalInputCodigo.dataset.descricaoSelecionada = ''; 
+                                    elements.modalInputCodigo.dataset.pesoSelecionado = 0; 
+
                                     elements.autocompleteList.classList.remove('visible');
                                 });
                                 elements.autocompleteList.appendChild(li);
