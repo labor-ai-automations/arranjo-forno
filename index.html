@@ -2049,7 +2049,10 @@
 
             // --- FUNÇÕES DE FILTRO INDEPENDENTES (NÃO DESTRUTIVAS) ---
             function aplicarEmpilhamentoPorEsteira(forno) {
-                const selectFiltro = document.querySelector(`.filtro-empilhamento-forno[data-forno="${forno}"]`) || elements.globalEmpilhamentoSelect;
+                // CORREÇÃO: Seleciona o filtro correto (global ou interno) baseado no modo de operação
+                const selectFiltro = fornosAtivos.size > 1
+                    ? document.querySelector(`.filtro-empilhamento-forno[data-forno="${forno}"]`)
+                    : elements.globalEmpilhamentoSelect;
                 const intervalo = selectFiltro.value;
                 estadoFornos[forno].receita = intervalo;
                 if (!intervalo) {
@@ -2094,7 +2097,10 @@
                 } catch (err) { showAlert(`Erro ao aplicar empilhamento: ${err.message}`, 'Erro', 'error'); }
             }
             function aplicarOrdenacaoPorEsteira(forno, direcao) {
-                const seletor = document.querySelector(`.bitola-referencia-forno[data-forno="${forno}"]`) || elements.globalBitolaSelect;
+                // CORREÇÃO: Seleciona o seletor correto (global ou interno) baseado no modo de operação
+                const seletor = fornosAtivos.size > 1 
+                    ? document.querySelector(`.bitola-referencia-forno[data-forno="${forno}"]`) 
+                    : elements.globalBitolaSelect;
                 const valorReferencia = parseFloat(seletor.value);
                 if (isNaN(valorReferencia)) { showAlert(`Selecione uma Bitola de Partida.`, 'Atenção'); return; }
                 const cardsAtuais = [...estadoFornos[forno].cards];
@@ -2114,6 +2120,23 @@
                 renderizarTudoAPartirDoEstado();
             }
             elements.btnResetArranjos.addEventListener('click', resetarArranjosParaOriginal);
+
+            // CORREÇÃO: Reativação do Event Listener para o botão "Adicionar Manual"
+            elements.btnAddManual.addEventListener('click', () => {
+                // Limpa os campos do modal
+                elements.modalInputCodigo.value = '';
+                elements.modalInputOp.value = '';
+                elements.modalInputQtd.value = '';
+                elements.modalInputBitola.value = '';
+                elements.modalInputGt.value = '';
+                elements.autocompleteList.innerHTML = '';
+                elements.autocompleteList.classList.remove('visible');
+                
+                // Abre o modal
+                elements.modalManualOverlay.classList.add('open');
+                elements.modalInputCodigo.focus();
+            });
+
             function resetarArranjosParaOriginal() {
                 inicializarEstados();
                 listaOriginalArranjo.forEach(item => {
