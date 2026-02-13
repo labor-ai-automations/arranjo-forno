@@ -521,6 +521,32 @@
             margin-left: 8px;
             vertical-align: middle;
         }
+        
+        /* --- Barra de Capacidade do Forno --- */
+        .capacity-bar-container {
+            width: 100%;
+            height: 8px;
+            background-color: var(--border-color);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 4px;
+        }
+        
+        .capacity-bar-fill {
+            height: 100%;
+            width: 0%;
+            background-color: var(--color-success);
+            border-radius: 4px;
+            transition: width 0.5s ease-out, background-color 0.5s;
+        }
+        
+        .capacity-text {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            font-weight: 600;
+            text-align: right;
+            margin-bottom: 1rem;
+        }
 
         /* --- Tabelas --- */
         .table-container { 
@@ -716,6 +742,18 @@
             justify-content: flex-end; 
             gap: 1rem; 
         }
+        
+        /* Barra de Aviso */
+        .warning-bar {
+            background-color: rgba(245, 158, 11, 0.1);
+            border: 1px solid var(--color-warning);
+            color: var(--color-warning);
+            padding: 1rem 1.5rem;
+            border-radius: var(--radius-md);
+            margin-bottom: 1.5rem;
+            font-weight: 500;
+            text-align: center;
+        }
 
         /* --- CUSTOM ALERT / DIALOG STYLES --- */
         .custom-dialog-overlay {
@@ -879,6 +917,10 @@
                 flex-direction: column; 
             }
             
+            #container-principal-arranjos {
+                grid-template-columns: 1fr !important;
+            }
+            
             .add-item-grid > button { 
                 width: 100%; 
             }
@@ -960,28 +1002,29 @@
         </div>
 
         <div id="step-2" class="card hidden">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-                <h2 style="margin:0">Passo 2: Resultado</h2>
-                
-                <!-- Botão Padrão: Novo Arranjo -->
-                <button id="btn-reset-production" onclick="resetarProducao()" class="btn btn-sm btn-secondary">
-                    ↺ Novo Arranjo
-                </button>
-                
-                <!-- Botão Condicional: Voltar para Histórico (Só aparece quando vem do histórico) -->
-                <button id="btn-back-to-history" class="btn btn-sm btn-info hidden">
-                    ← Voltar para Histórico
-                </button>
+            <div id="step-2-header">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                    <h2 style="margin:0">Passo 2: Resultado</h2>
+                    
+                    <!-- Botão Padrão: Novo Arranjo -->
+                    <button id="btn-reset-production" onclick="resetarProducao()" class="btn btn-sm btn-secondary">
+                        ↺ Novo Arranjo
+                    </button>
+                    
+                    <!-- Botão Condicional: Voltar para Histórico (Só aparece quando vem do histórico) -->
+                    <button id="btn-back-to-history" class="btn btn-sm btn-info hidden">
+                        ← Voltar para Histórico
+                    </button>
+                </div>
             </div>
             
-            <!-- Bloco de controle de ordenação -->
-            <div class="card" style="margin-bottom: 1.5rem; background-color: var(--bg-main);">
+            <!-- Bloco de controle de ordenação GLOBAL (escondido em modo paralelo) -->
+            <div id="global-filter-card" class="card" style="margin-bottom: 1.5rem; background-color: var(--bg-main);">
                 <div style="display: grid; grid-template-columns: 1fr 1fr 2fr; gap: 1.5rem; align-items: center;">
                     <div>
                         <label for="bitola-referencia-select" class="config-label" style="margin-bottom: 0.5rem;">Ponto de Partida (Bitola)</label>
                         <select id="bitola-referencia-select">
                             <option value="">Selecione a bitola...</option>
-                            <!-- Opções serão adicionadas dinamicamente via JS -->
                         </select>
                     </div>
                     
@@ -989,7 +1032,6 @@
                         <label for="filtro-intervalo-empilhamento" class="config-label" style="margin-bottom: 0.5rem;">Aplicar Empilhamento (2X)</label>
                         <select id="filtro-intervalo-empilhamento">
                             <option value="">Nenhum</option>
-                            <!-- Opções populadas via JS -->
                         </select>
                     </div>
 
@@ -1004,9 +1046,9 @@
                 </div>
             </div>
 
-            <!-- INÍCIO DO BLOCO HTML ALTERADO -->
+            <!-- Container principal dos arranjos e pendentes -->
             <div id="container-principal-arranjos" style="display: grid; gap: 1.5rem; align-items: start; margin-top: 2rem;">
-                <!-- Colunas dos Fornos Ativos -->
+                <!-- Colunas dos Fornos Ativos (gerado via JS) -->
                 <div id="colunas-fornos-ativos" style="display: contents;"></div>
             
                 <!-- Coluna Única de Pendentes -->
@@ -1021,14 +1063,12 @@
                             <option value="">Bitola...</option>
                         </select>
                     </div>
-                    <div id="itens-pendentes-lista" style="min-height: 400px;"></div>
+                    <div id="itens-pendentes-lista" class="lista-drop-geral" style="min-height: 400px;"></div>
                 </div>
             </div>
-            <!-- FIM DO BLOCO HTML ALTERADO -->
 
-
-            <!-- Botões de Exportação -->
-            <div class="export-bar">
+            <!-- Botões de Exportação GLOBAL (escondido em modo paralelo) -->
+            <div id="global-export-bar" class="export-bar">
                 <button id="btn-export-excel" class="btn btn-success">Exportar Excel</button>
                 <button id="btn-send-email" class="btn btn-secondary">Enviar E-mail</button>
             </div>
@@ -1369,6 +1409,7 @@
             // --- Variáveis de Estado Global ---
             let searchTimeout = null;
             let molasPlanasCodigos = new Set();
+            const fornosAtivos = new Set(['grande']);
             
             // Itens Mestre
             let currentMasterPage = 1;
@@ -1429,9 +1470,7 @@
                 btnGerarArranjo: document.getElementById('btn-gerar-arranjo'),
                 
                 // Listas Drag & Drop e Controle
-                arranjoProducaoLista: document.getElementById('arranjo-producao-lista'),
                 itensPendentesLista: document.getElementById('itens-pendentes-lista'),
-                totalizadorDisplay: document.getElementById('totalizador-display'),
                 btnAddManual: document.getElementById('btn-add-manual'),
                 
                 // Exportação
@@ -1613,7 +1652,9 @@
                 elements.csvFileInput.value = '';
                 elements.btnCarregarCsv.textContent = 'Carregar Lista de Produção (.CSV)';
                 
-                // Limpa as esteiras e pendentes
+                const existingWarning = document.getElementById('parallel-mode-warning');
+                if(existingWarning) existingWarning.remove();
+                
                 document.getElementById('colunas-fornos-ativos').innerHTML = '';
                 document.getElementById('itens-pendentes-lista').innerHTML = '';
                 
@@ -1640,8 +1681,6 @@
                 elements.stepNav1.classList.toggle('active', currentStep >= 1);
                 elements.stepNav2.classList.toggle('active', currentStep >= 2);
             };
-            
-            const fornosAtivos = new Set(['grande']); 
 
             function renderizarConfiguracoes() {
                 const container = document.getElementById('container-configuracoes-fornos');
@@ -1884,10 +1923,30 @@
                     listaOriginalArranjo = data.arranjo_producao || [];
                     listaOriginalPendentes = data.itens_pendentes || [];
 
-                    // Renderiza as esteiras com os dados do histórico
                     renderizarEsteirasArranjo(data);
                     
-                    popularSeletorBitolaReferencia();
+                    // Conditionally show/hide global filters based on active ovens
+                    const globalFilterCard = document.getElementById('global-filter-card');
+                    const globalExportBar = document.getElementById('global-export-bar');
+                    if (fornosAtivos.size > 1) {
+                        globalFilterCard.style.display = 'none';
+                        globalExportBar.style.display = 'none';
+
+                        const step2Header = document.getElementById('step-2-header');
+                        const existingWarning = document.getElementById('parallel-mode-warning');
+                        if (!existingWarning) {
+                            const warningBar = document.createElement('div');
+                            warningBar.id = 'parallel-mode-warning';
+                            warningBar.className = 'warning-bar';
+                            warningBar.innerHTML = '⚠️ MODO DE PRODUÇÃO EM PARALELO ATIVO';
+                            step2Header.insertAdjacentElement('afterend', warningBar);
+                        }
+                    } else {
+                        globalFilterCard.style.display = 'block';
+                        globalExportBar.style.display = 'flex';
+                        popularSeletorBitolaReferencia();
+                    }
+
                     popularFiltroBitolaPendentes();
 
                 } catch (e) {
@@ -1896,7 +1955,6 @@
             }
             
              // --- Lógica das Tabelas Dinâmicas ---
-
             const columnAliases = {
                 'created_at': 'Data',
                 'codigo_item': 'Código',
@@ -2210,7 +2268,7 @@
                 } catch (e) { showAlert('Erro ao criar item: ' + e.message, 'Erro', 'error'); } finally { elements.btnAddMasterItem.innerHTML = '+ Criar'; elements.btnAddMasterItem.disabled = false; }
             });
 
-            // --- FUNÇÃO CORRIGIDA PARA POPULAR FILTRO DE EMPILHAMENTO ---
+            // --- FUNÇÃO CORRIGIDA PARA POPULAR FILTRO DE EMPILHAMENTO (GLOBAL) ---
             async function popularFiltroEmpilhamento(fornoId) {
                 const selectFiltro = document.getElementById('filtro-intervalo-empilhamento');
                 selectFiltro.innerHTML = '<option value="">Nenhum</option>'; // Reseta o filtro
@@ -2273,14 +2331,33 @@
                     listaOriginalArranjo = data.arranjo_producao || [];
                     listaOriginalPendentes = data.itens_pendentes || [];
                     
-                    // INÍCIO DO BLOCO JS ALTERADO
-                    // NOVA FUNÇÃO QUE CRIA AS ESTEIRAS E POPULA OS DADOS:
                     renderizarEsteirasArranjo(data);
 
-                    // Funções de filtro globais que ainda podem ser úteis
-                    popularSeletorBitolaReferencia();
+                    const globalFilterCard = document.getElementById('global-filter-card');
+                    const globalExportBar = document.getElementById('global-export-bar');
+
+                    if (fornosAtivos.size > 1) {
+                        globalFilterCard.style.display = 'none';
+                        globalExportBar.style.display = 'none';
+
+                        const step2Header = document.getElementById('step-2-header');
+                        const existingWarning = document.getElementById('parallel-mode-warning');
+                        if (!existingWarning) {
+                            const warningBar = document.createElement('div');
+                            warningBar.id = 'parallel-mode-warning';
+                            warningBar.className = 'warning-bar';
+                            warningBar.innerHTML = '⚠️ MODO DE PRODUÇÃO EM PARALELO ATIVO';
+                            step2Header.insertAdjacentElement('afterend', warningBar);
+                        }
+                    } else {
+                        globalFilterCard.style.display = 'grid';
+                        globalExportBar.style.display = 'flex';
+                        popularSeletorBitolaReferencia();
+                        const unicoForno = Array.from(fornosAtivos)[0];
+                        popularFiltroEmpilhamento(unicoForno);
+                    }
+                    
                     popularFiltroBitolaPendentes();
-                    // FIM DO BLOCO JS ALTERADO
 
                 } catch (error) {
                     showAlert('Ocorreu um erro ao gerar o arranjo: ' + error.message, 'Erro', 'error');
@@ -2289,26 +2366,43 @@
                     elements.btnGerarArranjo.disabled = false;
                 }
             });
-
-            // --- INÍCIO DO BLOCO JS DE LÓGICA DE GESTÃO DE ESTEIRAS E TOTALIZAÇÃO (ALTERADO) ---
-            function atualizarTotalizador() {
+            
+            function atualizarTotalizadoresEBarras() {
                 fornosAtivos.forEach(forno => {
                     const lista = document.getElementById(`lista-arranjo-${forno}`);
                     if (!lista) return;
-                    const cards = lista.querySelectorAll('.item-card');
                     
-                    let totalMolas = 0;
+                    const cards = lista.querySelectorAll('.item-card');
                     let totalPeso = 0;
                     
                     cards.forEach(card => {
                         const qtd = parseInt(card.dataset.quantidade) || 0;
                         const peso = parseFloat(card.dataset.peso) || 0;
-                        totalMolas += qtd;
                         totalPeso += (qtd * peso);
                     });
 
+                    // Atualiza display de molas/toneladas
                     const displayMolas = document.getElementById(`total-molas-${forno}`);
-                    if(displayMolas) displayMolas.textContent = `${totalMolas} Molas | ${(totalPeso/1000).toFixed(1)}T`;
+                    if (displayMolas) displayMolas.textContent = `${cards.length} OPs | ${(totalPeso/1000).toFixed(1)}T`;
+                    
+                    // Atualiza barra de capacidade
+                    const capacityBarFill = document.getElementById(`capacity-bar-${forno}`);
+                    const capacityText = document.getElementById(`capacity-text-${forno}`);
+                    if (capacityBarFill && capacityText) {
+                        const maxCapacity = 60000; // 60 toneladas em kg
+                        const percentage = Math.min((totalPeso / maxCapacity) * 100, 100);
+                        
+                        capacityBarFill.style.width = `${percentage}%`;
+                        if (percentage > 85) {
+                            capacityBarFill.style.backgroundColor = 'var(--color-danger)';
+                        } else if (percentage > 60) {
+                            capacityBarFill.style.backgroundColor = 'var(--color-warning)';
+                        } else {
+                            capacityBarFill.style.backgroundColor = 'var(--color-success)';
+                        }
+                        
+                        capacityText.textContent = `${(totalPeso / 1000).toFixed(1)}T / 60.0T`;
+                    }
                 });
             }
 
@@ -2321,30 +2415,59 @@
 
                 fornosAtivos.forEach(forno => {
                     const idForno = forno === 'grande' ? '1001' : '1002';
+                    const tituloForno = forno === 'grande' ? 'GRANDE' : 'PEQUENO';
+
                     const col = document.createElement('div');
                     col.className = 'arranjo-coluna';
-                    col.style = "border: 1px solid var(--border-color); background: var(--bg-card); padding: 1rem; border-radius: var(--radius-md);";
+                    col.style = "border: 1px solid var(--border-color); background: var(--bg-card); padding: 1rem; border-radius: var(--radius-md); display: flex; flex-direction: column;";
                     col.innerHTML = `
                         <div class="arranjo-header">
-                            <h3 style="color: var(--color-primary)">FORNO ${idForno}</h3>
-                            <div id="total-molas-${forno}" class="totalizador total-low" style="font-size:0.8rem">0 Molas</div>
+                            <h3 style="color: var(--color-primary)">FORNO ${tituloForno} (${idForno})</h3>
+                            <div id="total-molas-${forno}" class="totalizador">0 OPs | 0.0T</div>
                         </div>
+                        
+                        <div class="capacity-bar-container">
+                            <div id="capacity-bar-${forno}" class="capacity-bar-fill"></div>
+                        </div>
+                        <div id="capacity-text-${forno}" class="capacity-text">0.0T / 60.0T</div>
+
                         <div class="card" style="margin-bottom: 1rem; padding: 0.8rem; background: var(--bg-main);">
-                            <label class="config-label" style="font-size:0.7rem">Receita de Empilhamento</label>
-                            <select class="filtro-empilhamento-forno" data-forno="${forno}">
-                                <option value="">Nenhum</option>
-                            </select>
+                            <div style="margin-bottom: 1rem;">
+                                <label class="config-label" style="font-size:0.7rem">Receita de Empilhamento (2X)</label>
+                                <select class="filtro-empilhamento-forno" data-forno="${forno}">
+                                    <option value="">Nenhum</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="config-label" style="font-size:0.7rem;">Ordenação por Bitola</label>
+                                <select class="bitola-referencia-forno" data-forno="${forno}" style="margin-bottom: 0.5rem;">
+                                    <option value="">Ponto de partida...</option>
+                                </select>
+                                <div style="display:flex; gap: 0.5rem;">
+                                    <button class="btn btn-sm btn-secondary btn-ordem-crescente-forno" style="flex-grow:1" data-forno="${forno}">⬆ Crescente</button>
+                                    <button class="btn btn-sm btn-secondary btn-ordem-decrescente-forno" style="flex-grow:1" data-forno="${forno}">⬇ Decrescente</button>
+                                </div>
+                            </div>
                         </div>
-                        <div id="lista-arranjo-${forno}" class="lista-drop-forno" data-forno="${forno}" style="min-height: 400px; border: 1px dashed var(--border-color); border-radius: 8px; padding: 10px;"></div>
+
+                        <div id="lista-arranjo-${forno}" class="lista-drop-forno" data-forno="${forno}" style="flex-grow: 1; border: 1px dashed var(--border-color); border-radius: 8px; padding: 10px;"></div>
+                        
+                        <button class="btn btn-success btn-sm btn-export-forno" style="margin-top: 1rem;" data-forno="${forno}">Exportar Forno ${idForno}</button>
                     `;
                     containerFornos.appendChild(col);
+
                     popularFiltroReceitas(forno, col.querySelector('.filtro-empilhamento-forno'));
+                    
+                    // Adicionar Event Listeners para os novos controles
+                    col.querySelector('.filtro-empilhamento-forno').addEventListener('change', (e) => aplicarEmpilhamentoPorEsteira(e.target.dataset.forno));
+                    col.querySelector('.btn-ordem-crescente-forno').addEventListener('click', (e) => aplicarOrdenacaoPorEsteira(e.target.dataset.forno, 'crescente'));
+                    col.querySelector('.btn-ordem-decrescente-forno').addEventListener('click', (e) => aplicarOrdenacaoPorEsteira(e.target.dataset.forno, 'decrescente'));
+                    col.querySelector('.btn-export-forno').addEventListener('click', (e) => exportarForno(e.target.dataset.forno));
                 });
 
                 if(dados) {
                     document.getElementById('itens-pendentes-lista').innerHTML = '';
                     dados.arranjo_producao.forEach(item => {
-                        // O ID da lista agora é `lista-arranjo-grande` ou `lista-arranjo-pequeno`
                         criarCard(`lista-arranjo-${item.forno_destino}`, item, false);
                     });
                     dados.itens_pendentes.forEach(item => {
@@ -2352,7 +2475,8 @@
                     });
                 }
                 vincularEventosDragDrop();
-                atualizarTotalizador();
+                atualizarTotalizadoresEBarras();
+                fornosAtivos.forEach(popularSeletorBitolaPorEsteira);
             }
 
             async function popularFiltroReceitas(tipoForno, selectElement) {
@@ -2369,21 +2493,37 @@
             function vincularEventosDragDrop() {
                 const zonas = document.querySelectorAll('.lista-drop-forno, #itens-pendentes-lista');
                 zonas.forEach(zona => {
-                    zona.addEventListener('dragover', e => { e.preventDefault(); zona.style.border = '2px solid var(--color-primary)'; });
-                    zona.addEventListener('dragleave', () => { zona.style.border = '1px dashed var(--border-color)'; });
+                    zona.addEventListener('dragover', e => { e.preventDefault(); zona.classList.add('drag-over'); });
+                    zona.addEventListener('dragleave', () => { zona.classList.remove('drag-over'); });
                     zona.addEventListener('drop', e => {
                         e.preventDefault();
-                        zona.style.border = '1px dashed var(--border-color)';
+                        zona.classList.remove('drag-over');
                         const id = e.dataTransfer.getData('text');
                         const card = document.getElementById(id);
                         if (!card) return;
+
+                        // Validação de intervalo de receita
+                        if (zona.classList.contains('lista-drop-forno')) {
+                            const forno = zona.dataset.forno;
+                            const recipeSelect = document.querySelector(`.filtro-empilhamento-forno[data-forno="${forno}"]`);
+                            const recipeValue = recipeSelect.value;
+
+                            if (recipeValue) {
+                                const [min, max] = recipeValue.split('-').map(Number);
+                                const cardBitola = getEspessura(card);
+                                if (cardBitola < min || cardBitola > max) {
+                                    showAlert(`A bitola ${cardBitola}mm está fora do intervalo da receita selecionada (${min}-${max}mm) para este forno.`, 'Ação Bloqueada', 'warning');
+                                    return; 
+                                }
+                            }
+                        }
+
                         zona.appendChild(card);
-                        atualizarTotalizador();
+                        atualizarTotalizadoresEBarras();
+                        fornosAtivos.forEach(popularSeletorBitolaPorEsteira);
                     });
                 });
             }
-            // --- FIM DO BLOCO JS DE LÓGICA DE GESTÃO DE ESTEIRAS E TOTALIZAÇÃO ---
-
 
             // --- ADIÇÃO MANUAL E AUTOCOMPLETE ---
             elements.btnAddManual.addEventListener('click', () => {
@@ -2486,12 +2626,13 @@
                 listaOriginalPendentes.push(novoItem);
                 criarCard('itens-pendentes-lista', novoItem, true);
                 elements.modalManualOverlay.classList.remove('open');
-                atualizarTotalizador();
+                atualizarTotalizadoresEBarras();
             });
 
 
             // --- Lógica de Ordenação, Filtros e Empilhamento ---
             function getEspessura(cardElement) {
+                if (!cardElement) return 0;
                 const dimensao = cardElement.dataset.dimensao || '0 X 0';
                 try {
                     const partes = dimensao.split('X');
@@ -2514,9 +2655,24 @@
                 });
                 seletor.value = currentValue;
             }
+
+            function popularSeletorBitolaPorEsteira(forno) {
+                const seletor = document.querySelector(`.bitola-referencia-forno[data-forno="${forno}"]`);
+                if (!seletor) return;
+                const currentValue = seletor.value;
+                seletor.innerHTML = '<option value="">Ponto de partida...</option>';
+                
+                const lista = document.getElementById(`lista-arranjo-${forno}`);
+                const cards = Array.from(lista.children);
+                const espessuras = new Set(cards.map(getEspessura).filter(esp => esp > 0));
+
+                Array.from(espessuras).sort((a, b) => a - b).forEach(esp => {
+                    seletor.innerHTML += `<option value="${esp}">${esp} mm</option>`;
+                });
+                seletor.value = currentValue;
+            }
             
             function resetarOrdenacao() {
-                // Esta função precisará de ajustes para lidar com múltiplas esteiras
                 renderizarEsteirasArranjo({
                     arranjo_producao: listaOriginalArranjo,
                     itens_pendentes: listaOriginalPendentes
@@ -2525,115 +2681,174 @@
                 document.getElementById('bitola-referencia-select').value = "";
                 document.getElementById('filtro-intervalo-empilhamento').value = "";
             }
+
+            function aplicarOrdenacaoPorEsteira(forno, direcao) {
+                const seletor = document.querySelector(`.bitola-referencia-forno[data-forno="${forno}"]`);
+                const valorReferencia = parseFloat(seletor.value);
+
+                if (isNaN(valorReferencia) || seletor.value === "") {
+                    showAlert('Por favor, selecione uma Bitola de Partida para este forno.', 'Atenção');
+                    return;
+                }
+
+                const arranjoLista = document.getElementById(`lista-arranjo-${forno}`);
+                const pendentesLista = document.getElementById('itens-pendentes-lista');
+                const cardsAtuais = Array.from(arranjoLista.children);
+                
+                const permanecem = [];
+                const paraPendentes = [];
+
+                cardsAtuais.forEach(card => {
+                    const espessura = getEspessura(card);
+                    if ((direcao === 'crescente' && espessura >= valorReferencia) || (direcao === 'decrescente' && espessura <= valorReferencia)) {
+                        permanecem.push(card);
+                    } else {
+                        paraPendentes.push(card);
+                    }
+                });
+
+                permanecem.sort((a, b) => direcao === 'crescente' ? getEspessura(a) - getEspessura(b) : getEspessura(b) - getEspessura(a));
+                
+                arranjoLista.innerHTML = '';
+                permanecem.forEach(card => arranjoLista.appendChild(card));
+                paraPendentes.forEach(card => pendentesLista.appendChild(card)); 
+
+                atualizarTotalizadoresEBarras();
+                popularFiltroBitolaPendentes(); 
+                filtrarItensPendentes();
+                popularSeletorBitolaPorEsteira(forno);
+            }
             
-            function aplicarOrdenacaoDirecional(direcao) {
-                const seletor = document.getElementById('bitola-referencia-select');
+            function aplicarOrdenacaoGlobal(direcao) {
+                 const seletor = document.getElementById('bitola-referencia-select');
                 const valorReferencia = parseFloat(seletor.value);
 
                 if (isNaN(valorReferencia) || seletor.value === "") {
                     showAlert('Por favor, selecione uma Bitola de Partida.', 'Atenção');
                     return;
                 }
-
-                document.querySelectorAll('.lista-drop-forno').forEach(arranjoLista => {
-                    const pendentesLista = document.getElementById('itens-pendentes-lista');
-                    const cardsDoArranjoAtual = Array.from(arranjoLista.children);
-                    
-                    const permanecemNoArranjo = [];
-                    const vaoParaPendentes = [];
-
-                    cardsDoArranjoAtual.forEach(card => {
-                        const espessura = getEspessura(card);
-                        if ((direcao === 'crescente' && espessura >= valorReferencia) || (direcao === 'decrescente' && espessura <= valorReferencia)) {
-                            permanecemNoArranjo.push(card);
-                        } else {
-                            vaoParaPendentes.push(card);
-                        }
-                    });
-
-                    permanecemNoArranjo.sort((a, b) => direcao === 'crescente' ? getEspessura(a) - getEspessura(b) : getEspessura(b) - getEspessura(a));
-                    
-                    arranjoLista.innerHTML = '';
-                    permanecemNoArranjo.forEach(card => arranjoLista.appendChild(card));
-                    vaoParaPendentes.forEach(card => pendentesLista.appendChild(card)); 
+                
+                const unicoForno = Array.from(fornosAtivos)[0];
+                const arranjoLista = document.getElementById(`lista-arranjo-${unicoForno}`);
+                
+                const todosOsCards = Array.from(document.querySelectorAll('.item-card'));
+                const paraArranjo = [];
+                const paraPendentes = [];
+                
+                todosOsCards.forEach(card => {
+                     const espessura = getEspessura(card);
+                     if ((direcao === 'crescente' && espessura >= valorReferencia) || (direcao === 'decrescente' && espessura <= valorReferencia)) {
+                        paraArranjo.push(card);
+                    } else {
+                        paraPendentes.push(card);
+                    }
                 });
 
-                atualizarTotalizador();
+                paraArranjo.sort((a, b) => direcao === 'crescente' ? getEspessura(a) - getEspessura(b) : getEspessura(b) - getEspessura(a));
+
+                arranjoLista.innerHTML = '';
+                document.getElementById('itens-pendentes-lista').innerHTML = '';
+
+                paraArranjo.forEach(c => arranjoLista.appendChild(c));
+                paraPendentes.forEach(c => document.getElementById('itens-pendentes-lista').appendChild(c));
+                
+                atualizarTotalizadoresEBarras();
                 popularFiltroBitolaPendentes(); 
                 filtrarItensPendentes();
             }
 
-            async function aplicarFiltroEmpilhamento() {
-                const selectFiltro = document.getElementById('filtro-intervalo-empilhamento');
+            async function aplicarEmpilhamentoPorEsteira(forno) {
+                const selectFiltro = document.querySelector(`.filtro-empilhamento-forno[data-forno="${forno}"]`);
                 const intervalo = selectFiltro.value;
 
-                if (!intervalo) {
-                    resetarOrdenacao();
-                    return;
-                }
+                // Restaura o estado antes de aplicar um novo filtro
+                resetarOrdenacao();
+
+                if (!intervalo) return;
 
                 try {
                     const [tetoMinimo, tetoMaximo] = intervalo.split('-').map(Number);
                     if (isNaN(tetoMinimo) || isNaN(tetoMaximo)) throw new Error("Intervalo inválido.");
-
-                    const itensParaProcessar = [...listaOriginalArranjo];
+                    
+                    const arranjoLista = document.getElementById(`lista-arranjo-${forno}`);
+                    const pendentesLista = document.getElementById('itens-pendentes-lista');
+                    const itensParaProcessar = Array.from(document.querySelectorAll(`#lista-arranjo-${forno} .item-card, #itens-pendentes-lista .item-card`));
+                    
                     const idsUsados = new Set();
                     const novoArranjo = [];
-                    let novosPendentes = [...listaOriginalPendentes];
+                    let novosPendentes = [];
                     
-                    itensParaProcessar.sort((a, b) => b.bitola - a.bitola);
+                    itensParaProcessar.forEach(c => c.dataset.isEmpilhado = 'false');
+
+                    itensParaProcessar.sort((a, b) => getEspessura(b) - getEspessura(a));
 
                     for (let i = 0; i < itensParaProcessar.length; i++) {
                         const base = itensParaProcessar[i];
-                        
-                        if (idsUsados.has(base.op)) continue;
+                        if (idsUsados.has(base.id)) continue;
 
-                        if (base.bitola >= tetoMinimo && base.bitola <= tetoMaximo) {
+                        const espessuraBase = getEspessura(base);
+                        if (espessuraBase >= tetoMinimo && espessuraBase <= tetoMaximo) {
                             let parceiroEncontrado = null;
-                            let indiceParceiro = -1;
 
                             for (let j = 0; j < itensParaProcessar.length; j++) {
                                 const parceiroPotencial = itensParaProcessar[j];
-                                if (i === j || idsUsados.has(parceiroPotencial.op)) continue;
+                                if (i === j || idsUsados.has(parceiroPotencial.id)) continue;
 
-                                const espessuraDobrada = parceiroPotencial.bitola * 2;
-                                if (molasPlanasCodigos.has(parceiroPotencial.codigo) && espessuraDobrada >= tetoMinimo && espessuraDobrada <= tetoMaximo) {
-                                    parceiroEncontrado = parceiroPotencial;
-                                    indiceParceiro = j;
-                                    break; 
+                                if (molasPlanasCodigos.has(parceiroPotencial.dataset.codigo)) {
+                                    const espessuraDobrada = getEspessura(parceiroPotencial) * 2;
+                                    if (espessuraDobrada >= tetoMinimo && espessuraDobrada <= tetoMaximo) {
+                                        parceiroEncontrado = parceiroPotencial;
+                                        break;
+                                    }
                                 }
                             }
 
                             if (parceiroEncontrado) {
-                                base.isEmpilhado = false;
-                                parceiroEncontrado.isEmpilhado = true;
+                                base.dataset.isEmpilhado = 'false';
+                                parceiroEncontrado.dataset.isEmpilhado = 'true';
                                 
-                                novoArranjo.push(base);
-                                novoArranjo.push(parceiroEncontrado);
-
-                                idsUsados.add(base.op);
-                                idsUsados.add(parceiroEncontrado.op);
+                                novoArranjo.push(base, parceiroEncontrado);
+                                idsUsados.add(base.id);
+                                idsUsados.add(parceiroEncontrado.id);
                             }
                         }
                     }
 
-                    for (const item of itensParaProcessar) {
-                        if (!idsUsados.has(item.op)) {
-                            item.isEmpilhado = false;
-                            novosPendentes.push(item);
+                    itensParaProcessar.forEach(item => {
+                        if (!idsUsados.has(item.id)) {
+                             // Itens do outro forno não devem ir para pendentes
+                            if (item.parentElement.id !== `lista-arranjo-${forno}` && item.parentElement.id !== 'itens-pendentes-lista') {
+                                // Mantém no outro forno
+                            } else {
+                                novosPendentes.push(item);
+                            }
                         }
-                    }
-                    
-                    renderizarEsteirasArranjo({
-                        arranjo_producao: novoArranjo,
-                        itens_pendentes: novosPendentes
                     });
+
+                    // Limpa e repopula a esteira do forno e os pendentes
+                    arranjoLista.innerHTML = '';
+                    novoArranjo.forEach(card => {
+                        const empilhamentoTag = card.dataset.isEmpilhado === 'true' ? '<span class="tag-2x">2X</span>' : '';
+                        card.querySelector('p:first-of-type').innerHTML = `<b>OP:</b> ${card.dataset.ordemProducao} ${empilhamentoTag}`;
+                        arranjoLista.appendChild(card);
+                    });
+
+                    novosPendentes.forEach(card => {
+                        const empilhamentoTag = card.dataset.isEmpilhado === 'true' ? '<span class="tag-2x">2X</span>' : '';
+                        card.querySelector('p:first-of-type').innerHTML = `<b>OP:</b> ${card.dataset.ordemProducao} ${empilhamentoTag}`;
+                        pendentesLista.appendChild(card);
+                    });
+                    
+                    atualizarTotalizadoresEBarras();
+                    filtrarItensPendentes();
+                    popularSeletorBitolaPorEsteira(forno);
 
                 } catch (err) {
                     showAlert(`Erro ao aplicar o filtro de empilhamento: ${err.message}`, 'Erro', 'error');
                     selectFiltro.value = '';
                 }
             }
+
 
             function popularFiltroBitolaPendentes() {
                 const seletor = document.getElementById('filter-bitola-pendentes');
@@ -2668,9 +2883,12 @@
             }
             
             document.getElementById('btn-reset-filter').addEventListener('click', resetarOrdenacao);
-            document.getElementById('btn-ordem-crescente').addEventListener('click', () => aplicarOrdenacaoDirecional('crescente'));
-            document.getElementById('btn-ordem-decrescente').addEventListener('click', () => aplicarOrdenacaoDirecional('decrescente'));
-            document.getElementById('filtro-intervalo-empilhamento').addEventListener('change', aplicarFiltroEmpilhamento);
+            document.getElementById('btn-ordem-crescente').addEventListener('click', () => aplicarOrdenacaoGlobal('crescente'));
+            document.getElementById('btn-ordem-decrescente').addEventListener('click', () => aplicarOrdenacaoGlobal('decrescente'));
+            document.getElementById('filtro-intervalo-empilhamento').addEventListener('change', () => {
+                const unicoForno = Array.from(fornosAtivos)[0];
+                aplicarEmpilhamentoPorEsteira(unicoForno);
+            });
             document.getElementById('search-pendentes').addEventListener('input', filtrarItensPendentes);
             document.getElementById('filter-bitola-pendentes').addEventListener('change', filtrarItensPendentes);
 
@@ -2724,7 +2942,7 @@
 
             window.removerCard = function(card) {
                 card.remove();
-                atualizarTotalizador();
+                atualizarTotalizadoresEBarras();
             }
             
             window.editarGT = function(event, cardElement) {
@@ -2777,7 +2995,7 @@
                         const gtDisplayElement = cardElement.querySelector('.gt-display');
                         gtDisplayElement.innerHTML = `<b>GT:</b> ${novoGT || 'N/A'}`;
 
-                        atualizarTotalizador();
+                        atualizarTotalizadoresEBarras();
                     } catch (error) {
                         showAlert(error.message, 'Erro', 'error');
                         input.disabled = false;
@@ -2799,51 +3017,54 @@
             }
             
             // --- Exportação Excel ---
-            elements.btnExportExcel.addEventListener('click', () => {
-                const itemCards = document.querySelectorAll('.lista-drop-forno .item-card');
-                if (itemCards.length === 0) {
-                    showAlert("Não há itens no arranjo de produção para exportar.", "Aviso");
+            function exportarForno(forno) {
+                const lista = document.getElementById(`lista-arranjo-${forno}`);
+                if (!lista) return;
+
+                const cardsDoForno = lista.querySelectorAll('.item-card');
+                if (cardsDoForno.length === 0) {
+                    showAlert(`Não há itens no arranjo do forno ${forno} para exportar.`, "Aviso");
                     return;
                 }
 
-                const originalText = elements.btnExportExcel.innerHTML;
-                elements.btnExportExcel.innerHTML = '<div class="spinner"></div> Exportando...';
-                elements.btnExportExcel.disabled = true;
+                const btn = document.querySelector(`.btn-export-forno[data-forno="${forno}"]`);
+                const originalText = btn.innerHTML;
+                btn.innerHTML = '<div class="spinner"></div>';
+                btn.disabled = true;
 
                 try {
                     const wb = XLSX.utils.book_new();
+                    const fornoId = forno === 'grande' ? '1001' : '1002';
 
-                    document.querySelectorAll('.lista-drop-forno').forEach(lista => {
-                        const fornoTipo = lista.dataset.forno;
-                        const fornoId = fornoTipo === 'grande' ? '1001' : '1002';
-                        const cardsDoForno = lista.querySelectorAll('.item-card');
-                        
-                        if (cardsDoForno.length > 0) {
-                            const itemsParaExportar = [
-                                ["Ordem de Produção", "Código", "Descrição", "Bitola", "GT", "Quantidade"]
-                            ];
-                            cardsDoForno.forEach(card => {
-                                itemsParaExportar.push([
-                                    card.dataset.ordemProducao,
-                                    card.dataset.codigo,
-                                    card.dataset.descricao,
-                                    card.dataset.dimensao,
-                                    card.dataset.gt,
-                                    card.dataset.quantidade
-                                ]);
-                            });
-                            const ws = XLSX.utils.aoa_to_sheet(itemsParaExportar);
-                            XLSX.utils.book_append_sheet(wb, ws, `Forno ${fornoId}`);
-                        }
+                    const itemsParaExportar = [
+                        ["Ordem de Produção", "Código", "Descrição", "Bitola", "GT", "Quantidade"]
+                    ];
+                    cardsDoForno.forEach(card => {
+                        itemsParaExportar.push([
+                            card.dataset.ordemProducao,
+                            card.dataset.codigo,
+                            card.dataset.descricao,
+                            card.dataset.dimensao,
+                            card.dataset.gt,
+                            card.dataset.quantidade
+                        ]);
                     });
-
-                    XLSX.writeFile(wb, "Arranjo_Producao.xlsx");
+                    const ws = XLSX.utils.aoa_to_sheet(itemsParaExportar);
+                    XLSX.utils.book_append_sheet(wb, ws, `Forno ${fornoId}`);
+                    XLSX.writeFile(wb, `Arranjo_Forno_${fornoId}.xlsx`);
 
                 } catch (error) {
                     showAlert(`Falha ao exportar para Excel: ${error.message}`, 'Erro', 'error');
                 } finally {
-                    elements.btnExportExcel.innerHTML = originalText;
-                    elements.btnExportExcel.disabled = false;
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                }
+            }
+
+            elements.btnExportExcel.addEventListener('click', () => {
+                if (fornosAtivos.size === 1) {
+                    const unicoForno = Array.from(fornosAtivos)[0];
+                    exportarForno(unicoForno);
                 }
             });
 
