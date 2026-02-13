@@ -1464,7 +1464,11 @@
                 modalInputBitola: document.getElementById('manual-input-bitola'),
                 modalInputGt: document.getElementById('manual-input-gt'),
                 btnManualCancel: document.getElementById('btn-manual-cancel'),
-                btnManualConfirm: document.getElementById('btn-manual-confirm')
+                btnManualConfirm: document.getElementById('btn-manual-confirm'),
+                globalBitolaSelect: document.getElementById('bitola-referencia-select'),
+                globalEmpilhamentoSelect: document.getElementById('filtro-intervalo-empilhamento'),
+                globalBtnCrescente: document.getElementById('btn-ordem-crescente'),
+                globalBtnDecrescente: document.getElementById('btn-ordem-decrescente')
             };
 
             // --- CARREGAR DADOS INICIAIS ---
@@ -1473,7 +1477,6 @@
                     const { data, error } = await _supabase.from('mapeamento_molas_planas').select('PRODUTO').limit(10000);
                     if (error) throw error;
                     molasPlanasCodigos = new Set(data.map(item => item.PRODUTO));
-                    console.log(`${molasPlanasCodigos.size} códigos de molas planas carregados.`);
                 } catch (err) {
                     console.error('Erro ao carregar mapeamento de molas planas:', err);
                 }
@@ -1608,19 +1611,12 @@
                 let params = rawParams;
                 if (typeof params === 'string') { try { params = JSON.parse(params); } catch (e) { return rawParams; } }
                 if (typeof params === 'string') { try { params = JSON.parse(params); } catch (e) { } }
-
                 let forno = params.forno || '?';
                 forno = forno.charAt(0).toUpperCase() + forno.slice(1);
-
                 let gtsData = params.gts_selecionados;
                 let gtsList = [];
-
-                if (Array.isArray(gtsData)) {
-                    gtsList = gtsData;
-                } else if (typeof gtsData === 'string') {
-                    try { gtsList = JSON.parse(gtsData); } catch (e) { gtsList = [gtsData]; }
-                }
-                
+                if (Array.isArray(gtsData)) { gtsList = gtsData; } 
+                else if (typeof gtsData === 'string') { try { gtsList = JSON.parse(gtsData); } catch (e) { gtsList = [gtsData]; } }
                 const gtsDisplay = gtsList.map(g => g.replace(/['"]+/g, '')).join(', ') || "Nenhum";
                 return `<b>Forno:</b> ${forno} <span style="margin: 0 10px; color: var(--border-color);">|</span> <b>GTs:</b> ${gtsDisplay}`;
             }
@@ -1628,15 +1624,12 @@
                 elements.tableHistoryBody.innerHTML = '<tr><td colspan="4" style="text-align:center;">Carregando histórico...</td></tr>';
                 elements.btnHistoryPrev.disabled = true;
                 elements.btnHistoryNext.disabled = true;
-
                 try {
                     let query = _supabase.from('arranjos_gerados').select('*', { count: 'exact' });
                     const fornoVal = elements.filterHistoryForno.value;
                     if (fornoVal !== 'all') query = query.contains('parametros_usados', { forno: fornoVal });
-
                     const userVal = elements.filterHistoryUser.value.trim();
                     if (userVal) query = query.ilike('usuario', `%${userVal}%`);
-
                     const dateVal = elements.filterHistoryDate.value;
                     if (dateVal) {
                         const start = new Date(dateVal).toISOString();
@@ -1644,35 +1637,25 @@
                         query = query.gte('created_at', start).lte('created_at', end);
                     }
                     query = query.order('created_at', { ascending: false });
-
                     let dataToRender = [];
-                    const hasGtFilter = selectedGTsFilter.length > 0;
-
-                    if (hasGtFilter) {
+                    if (selectedGTsFilter.length > 0) {
                         const { data, error } = await query.limit(1000); 
                         if (error) throw error;
-
                         const filteredData = data.filter(row => {
                             let params = row.parametros_usados;
                             if (typeof params === 'string') { try { params = JSON.parse(params); } catch (e) { return false; } }
                             if (typeof params === 'string') { try { params = JSON.parse(params); } catch (e) { return false; } }
-
                             let gtsInRow = [];
                             if (Array.isArray(params.gts_selecionados)) { gtsInRow = params.gts_selecionados; } 
                             else if (typeof params.gts_selecionados === 'string') { try { gtsInRow = JSON.parse(params.gts_selecionados); } catch (e) { gtsInRow = [params.gts_selecionados]; } }
-                            
                             gtsInRow = gtsInRow.map(g => String(g).replace(/['"]+/g, ''));
                             return selectedGTsFilter.some(filterGt => gtsInRow.includes(filterGt));
                         });
-
                         totalHistoryItems = filteredData.length;
                         if (historyItemsPerPage !== 'all') {
                             const start = (currentHistoryPage - 1) * historyItemsPerPage;
                             dataToRender = filteredData.slice(start, start + historyItemsPerPage);
-                        } else {
-                            dataToRender = filteredData;
-                        }
-
+                        } else { dataToRender = filteredData; }
                     } else {
                         if (historyItemsPerPage !== 'all') {
                             const from = (currentHistoryPage - 1) * historyItemsPerPage;
@@ -1684,10 +1667,8 @@
                         totalHistoryItems = count || 0;
                         dataToRender = data;
                     }
-
                     renderHistoryTable(dataToRender);
                     updateHistoryPaginationControls();
-
                 } catch (err) {
                     console.error(err);
                     elements.tableHistoryBody.innerHTML = `<tr><td colspan="4" style="color:var(--color-danger)">Erro ao carregar histórico: ${err.message}</td></tr>`;
@@ -1712,23 +1693,12 @@
                     elements.tableHistoryBody.innerHTML = '<tr><td colspan="4">Nenhum histórico encontrado.</td></tr>';
                     return;
                 }
-
                 data.forEach(row => {
                     const tr = document.createElement('tr');
                     const date = new Date(row.created_at).toLocaleString('pt-BR');
                     const formattedParams = formatarParametros(row.parametros_usados);
-                    
-                    tr.innerHTML = `
-                        <td>${date}</td>
-                        <td>${row.usuario || 'Sistema'}</td>
-                        <td>${formattedParams}</td>
-                        <td style="text-align: center;">
-                            <button class="btn btn-sm btn-primary btn-load-history">📂 Carregar Arranjo</button>
-                        </td>
-                    `;
-                    
-                    const btnLoad = tr.querySelector('.btn-load-history');
-                    btnLoad.addEventListener('click', () => loadHistoryItemIntoView(row.arranjo_resultado));
+                    tr.innerHTML = `<td>${date}</td><td>${row.usuario || 'Sistema'}</td><td>${formattedParams}</td><td style="text-align: center;"><button class="btn btn-sm btn-primary btn-load-history">📂 Carregar Arranjo</button></td>`;
+                    tr.querySelector('.btn-load-history').addEventListener('click', () => loadHistoryItemIntoView(row.arranjo_resultado));
                     elements.tableHistoryBody.appendChild(tr);
                 });
             }
@@ -1737,41 +1707,25 @@
                     let data = jsonResultado;
                     if (typeof data === 'string') { try { data = JSON.parse(data); } catch (e) {} }
                     if (typeof data === 'string') { try { data = JSON.parse(data); } catch (e) {} }
-
                     showView('view-principal');
                     elements.step1.classList.add('hidden');
                     elements.step2.classList.remove('hidden');
                     updateStepper(2);
-
                     elements.btnResetProduction.classList.add('hidden');
                     elements.btnBackToHistory.classList.remove('hidden');
-                    
                     listaOriginalArranjo = (data.arranjo_producao || []).map((item, i) => ({...item, id: `hist-arr-${i}`}));
                     listaOriginalPendentes = (data.itens_pendentes || []).map((item, i) => ({...item, id: `hist-pen-${i}`}));
-                    
                     resetarArranjosParaOriginal();
-
                 } catch (e) {
                     showAlert('Erro ao processar os dados do histórico: ' + e.message, 'Erro', 'error');
                 }
             }
             elements.filterHistoryForno.addEventListener('change', () => { currentHistoryPage = 1; fetchHistory(); });
-            elements.filterHistoryUser.addEventListener('input', (e) => {
-                clearTimeout(historySearchTimeout);
-                historySearchTimeout = setTimeout(() => { currentHistoryPage = 1; fetchHistory(); }, 500);
-            });
+            elements.filterHistoryUser.addEventListener('input', () => { clearTimeout(historySearchTimeout); historySearchTimeout = setTimeout(() => { currentHistoryPage = 1; fetchHistory(); }, 500); });
             elements.filterHistoryDate.addEventListener('change', () => { currentHistoryPage = 1; fetchHistory(); });
-            elements.historyItemsPerPageSelect.addEventListener('change', (e) => {
-                historyItemsPerPage = e.target.value === 'all' ? 'all' : parseInt(e.target.value);
-                currentHistoryPage = 1;
-                fetchHistory();
-            });
+            elements.historyItemsPerPageSelect.addEventListener('change', (e) => { historyItemsPerPage = e.target.value === 'all' ? 'all' : parseInt(e.target.value); currentHistoryPage = 1; fetchHistory(); });
             elements.btnHistoryPrev.addEventListener('click', () => { if (currentHistoryPage > 1) { currentHistoryPage--; fetchHistory(); } });
-            elements.btnHistoryNext.addEventListener('click', () => {
-                const maxPages = historyItemsPerPage === 'all' ? 1 : Math.ceil(totalHistoryItems / historyItemsPerPage);
-                if (currentHistoryPage < maxPages) { currentHistoryPage++; fetchHistory(); }
-            });
-
+            elements.btnHistoryNext.addEventListener('click', () => { const maxPages = historyItemsPerPage === 'all' ? 1 : Math.ceil(totalHistoryItems / historyItemsPerPage); if (currentHistoryPage < maxPages) { currentHistoryPage++; fetchHistory(); } });
             
             // --- Lógica das Tabelas Dinâmicas ---
             const columnAliases = { 'created_at': 'Data', 'codigo_item': 'Código', 'comprimento_mm': 'Comprimento (mm)', 'ordem_producao': 'OP', 'gt_utilizado': 'GT Utilizado', 'usuario': 'Usuário', 'descricao': 'Descrição', 'dimensao': 'Dimensão', 'peso_kg': 'Peso (kg)', 'gt': 'GT' };
@@ -1780,30 +1734,17 @@
                 const tbody = tableElement.querySelector('tbody');
                 thead.innerHTML = '';
                 tbody.innerHTML = '';
-
-                if (!data || data.length === 0) {
-                    const columnCount = thead.rows.length > 0 ? thead.rows[0].cells.length : 5;
-                    tbody.innerHTML = `<tr><td colspan="${columnCount}" style="text-align:center;">Nenhum item encontrado.</td></tr>`;
-                    return;
-                }
-
+                if (!data || data.length === 0) { const columnCount = 5; tbody.innerHTML = `<tr><td colspan="${columnCount}" style="text-align:center;">Nenhum item encontrado.</td></tr>`; return; }
                 const headers = Object.keys(data[0]).filter(key => key !== 'id');
                 const headerRow = document.createElement('tr');
-                headers.forEach(key => {
-                    const th = document.createElement('th');
-                    th.textContent = columnAliases[key] || key.replace(/_/g, ' ');
-                    headerRow.appendChild(th);
-                });
+                headers.forEach(key => { const th = document.createElement('th'); th.textContent = columnAliases[key] || key.replace(/_/g, ' '); headerRow.appendChild(th); });
                 thead.appendChild(headerRow);
-
                 data.forEach(item => {
                     const tr = document.createElement('tr');
                     headers.forEach(key => {
                         const td = document.createElement('td');
                         let value = item[key];
-                        if (key === 'created_at' && value) {
-                            value = new Date(value).toLocaleString('pt-BR');
-                        }
+                        if (key === 'created_at' && value) value = new Date(value).toLocaleString('pt-BR');
                         td.textContent = value ?? '';
                         tr.appendChild(td);
                     });
@@ -1817,132 +1758,84 @@
                 elements.btnRegistroPrev.disabled = true;
                 elements.btnRegistroNext.disabled = true;
                 if(searchTerm === '') searchTerm = elements.searchRegistroBarras.value;
-            
                 try {
                     let query = _supabase.from('registro_barras_producao').select('*', { count: 'exact' });
-            
                     if (searchTerm) {
                         const textColumns = ['codigo_item', 'ordem_producao', 'gt_utilizado', 'usuario'];
-                        const orConditions = textColumns.map(col => `${col}.ilike.%${searchTerm}%`).join(',');
-                        query = query.or(orConditions);
+                        query = query.or(textColumns.map(col => `${col}.ilike.%${searchTerm}%`).join(','));
                     }
-            
                     query = query.order('created_at', { ascending: false });
-            
                     if (registroItemsPerPage !== 'all') {
                         const from = (currentRegistroPage - 1) * registroItemsPerPage;
-                        const to = from + registroItemsPerPage - 1;
-                        query = query.range(from, to);
+                        query = query.range(from, from + registroItemsPerPage - 1);
                     }
-            
                     const { data, count, error } = await query;
                     if (error) throw error;
-            
                     totalRegistroItems = count || 0;
                     renderDynamicReadOnlyTable(tableElement, data);
                     updateRegistroPaginationControls();
-                } catch (err) {
-                    console.error('Erro ao buscar registro de barras:', err);
-                    tbody.innerHTML = `<tr><td colspan="6" style="color:var(--color-danger)">Erro: ${err.message}</td></tr>`;
-                }
+                } catch (err) { console.error('Erro ao buscar registro de barras:', err); tbody.innerHTML = `<tr><td colspan="6" style="color:var(--color-danger)">Erro: ${err.message}</td></tr>`; }
             }
             function updateRegistroPaginationControls() {
-                if (registroItemsPerPage === 'all') {
-                    elements.registroPageInfo.textContent = `Mostrando todos (${totalRegistroItems})`;
-                    elements.btnRegistroPrev.disabled = true;
-                    elements.btnRegistroNext.disabled = true;
-                } else {
-                    const totalPages = Math.ceil(totalRegistroItems / registroItemsPerPage);
-                    if (totalPages === 0) currentRegistroPage = 1;
-                    elements.registroPageInfo.textContent = `Página ${currentRegistroPage} de ${totalPages || 1} (Total: ${totalRegistroItems})`;
+                if (registroItemsPerPage === 'all') { elements.registroPageInfo.textContent = `Mostrando todos (${totalRegistroItems})`; elements.btnRegistroPrev.disabled = true; elements.btnRegistroNext.disabled = true; } 
+                else {
+                    const totalPages = Math.ceil(totalRegistroItems / registroItemsPerPage) || 1;
+                    elements.registroPageInfo.textContent = `Página ${currentRegistroPage} de ${totalPages} (Total: ${totalRegistroItems})`;
                     elements.btnRegistroPrev.disabled = currentRegistroPage <= 1;
                     elements.btnRegistroNext.disabled = currentRegistroPage >= totalPages;
                 }
             }
-            elements.registroItemsPerPageSelect.addEventListener('change', (e) => {
-                registroItemsPerPage = e.target.value === 'all' ? 'all' : parseInt(e.target.value, 10);
-                currentRegistroPage = 1;
-                fetchRegistroBarras();
-            });
+            elements.registroItemsPerPageSelect.addEventListener('change', (e) => { registroItemsPerPage = e.target.value === 'all' ? 'all' : parseInt(e.target.value, 10); currentRegistroPage = 1; fetchRegistroBarras(); });
             elements.btnRegistroPrev.addEventListener('click', () => { if (currentRegistroPage > 1) { currentRegistroPage--; fetchRegistroBarras(); } });
-            elements.btnRegistroNext.addEventListener('click', () => {
-                const maxPages = registroItemsPerPage === 'all' ? 1 : Math.ceil(totalRegistroItems / registroItemsPerPage);
-                if (currentRegistroPage < maxPages) { currentRegistroPage++; fetchRegistroBarras(); }
-            });
-            elements.searchRegistroBarras.addEventListener('input', (e) => {
-                clearTimeout(searchTimeout);
-                searchTimeout = setTimeout(() => { currentRegistroPage = 1; fetchRegistroBarras(e.target.value); }, 500); 
-            });
+            elements.btnRegistroNext.addEventListener('click', () => { const maxPages = registroItemsPerPage === 'all' ? 1 : Math.ceil(totalRegistroItems / registroItemsPerPage); if (currentRegistroPage < maxPages) { currentRegistroPage++; fetchRegistroBarras(); } });
+            elements.searchRegistroBarras.addEventListener('input', (e) => { clearTimeout(searchTimeout); searchTimeout = setTimeout(() => { currentRegistroPage = 1; fetchRegistroBarras(e.target.value); }, 500); });
+            
             async function fetchMasterItems(searchTerm = '') {
-                const tableElement = elements.tableMasterItems;
-                const tbody = tableElement.querySelector('tbody');
+                const tbody = elements.tableMasterItems.querySelector('tbody');
                 tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">Carregando...</td></tr>';
                 elements.btnPrevPage.disabled = true;
                 elements.btnNextPage.disabled = true;
                 if(searchTerm === '') searchTerm = elements.searchMasterItems.value;
-
                 try {
                     let query = _supabase.from('itens_mestre').select('*', { count: 'exact' });
-                    if (searchTerm) {
-                        const term = `%${searchTerm}%`;
-                        query = query.or(`codigo_item.ilike.${term},descricao.ilike.${term},gt.ilike.${term}`);
-                    }
+                    if (searchTerm) query = query.or(`codigo_item.ilike.%${searchTerm}%,descricao.ilike.%${searchTerm}%,gt.ilike.%${searchTerm}%`);
                     query = query.order('codigo_item', { ascending: true });
                     if (itemsPerPage !== 'all') {
                         const from = (currentMasterPage - 1) * itemsPerPage;
-                        const to = from + itemsPerPage - 1;
-                        query = query.range(from, to);
+                        query = query.range(from, from + itemsPerPage - 1);
                     }
                     const { data, count, error } = await query;
                     if (error) throw error;
                     totalMasterItems = count || 0;
                     renderMasterTable(data);
                     updateMasterPaginationControls();
-                } catch (err) {
-                    tbody.innerHTML = `<tr><td colspan="6" style="color:var(--color-danger)">Erro: ${err.message}</td></tr>`;
-                }
+                } catch (err) { tbody.innerHTML = `<tr><td colspan="6" style="color:var(--color-danger)">Erro: ${err.message}</td></tr>`; }
             }
             function updateMasterPaginationControls() {
-                if (itemsPerPage === 'all') {
-                    elements.pageInfo.textContent = `Mostrando todos (${totalMasterItems})`;
-                    elements.btnPrevPage.disabled = true;
-                    elements.btnNextPage.disabled = true;
-                } else {
-                    const totalPages = Math.ceil(totalMasterItems / itemsPerPage);
-                    if (totalPages === 0) currentMasterPage = 1;
-                    elements.pageInfo.textContent = `Página ${currentMasterPage} de ${totalPages || 1} (Total: ${totalMasterItems})`;
+                if (itemsPerPage === 'all') { elements.pageInfo.textContent = `Mostrando todos (${totalMasterItems})`; elements.btnPrevPage.disabled = true; elements.btnNextPage.disabled = true; } 
+                else {
+                    const totalPages = Math.ceil(totalMasterItems / itemsPerPage) || 1;
+                    elements.pageInfo.textContent = `Página ${currentMasterPage} de ${totalPages} (Total: ${totalMasterItems})`;
                     elements.btnPrevPage.disabled = currentMasterPage <= 1;
                     elements.btnNextPage.disabled = currentMasterPage >= totalPages;
                 }
             }
             function renderMasterTable(items) {
-                const tableElement = elements.tableMasterItems;
-                const thead = tableElement.querySelector('thead');
-                const tbody = tableElement.querySelector('tbody');
+                const thead = elements.tableMasterItems.querySelector('thead');
+                const tbody = elements.tableMasterItems.querySelector('tbody');
                 thead.innerHTML = '';
                 tbody.innerHTML = '';
-
-                if (!items || items.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">Nenhum item encontrado.</td></tr>';
-                    return;
-                }
-
+                if (!items || items.length === 0) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">Nenhum item encontrado.</td></tr>'; return; }
                 const headers = Object.keys(items[0]).filter(key => key !== 'id');
                 const headerRow = document.createElement('tr');
-                headers.forEach(key => {
-                    const th = document.createElement('th');
-                    th.textContent = columnAliases[key] || key.replace(/_/g, ' ');
-                    headerRow.appendChild(th);
-                });
+                headers.forEach(key => { const th = document.createElement('th'); th.textContent = columnAliases[key] || key.replace(/_/g, ' '); headerRow.appendChild(th); });
                 const thActions = document.createElement('th');
                 thActions.textContent = 'Ações';
                 headerRow.appendChild(thActions);
                 thead.appendChild(headerRow);
-                
                 items.forEach(item => {
                     const tr = document.createElement('tr');
                     tr.dataset.itemId = item.id;
-
                     headers.forEach(key => {
                         const td = document.createElement('td');
                         const input = document.createElement('input');
@@ -1955,14 +1848,12 @@
                         td.appendChild(input);
                         tr.appendChild(td);
                     });
-
                     const tdActions = document.createElement('td');
                     tdActions.className = 'actions-cell';
                     tdActions.innerHTML = `<button class="btn btn-sm btn-success btn-save-row" title="Salvar">💾</button><button class="btn btn-sm btn-danger btn-delete-row" title="Excluir">🗑️</button>`;
                     tr.appendChild(tdActions);
                     tbody.appendChild(tr);
                 });
-
                 tbody.querySelectorAll('.btn-save-row').forEach(btn => btn.addEventListener('click', handleSaveMasterItem));
                 tbody.querySelectorAll('.btn-delete-row').forEach(btn => btn.addEventListener('click', handleDeleteMasterItem));
             }
@@ -1971,32 +1862,21 @@
                 const tr = btn.closest('tr');
                 const itemId = tr.dataset.itemId;
                 const inputs = tr.querySelectorAll('input.table-input');
-                
                 const updateData = {};
-                inputs.forEach(input => {
-                    const key = input.dataset.key;
-                    if (!input.disabled) {
-                        updateData[key] = input.type === 'number' ? parseFloat(input.value) || 0 : input.value;
-                    }
-                });
-
+                inputs.forEach(input => { if (!input.disabled) { updateData[input.dataset.key] = input.type === 'number' ? parseFloat(input.value) || 0 : input.value; } });
                 btn.disabled = true;
                 try {
                     const { error } = await _supabase.from('itens_mestre').update(updateData).eq('id', itemId);
                     if (error) throw error;
                     showAlert('Item atualizado com sucesso!', 'Sucesso', 'success');
-                } catch (e) {
-                    showAlert('Erro ao atualizar: ' + e.message, 'Erro', 'error');
-                } finally {
-                    btn.disabled = false;
-                }
+                } catch (e) { showAlert('Erro ao atualizar: ' + e.message, 'Erro', 'error'); } 
+                finally { btn.disabled = false; }
             }
             async function handleDeleteMasterItem(event) {
                 const btn = event.currentTarget;
                 const tr = btn.closest('tr');
                 const itemId = tr.dataset.itemId;
                 const codigoItem = tr.querySelector('input[data-key="codigo_item"]').value;
-
                 if (await showConfirm(`Tem certeza que deseja excluir o item ${codigoItem}?`)) {
                     btn.disabled = true;
                     try {
@@ -2005,49 +1885,35 @@
                         tr.remove();
                         totalMasterItems--;
                         updateMasterPaginationControls();
-                    } catch (e) {
-                        showAlert('Erro ao excluir: ' + e.message, 'Erro', 'error');
-                        btn.disabled = false;
-                    }
+                    } catch (e) { showAlert('Erro ao excluir: ' + e.message, 'Erro', 'error'); btn.disabled = false; }
                 }
             }
             elements.btnAddMasterItem.addEventListener('click', async () => {
                 const codigo = elements.newItemCodigo.value.trim();
-                const descricao = elements.newItemDescricao.value.trim();
-                const dimensao = elements.newItemDimensao.value.trim();
-                const peso = parseFloat(elements.newItemPeso.value) || 0;
-                const gt = elements.newItemGt.value.trim();
                 if (!codigo) { showAlert('Código é obrigatório.', 'Atenção'); return; }
-
+                const newItem = {
+                    codigo_item: codigo, 
+                    descricao: elements.newItemDescricao.value.trim(), 
+                    dimensao: elements.newItemDimensao.value.trim(), 
+                    peso_kg: parseFloat(elements.newItemPeso.value) || 0,
+                    gt: elements.newItemGt.value.trim() 
+                };
                 elements.btnAddMasterItem.innerHTML = '<div class="spinner"></div>';
                 elements.btnAddMasterItem.disabled = true;
                 try {
-                    const { data, error } = await _supabase.from('itens_mestre').insert([{ codigo_item: codigo, descricao, dimensao, peso_kg: peso, gt }]).select();
+                    const { error } = await _supabase.from('itens_mestre').insert([newItem]).select();
                     if (error) throw error;
-                    elements.newItemCodigo.value = '';
-                    elements.newItemDescricao.value = '';
-                    elements.newItemDimensao.value = '';
-                    elements.newItemPeso.value = '';
-                    elements.newItemGt.value = '';
+                    ['newItemCodigo', 'newItemDescricao', 'newItemDimensao', 'newItemPeso', 'newItemGt'].forEach(k => elements[k].value = '');
                     currentMasterPage = 1;
                     await fetchMasterItems();
                     showAlert('Item criado com sucesso!', 'Sucesso', 'success');
-                } catch (e) { showAlert('Erro ao criar item: ' + e.message, 'Erro', 'error'); } finally { elements.btnAddMasterItem.innerHTML = '+ Criar'; elements.btnAddMasterItem.disabled = false; }
+                } catch (e) { showAlert('Erro ao criar item: ' + e.message, 'Erro', 'error'); } 
+                finally { elements.btnAddMasterItem.innerHTML = '+ Criar'; elements.btnAddMasterItem.disabled = false; }
             });
-            elements.itemsPerPageSelect.addEventListener('change', (e) => {
-                itemsPerPage = e.target.value === 'all' ? 'all' : parseInt(e.target.value);
-                currentMasterPage = 1;
-                fetchMasterItems();
-            });
+            elements.itemsPerPageSelect.addEventListener('change', (e) => { itemsPerPage = e.target.value === 'all' ? 'all' : parseInt(e.target.value); currentMasterPage = 1; fetchMasterItems(); });
             elements.btnPrevPage.addEventListener('click', () => { if (currentMasterPage > 1) { currentMasterPage--; fetchMasterItems(); } });
-            elements.btnNextPage.addEventListener('click', () => {
-                const maxPages = itemsPerPage === 'all' ? 1 : Math.ceil(totalMasterItems / itemsPerPage);
-                if (currentMasterPage < maxPages) { currentMasterPage++; fetchMasterItems(); }
-            });
-            elements.searchMasterItems.addEventListener('input', (e) => {
-                clearTimeout(searchTimeout);
-                searchTimeout = setTimeout(() => { currentMasterPage = 1; fetchMasterItems(e.target.value); }, 500); 
-            });
+            elements.btnNextPage.addEventListener('click', () => { const maxPages = itemsPerPage === 'all' ? 1 : Math.ceil(totalMasterItems / itemsPerPage); if (currentMasterPage < maxPages) { currentMasterPage++; fetchMasterItems(); } });
+            elements.searchMasterItems.addEventListener('input', (e) => { clearTimeout(searchTimeout); searchTimeout = setTimeout(() => { currentMasterPage = 1; fetchMasterItems(e.target.value); }, 500); });
 
             // --- Lógica de Geração do Arranjo (N8N) ---
             elements.btnGerarArranjo.addEventListener('click', async () => {
@@ -2055,27 +1921,21 @@
                 const originalButtonText = elements.btnGerarArranjo.innerHTML;
                 elements.btnGerarArranjo.innerHTML = '<div class="spinner"></div> Gerando...';
                 elements.btnGerarArranjo.disabled = true;
-
                 const formData = new FormData();
                 formData.append('file', elements.csvFileInput.files[0], 'data.csv');
                 const configFornos = {};
                 fornosAtivos.forEach(forno => { configFornos[forno] = Array.from(document.querySelectorAll(`.gt-input-field-${forno}`)).map(input => input.value).filter(Boolean); });
                 formData.append('config_fornos', JSON.stringify(configFornos));
-                
                 try {
                     const response = await fetch(n8nGerarArranjoUrl, { method: 'POST', body: formData });
                     if (!response.ok) { const errorText = await response.text(); throw new Error(`${response.statusText}. Detalhes: ${errorText}`); }
                     const data = await response.json();
-                    
                     elements.step1.classList.add('hidden');
                     elements.step2.classList.remove('hidden');
                     updateStepper(2);
-
                     listaOriginalArranjo = (data.arranjo_producao || []).map((item, i) => ({...item, id: `orig-arr-${i}`}));
                     listaOriginalPendentes = (data.itens_pendentes || []).map((item, i) => ({...item, id: `orig-pen-${i}`}));
-                    
                     resetarArranjosParaOriginal();
-
                 } catch (error) {
                     showAlert('Ocorreu um erro ao gerar o arranjo: ' + error.message, 'Erro', 'error');
                 } finally {
@@ -2090,11 +1950,9 @@
                 containerFornos.innerHTML = '';
                 const totalColunas = fornosAtivos.size + 1;
                 document.getElementById('container-principal-arranjos').style.gridTemplateColumns = `repeat(${totalColunas}, 1fr)`;
-
                 fornosAtivos.forEach(forno => {
                     const idForno = forno === 'grande' ? '1001' : '1002';
                     const tituloForno = forno === 'grande' ? 'GRANDE' : 'PEQUENO';
-
                     const col = document.createElement('div');
                     col.className = 'arranjo-coluna';
                     col.innerHTML = `
@@ -2128,11 +1986,9 @@
                     col.querySelector('.btn-ordem-decrescente-forno').addEventListener('click', (e) => aplicarOrdenacaoPorEsteira(e.target.dataset.forno, 'decrescente'));
                     col.querySelector('.btn-export-forno').addEventListener('click', (e) => exportarForno(e.target.dataset.forno));
                 });
-                
                 const globalFilterCard = document.getElementById('global-filter-card');
                 const step2Header = document.getElementById('step-2-header');
                 let warningBar = document.getElementById('parallel-mode-warning');
-
                 if (fornosAtivos.size > 1) {
                     globalFilterCard.classList.add('hidden');
                     document.querySelectorAll('.card-filtros-internos').forEach(c => c.style.display = 'block');
@@ -2148,40 +2004,27 @@
                     document.querySelectorAll('.card-filtros-internos').forEach(c => c.style.display = 'none');
                     if (warningBar) warningBar.remove();
                     const unicoForno = Array.from(fornosAtivos)[0];
-                    popularFiltroReceitas(unicoForno, document.getElementById('filtro-intervalo-empilhamento'));
+                    if (unicoForno) popularFiltroReceitas(unicoForno, document.getElementById('filtro-intervalo-empilhamento'));
                 }
             }
-            
             function renderizarTudoAPartirDoEstado() {
                 document.querySelectorAll('.lista-drop').forEach(lista => lista.innerHTML = '');
-                
                 for (const forno in estadoFornos) {
                     if (estadoFornos.hasOwnProperty(forno)) {
                         const listaDOM = document.getElementById(`lista-arranjo-${forno}`);
-                        if (listaDOM) {
-                            estadoFornos[forno].cards.forEach(cardData => {
-                                criarCard(listaDOM, cardData);
-                            });
-                        }
+                        if (listaDOM) estadoFornos[forno].cards.forEach(cardData => criarCard(listaDOM, cardData));
                     }
                 }
-                
-                estadoPendentes.forEach(cardData => {
-                    criarCard(elements.itensPendentesLista, cardData);
-                });
-
+                estadoPendentes.forEach(cardData => criarCard(elements.itensPendentesLista, cardData));
                 vincularEventosDragDrop();
                 atualizarInterfaceCompleta();
             }
-
             function atualizarInterfaceCompleta() {
                 fornosAtivos.forEach(forno => {
                     const cardsNoForno = estadoFornos[forno] ? estadoFornos[forno].cards : [];
-                    let totalPeso = cardsNoForno.reduce((acc, card) => acc + ((card.quantidade || 0) * (card.peso_unit || 0)), 0);
-                    
+                    let totalPeso = cardsNoForno.reduce((acc, card) => acc + ((parseFloat(card.quantidade) || 0) * (parseFloat(card.peso_unit) || 0)), 0);
                     const totalizador = document.getElementById(`totalizador-${forno}`);
                     if (totalizador) totalizador.textContent = `${cardsNoForno.length} OPs | ${(totalPeso / 1000).toFixed(1)}T`;
-
                     const capacityBar = document.getElementById(`capacity-bar-${forno}`);
                     const capacityText = document.getElementById(`capacity-text-${forno}`);
                     if (capacityBar && capacityText) {
@@ -2191,72 +2034,48 @@
                         capacityBar.style.backgroundColor = percentage > 85 ? 'var(--color-danger)' : percentage > 60 ? 'var(--color-warning)' : 'var(--color-success)';
                         capacityText.textContent = `${(totalPeso / 1000).toFixed(1)}T / 60.0T`;
                     }
-                    
                     const selectReceita = document.querySelector(`.filtro-empilhamento-forno[data-forno="${forno}"]`);
                     if (selectReceita) selectReceita.value = estadoFornos[forno].receita || "";
-
                     popularSeletorBitolaPorEsteira(forno);
                 });
-                
-                if (fornosAtivos.size === 1) popularSeletorBitolaReferencia();
+                if (fornosAtivos.size === 1) popularSeletorBitolaReferenciaGlobal();
                 popularFiltroBitolaPendentes();
             }
-
             function extrairDadosDoCard(cardElement) {
                 const data = cardElement.dataset;
-                return {
-                    id: data.id,
-                    op: data.ordemProducao,
-                    codigo: data.codigo,
-                    Descrição: data.descricao,
-                    Dimensões: data.dimensao,
-                    gt: data.gt,
-                    quantidade: parseInt(data.quantidade),
-                    peso_unit: parseFloat(data.peso),
-                    isEmpilhado: data.isEmpilhado === 'true',
-                    forno_destino: data.fornoDestino
-                };
+                return { id: data.id, op: data.ordemProducao, codigo: data.codigo, Descrição: data.descricao, Dimensões: data.dimensao, gt: data.gt, quantidade: parseInt(data.quantidade), peso_unit: parseFloat(data.peso), isEmpilhado: data.isEmpilhado === 'true', forno_destino: data.fornoDestino };
             }
+            function getFornoFromListId(listId) { return listId.replace('lista-arranjo-', ''); }
 
-            function getFornoFromListId(listId) {
-                return listId.replace('lista-arranjo-', '');
-            }
-
-            // --- FUNÇÕES DE FILTRO INDEPENDENTES ---
+            // --- FUNÇÕES DE FILTRO INDEPENDENTES (NÃO DESTRUTIVAS) ---
             function aplicarEmpilhamentoPorEsteira(forno) {
-                const selectFiltro = document.querySelector(`.filtro-empilhamento-forno[data-forno="${forno}"]`);
+                const selectFiltro = document.querySelector(`.filtro-empilhamento-forno[data-forno="${forno}"]`) || elements.globalEmpilhamentoSelect;
                 const intervalo = selectFiltro.value;
                 estadoFornos[forno].receita = intervalo;
-
                 if (!intervalo) {
                     estadoFornos[forno].cards.forEach(card => card.isEmpilhado = false);
                     renderizarTudoAPartirDoEstado();
                     return;
                 }
-
                 try {
                     const [tetoMinimo, tetoMaximo] = intervalo.split('-').map(Number);
-                    
-                    let candidatos = [...estadoFornos[forno].cards, ...estadoPendentes];
+                    const candidatos = [...estadoFornos[forno].cards];
                     candidatos.forEach(c => c.isEmpilhado = false);
-                    
                     const idsUsados = new Set();
                     const novoArranjoEsteira = [];
-                    let novosPendentes = [];
-
+                    const naoPareados = [];
                     candidatos.sort((a, b) => getEspessura(b) - getEspessura(a));
-
                     for (let i = 0; i < candidatos.length; i++) {
                         const base = candidatos[i];
                         if (idsUsados.has(base.id)) continue;
-
                         const espessuraBase = getEspessura(base);
                         if (espessuraBase >= tetoMinimo && espessuraBase <= tetoMaximo) {
                             let parceiroEncontrado = null;
                             for (let j = 0; j < candidatos.length; j++) {
                                 const p = candidatos[j];
                                 if (i === j || idsUsados.has(p.id)) continue;
-                                if (molasPlanasCodigos.has(p.codigo) && (getEspessura(p) * 2) >= tetoMinimo && (getEspessura(p) * 2) <= tetoMaximo) {
+                                const espessuraDobrada = getEspessura(p) * 2;
+                                if (molasPlanasCodigos.has(p.codigo) && espessuraDobrada >= tetoMinimo && espessuraDobrada <= tetoMaximo) {
                                     parceiroEncontrado = p;
                                     break;
                                 }
@@ -2269,32 +2088,18 @@
                             }
                         }
                     }
-                    
-                    candidatos.forEach(c => { if (!idsUsados.has(c.id)) novosPendentes.push(c); });
-
-                    estadoFornos[forno].cards = novoArranjoEsteira;
-                    estadoPendentes = novosPendentes;
-                    
+                    candidatos.forEach(c => { if (!idsUsados.has(c.id)) naoPareados.push(c); });
+                    estadoFornos[forno].cards = [...novoArranjoEsteira, ...naoPareados];
                     renderizarTudoAPartirDoEstado();
-
-                } catch (err) {
-                    showAlert(`Erro ao aplicar empilhamento: ${err.message}`, 'Erro', 'error');
-                }
+                } catch (err) { showAlert(`Erro ao aplicar empilhamento: ${err.message}`, 'Erro', 'error'); }
             }
-
             function aplicarOrdenacaoPorEsteira(forno, direcao) {
-                const seletor = document.querySelector(`.bitola-referencia-forno[data-forno="${forno}"]`);
+                const seletor = document.querySelector(`.bitola-referencia-forno[data-forno="${forno}"]`) || elements.globalBitolaSelect;
                 const valorReferencia = parseFloat(seletor.value);
-
-                if (isNaN(valorReferencia)) {
-                    showAlert('Selecione uma Bitola de Partida para este forno.', 'Atenção');
-                    return;
-                }
-                
+                if (isNaN(valorReferencia)) { showAlert(`Selecione uma Bitola de Partida.`, 'Atenção'); return; }
                 const cardsAtuais = [...estadoFornos[forno].cards];
                 const permanecem = [];
                 const paraPendentes = [];
-
                 cardsAtuais.forEach(card => {
                     const espessura = getEspessura(card);
                     if ((direcao === 'crescente' && espessura >= valorReferencia) || (direcao === 'decrescente' && espessura <= valorReferencia)) {
@@ -2303,38 +2108,28 @@
                         paraPendentes.push(card);
                     }
                 });
-
                 permanecem.sort((a, b) => direcao === 'crescente' ? getEspessura(a) - getEspessura(b) : getEspessura(b) - getEspessura(a));
-                
                 estadoFornos[forno].cards = permanecem;
                 estadoPendentes.push(...paraPendentes);
-                
                 renderizarTudoAPartirDoEstado();
             }
-            
             elements.btnResetArranjos.addEventListener('click', resetarArranjosParaOriginal);
-            
             function resetarArranjosParaOriginal() {
                 inicializarEstados();
                 listaOriginalArranjo.forEach(item => {
-                    if (estadoFornos[item.forno_destino]) {
-                        estadoFornos[item.forno_destino].cards.push({...item});
-                    }
+                    if (estadoFornos[item.forno_destino]) estadoFornos[item.forno_destino].cards.push({...item});
                 });
                 estadoPendentes = listaOriginalPendentes.map(item => ({...item}));
                 renderizarLayoutStep2();
                 renderizarTudoAPartirDoEstado();
             }
-
             function vincularEventosDragDrop() {
                 const draggables = document.querySelectorAll('.item-card');
                 const containers = document.querySelectorAll('.lista-drop');
-
                 draggables.forEach(draggable => {
                     draggable.addEventListener('dragstart', () => draggable.classList.add('dragging'));
                     draggable.addEventListener('dragend', () => draggable.classList.remove('dragging'));
                 });
-
                 containers.forEach(container => {
                     container.addEventListener('dragover', e => { e.preventDefault(); container.classList.add('drag-over'); });
                     container.addEventListener('dragleave', () => container.classList.remove('drag-over'));
@@ -2343,42 +2138,43 @@
                         container.classList.remove('drag-over');
                         const draggable = document.querySelector('.dragging');
                         if (!draggable) return;
-
                         const cardData = extrairDadosDoCard(draggable);
                         const sourceList = draggable.parentElement;
-
-                        if (sourceList.id === container.id) return; // No change if dropped in the same list
-
-                        // Remover do estado antigo
+                        if (sourceList.id === container.id) return;
+                        if (container.id.startsWith('lista-arranjo-')) {
+                            const targetForno = getFornoFromListId(container.id);
+                            const receita = estadoFornos[targetForno].receita;
+                            if (receita) {
+                                const [min, max] = receita.split('-').map(Number);
+                                const bitola = getEspessura(cardData);
+                                const isPlana = molasPlanasCodigos.has(cardData.codigo);
+                                const isCompativel = (bitola >= min && bitola <= max) || (isPlana && (bitola * 2) >= min && (bitola * 2) <= max);
+                                if (!isCompativel) {
+                                    showAlert(`A bitola (${bitola}mm) do item ${cardData.codigo} é incompatível com a receita (${min}-${max}mm) selecionada para este forno.`, "Bloqueio de Segurança", "error");
+                                    return;
+                                }
+                            }
+                        }
                         if (sourceList.id === 'itens-pendentes-lista') {
                             estadoPendentes = estadoPendentes.filter(c => c.id !== cardData.id);
                         } else {
                             const sourceForno = getFornoFromListId(sourceList.id);
-                            if (estadoFornos[sourceForno]) {
-                                estadoFornos[sourceForno].cards = estadoFornos[sourceForno].cards.filter(c => c.id !== cardData.id);
-                            }
+                            if (estadoFornos[sourceForno]) estadoFornos[sourceForno].cards = estadoFornos[sourceForno].cards.filter(c => c.id !== cardData.id);
                         }
-                        
-                        // Adicionar ao novo estado
                         if (container.id === 'itens-pendentes-lista') {
                              estadoPendentes.push(cardData);
                         } else {
                              const targetForno = getFornoFromListId(container.id);
-                             if (estadoFornos[targetForno]) {
-                                 estadoFornos[targetForno].cards.push(cardData);
-                             }
+                             if (estadoFornos[targetForno]) estadoFornos[targetForno].cards.push(cardData);
                         }
-                        
                         renderizarTudoAPartirDoEstado();
                     });
                 });
             }
-
             function criarCard(containerDOM, cardData) {
                 const card = document.createElement('div');
                 card.className = 'item-card';
                 card.draggable = true;
-                
                 card.dataset.id = cardData.id;
                 card.dataset.ordemProducao = cardData.op || 'N/A';
                 card.dataset.codigo = cardData.codigo || 'N/A';
@@ -2389,10 +2185,8 @@
                 card.dataset.peso = cardData.peso_unit || 0;
                 card.dataset.isEmpilhado = cardData.isEmpilhado || false;
                 card.dataset.fornoDestino = cardData.forno_destino || '';
-
                 const empilhamentoTag = cardData.isEmpilhado ? '<span class="tag-2x">2X</span>' : '';
                 const pesoTotal = (parseFloat(card.dataset.quantidade) * parseFloat(card.dataset.peso)).toFixed(1);
-
                 card.innerHTML = `
                     <span class="delete-btn" onclick="removerCardPeloEstado('${cardData.id}')">×</span>
                     <p><b>OP:</b> ${card.dataset.ordemProducao} ${empilhamentoTag}</p>
@@ -2400,66 +2194,66 @@
                     <p>${card.dataset.descricao}</p> 
                     <p><b>Bitola:</b> ${card.dataset.dimensao}</p>
                     <p><b>Qtd:</b> ${card.dataset.quantidade} <small style="color: var(--text-secondary); margin-left: 10px;">(${pesoTotal} kg)</small></p>
+                    <p class="gt-display" onclick="editarGT(this, '${cardData.id}')"><b>GT:</b> ${card.dataset.gt || 'N/A'}</p>
+                    ${cardData.forno_destino ? `<p style="font-size: 0.75rem; color: var(--color-info); margin-top: 5px; font-weight: 600;">📍 Destino: Forno ${cardData.forno_destino === 'grande' ? '1001' : '1002'}</p>` : ''}
                 `;
                 containerDOM.appendChild(card);
             }
-
             window.removerCardPeloEstado = function(cardId) {
                 for (const forno in estadoFornos) {
                     const index = estadoFornos[forno].cards.findIndex(c => c.id === cardId);
-                    if (index > -1) {
-                        estadoFornos[forno].cards.splice(index, 1);
-                        renderizarTudoAPartirDoEstado();
-                        return;
-                    }
+                    if (index > -1) { estadoFornos[forno].cards.splice(index, 1); renderizarTudoAPartirDoEstado(); return; }
                 }
                 const index = estadoPendentes.findIndex(c => c.id === cardId);
-                if (index > -1) {
-                    estadoPendentes.splice(index, 1);
-                    renderizarTudoAPartirDoEstado();
-                }
+                if (index > -1) { estadoPendentes.splice(index, 1); renderizarTudoAPartirDoEstado(); }
             }
-            
+            window.editarGT = function(element, cardId) {
+                const cardData = findCardDataById(cardId);
+                if (!cardData) return;
+                element.innerHTML = `<b>GT:</b> <input type="text" class="gt-input" value="${cardData.gt}" onkeydown="reavaliarItem(event, this, '${cardId}')" onblur="cancelarEdicao(this, '${cardId}')">`;
+                const input = element.querySelector('input');
+                input.focus();
+                input.select();
+            }
+            window.cancelarEdicao = function(element, cardId) {
+                const cardData = findCardDataById(cardId);
+                if(cardData) element.parentElement.innerHTML = `<b>GT:</b> ${cardData.gt || 'N/A'}`;
+            }
+            window.reavaliarItem = async function(event, input, cardId) {
+                if (event.key === 'Enter') {
+                    const novoGT = input.value.trim();
+                    const cardData = findCardDataById(cardId);
+                    if (!cardData || novoGT === cardData.gt) { cancelarEdicao(input, cardId); return; }
+                    input.disabled = true;
+                    input.value = "Salvando...";
+                    try {
+                        const response = await fetch(n8nAtualizarGTUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ codigo: cardData.codigo, gt: novoGT }) });
+                        if (!response.ok) throw new Error('Falha ao atualizar o GT no banco.');
+                        cardData.gt = novoGT;
+                        showAlert('GT atualizado com sucesso!', 'Sucesso', 'success');
+                    } catch (error) { showAlert(error.message, 'Erro', 'error'); } 
+                    finally { renderizarTudoAPartirDoEstado(); }
+                } else if (event.key === 'Escape') { cancelarEdicao(input, cardId); }
+            }
+            function findCardDataById(cardId) {
+                for (const forno in estadoFornos) {
+                    const card = estadoFornos[forno].cards.find(c => c.id === cardId);
+                    if (card) return card;
+                }
+                return estadoPendentes.find(c => c.id === cardId);
+            }
             function getEspessura(cardData) {
                 if (!cardData) return 0;
                 const dimensao = cardData.Dimensões || '0 X 0';
-                try {
-                    const partes = dimensao.split('X');
-                    if (partes.length < 2) return 0;
-                    return parseFloat(partes[1].trim().replace(',', '.')) || 0;
-                } catch (e) { return 0; }
+                try { const partes = dimensao.split('X'); if (partes.length < 2) return 0; return parseFloat(partes[1].trim().replace(',', '.')) || 0; } 
+                catch (e) { return 0; }
             }
-            
-            function popularSeletorBitolaReferencia() {
-                const seletor = document.getElementById('bitola-referencia-select');
-                const currentValue = seletor.value;
-                seletor.innerHTML = '<option value="">Selecione a bitola...</option>';
-                const unicoForno = Array.from(fornosAtivos)[0];
-                if (!unicoForno || !estadoFornos[unicoForno]) return;
-
-                const todosOsItens = [...estadoFornos[unicoForno].cards, ...estadoPendentes];
-                const espessuras = new Set(todosOsItens.map(getEspessura).filter(esp => esp > 0));
-
-                Array.from(espessuras).sort((a, b) => a - b).forEach(esp => {
-                    seletor.innerHTML += `<option value="${esp}">${esp}</option>`;
-                });
-                seletor.value = currentValue;
-            }
-
             async function popularFiltroReceitas(tipoForno, selectElement) {
+                selectElement.innerHTML = '<option value="">Nenhum</option>';
                 const idForno = tipoForno === 'grande' ? '1001' : '1002';
                 const { data } = await _supabase.from('receitas_forno').select('bitola_min, bitola_max').eq('forno', idForno);
-                if(data) {
-                    selectElement.innerHTML = '<option value="">Nenhum</option>';
-                    data.forEach(r => {
-                        const opt = document.createElement('option');
-                        opt.value = `${r.bitola_min}-${r.bitola_max}`;
-                        opt.textContent = `Intervalo ${r.bitola_min} a ${r.bitola_max} mm`;
-                        selectElement.appendChild(opt);
-                    });
-                }
+                if(data) data.forEach(r => { const opt = document.createElement('option'); opt.value = `${r.bitola_min}-${r.bitola_max}`; opt.textContent = `Intervalo ${r.bitola_min} a ${r.bitola_max} mm`; selectElement.appendChild(opt); });
             }
-
             function popularSeletorBitolaPorEsteira(forno) {
                 const seletor = document.querySelector(`.bitola-referencia-forno[data-forno="${forno}"]`);
                 if (!seletor) return;
@@ -2470,7 +2264,17 @@
                 Array.from(espessuras).sort((a, b) => a - b).forEach(esp => seletor.innerHTML += `<option value="${esp}">${esp} mm</option>`);
                 seletor.value = currentValue;
             }
-
+            function popularSeletorBitolaReferenciaGlobal() {
+                const seletor = elements.globalBitolaSelect;
+                const currentValue = seletor.value;
+                seletor.innerHTML = '<option value="">Selecione a bitola...</option>';
+                const unicoForno = Array.from(fornosAtivos)[0];
+                if (!unicoForno || !estadoFornos[unicoForno]) return;
+                const todosOsItens = [...estadoFornos[unicoForno].cards, ...estadoPendentes];
+                const espessuras = new Set(todosOsItens.map(getEspessura).filter(esp => esp > 0));
+                Array.from(espessuras).sort((a, b) => a - b).forEach(esp => seletor.innerHTML += `<option value="${esp}">${esp} mm</option>`);
+                seletor.value = currentValue;
+            }
             function popularFiltroBitolaPendentes() {
                 const seletor = document.getElementById('filter-bitola-pendentes');
                 const currentValue = seletor.value;
@@ -2479,13 +2283,9 @@
                 Array.from(espessuras).sort((a, b) => a - b).forEach(esp => seletor.innerHTML += `<option value="${esp}">${esp}</option>`);
                 seletor.value = currentValue;
             }
-            
             function exportarForno(forno) {
                 const cardsDoForno = estadoFornos[forno] ? estadoFornos[forno].cards : [];
-                if (cardsDoForno.length === 0) {
-                    showAlert(`Não há itens no arranjo do forno ${forno} para exportar.`, "Aviso");
-                    return;
-                }
+                if (cardsDoForno.length === 0) { showAlert(`Não há itens no arranjo do forno ${forno} para exportar.`, "Aviso"); return; }
                 const itemsParaExportar = [["Ordem de Produção", "Código", "Descrição", "Bitola", "GT", "Quantidade"]];
                 cardsDoForno.forEach(card => itemsParaExportar.push([card.op, card.codigo, card.Descrição, card.Dimensões, card.gt, card.quantidade]));
                 const ws = XLSX.utils.aoa_to_sheet(itemsParaExportar);
@@ -2494,17 +2294,15 @@
                 XLSX.utils.book_append_sheet(wb, ws, `Forno ${fornoId}`);
                 XLSX.writeFile(wb, `Arranjo_Forno_${fornoId}.xlsx`);
             }
-            
+            elements.globalBtnCrescente.addEventListener('click', () => { const unicoForno = Array.from(fornosAtivos)[0]; if(unicoForno) aplicarOrdenacaoPorEsteira(unicoForno, 'crescente'); });
+            elements.globalBtnDecrescente.addEventListener('click', () => { const unicoForno = Array.from(fornosAtivos)[0]; if(unicoForno) aplicarOrdenacaoPorEsteira(unicoForno, 'decrescente'); });
+            elements.globalEmpilhamentoSelect.addEventListener('change', () => { const unicoForno = Array.from(fornosAtivos)[0]; if(unicoForno) aplicarEmpilhamentoPorEsteira(unicoForno); });
             elements.themeToggle.addEventListener('change', () => {
                 const isDark = elements.themeToggle.checked;
                 document.body.classList.toggle('dark-theme', isDark);
                 document.body.classList.toggle('light-theme', !isDark);
-                
-                elements.logo.src = isDark 
-                    ? 'https://ctfamadobrasil.com.br/wp-content/uploads/2025/12/Gemini_Generated_Image_v8cib8v8cib8v8ci-removebg-preview.png' 
-                    : 'https://ctfamadobrasil.com.br/wp-content/uploads/2025/09/logo.png';
+                elements.logo.src = isDark ? 'https://ctfamadobrasil.com.br/wp-content/uploads/2025/12/Gemini_Generated_Image_v8cib8v8cib8v8ci-removebg-preview.png' : 'https://ctfamadobrasil.com.br/wp-content/uploads/2025/09/logo.png';
             });
-
             function initApp() {
                 const isDark = elements.themeToggle.checked;
                 document.body.classList.toggle('dark-theme', isDark);
@@ -2513,7 +2311,6 @@
                 carregarMolasPlanas();
                 inicializarEstados();
             }
-
             initApp();
         });
     </script>
