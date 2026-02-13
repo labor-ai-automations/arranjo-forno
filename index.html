@@ -1506,8 +1506,18 @@
                 }
             }
             elements.gtDisplay.addEventListener('click', (e) => { e.stopPropagation(); elements.gtDropdown.classList.toggle('open'); });
-            document.addEventListener('click', () => elements.gtDropdown.classList.remove('open'));
+            
+            // CORREÇÃO: Listener global para fechar popups (GT e Autocomplete)
+            document.addEventListener('click', (e) => {
+                if (!elements.gtWrapper.contains(e.target)) {
+                    elements.gtDropdown.classList.remove('open');
+                }
+                if (!elements.modalInputCodigo.contains(e.target)) {
+                    elements.autocompleteList.classList.remove('visible');
+                }
+            });
             elements.gtDropdown.addEventListener('click', (e) => e.stopPropagation());
+
             initGtMultiSelect();
 
             function updateSelectedGTs() {
@@ -2049,7 +2059,6 @@
 
             // --- FUNÇÕES DE FILTRO INDEPENDENTES (NÃO DESTRUTIVAS) ---
             function aplicarEmpilhamentoPorEsteira(forno) {
-                // CORREÇÃO: Seleciona o filtro correto (global ou interno) baseado no modo de operação
                 const selectFiltro = fornosAtivos.size > 1
                     ? document.querySelector(`.filtro-empilhamento-forno[data-forno="${forno}"]`)
                     : elements.globalEmpilhamentoSelect;
@@ -2097,7 +2106,6 @@
                 } catch (err) { showAlert(`Erro ao aplicar empilhamento: ${err.message}`, 'Erro', 'error'); }
             }
             function aplicarOrdenacaoPorEsteira(forno, direcao) {
-                // CORREÇÃO: Seleciona o seletor correto (global ou interno) baseado no modo de operação
                 const seletor = fornosAtivos.size > 1 
                     ? document.querySelector(`.bitola-referencia-forno[data-forno="${forno}"]`) 
                     : elements.globalBitolaSelect;
@@ -2120,23 +2128,6 @@
                 renderizarTudoAPartirDoEstado();
             }
             elements.btnResetArranjos.addEventListener('click', resetarArranjosParaOriginal);
-
-            // CORREÇÃO: Reativação do Event Listener para o botão "Adicionar Manual"
-            elements.btnAddManual.addEventListener('click', () => {
-                // Limpa os campos do modal
-                elements.modalInputCodigo.value = '';
-                elements.modalInputOp.value = '';
-                elements.modalInputQtd.value = '';
-                elements.modalInputBitola.value = '';
-                elements.modalInputGt.value = '';
-                elements.autocompleteList.innerHTML = '';
-                elements.autocompleteList.classList.remove('visible');
-                
-                // Abre o modal
-                elements.modalManualOverlay.classList.add('open');
-                elements.modalInputCodigo.focus();
-            });
-
             function resetarArranjosParaOriginal() {
                 inicializarEstados();
                 listaOriginalArranjo.forEach(item => {
@@ -2317,9 +2308,110 @@
                 XLSX.utils.book_append_sheet(wb, ws, `Forno ${fornoId}`);
                 XLSX.writeFile(wb, `Arranjo_Forno_${fornoId}.xlsx`);
             }
-            elements.globalBtnCrescente.addEventListener('click', () => { const unicoForno = Array.from(fornosAtivos)[0]; if(unicoForno) aplicarOrdenacaoPorEsteira(unicoForno, 'crescente'); });
-            elements.globalBtnDecrescente.addEventListener('click', () => { const unicoForno = Array.from(fornosAtivos)[0]; if(unicoForno) aplicarOrdenacaoPorEsteira(unicoForno, 'decrescente'); });
-            elements.globalEmpilhamentoSelect.addEventListener('change', () => { const unicoForno = Array.from(fornosAtivos)[0]; if(unicoForno) aplicarEmpilhamentoPorEsteira(unicoForno); });
+            
+            // --- CORREÇÃO: Lógica para Filtros Globais (Modo Forno Único) ---
+            elements.globalBtnCrescente.addEventListener('click', () => {
+                if (fornosAtivos.size === 1) {
+                    const unicoForno = Array.from(fornosAtivos)[0];
+                    aplicarOrdenacaoPorEsteira(unicoForno, 'crescente');
+                }
+            });
+            elements.globalBtnDecrescente.addEventListener('click', () => {
+                if (fornosAtivos.size === 1) {
+                    const unicoForno = Array.from(fornosAtivos)[0];
+                    aplicarOrdenacaoPorEsteira(unicoForno, 'decrescente');
+                }
+            });
+            elements.globalEmpilhamentoSelect.addEventListener('change', () => {
+                if (fornosAtivos.size === 1) {
+                    const unicoForno = Array.from(fornosAtivos)[0];
+                    aplicarEmpilhamentoPorEsteira(unicoForno);
+                }
+            });
+
+            // --- CORREÇÃO: Lógica do Modal de Adição Manual ---
+            elements.btnAddManual.addEventListener('click', () => {
+                elements.modalInputCodigo.value = '';
+                elements.modalInputOp.value = '';
+                elements.modalInputQtd.value = '';
+                elements.modalInputBitola.value = '';
+                elements.modalInputGt.value = '';
+                elements.autocompleteList.innerHTML = '';
+                elements.autocompleteList.classList.remove('visible');
+                elements.modalManualOverlay.classList.add('open');
+                elements.modalInputCodigo.focus();
+            });
+
+            elements.btnManualCancel.addEventListener('click', () => {
+                elements.modalManualOverlay.classList.remove('open');
+            });
+            
+            elements.btnManualConfirm.addEventListener('click', async () => {
+                const codigo = elements.modalInputCodigo.value.trim();
+                const op = elements.modalInputOp.value.trim();
+                const quantidade = parseInt(elements.modalInputQtd.value, 10);
+            
+                if (!codigo || !op || isNaN(quantidade) || quantidade <= 0) {
+                    showAlert('Por favor, preencha todos os campos corretamente (Código, OP e Quantidade).', 'Dados Incompletos');
+                    return;
+                }
+            
+                try {
+                    const { data, error } = await _supabase.from('itens_mestre').select('*').eq('codigo_item', codigo).single();
+                    if (error || !data) {
+                        showAlert(`O código do item "${codigo}" não foi encontrado no cadastro mestre.`, 'Item não encontrado', 'error');
+                        return;
+                    }
+                    const newCard = {
+                        id: `manual-${Date.now()}`, op: op, codigo: data.codigo_item, Descrição: data.descricao,
+                        Dimensões: data.dimensao, gt: data.gt, quantidade: quantidade, peso_unit: data.peso_kg,
+                        isEmpilhado: false, forno_destino: ''
+                    };
+                    estadoPendentes.push(newCard);
+                    renderizarTudoAPartirDoEstado();
+                    elements.modalManualOverlay.classList.remove('open');
+                } catch (err) {
+                    showAlert(`Ocorreu um erro ao adicionar o item: ${err.message}`, 'Erro', 'error');
+                }
+            });
+            
+            elements.modalInputCodigo.addEventListener('input', () => {
+                clearTimeout(autocompleteTimeout);
+                const searchTerm = elements.modalInputCodigo.value.trim();
+                if (searchTerm.length < 2) {
+                    elements.autocompleteList.classList.remove('visible');
+                    return;
+                }
+                autocompleteTimeout = setTimeout(async () => {
+                    try {
+                        const { data, error } = await _supabase.from('itens_mestre').select('codigo_item, descricao, dimensao, gt').ilike('codigo_item', `%${searchTerm}%`).limit(10);
+                        if (error) throw error;
+                        elements.autocompleteList.innerHTML = '';
+                        if (data.length > 0) {
+                            data.forEach(item => {
+                                const li = document.createElement('li');
+                                li.className = 'autocomplete-item';
+                                li.innerHTML = `<strong>${item.codigo_item}</strong><small>${item.descricao || 'Sem descrição'}</small>`;
+                                li.addEventListener('click', () => {
+                                    elements.modalInputCodigo.value = item.codigo_item;
+                                    elements.modalInputBitola.value = item.dimensao;
+                                    elements.modalInputGt.value = item.gt;
+                                    elements.autocompleteList.classList.remove('visible');
+                                });
+                                elements.autocompleteList.appendChild(li);
+                            });
+                            elements.autocompleteList.classList.add('visible');
+                        } else {
+                            elements.autocompleteList.classList.remove('visible');
+                        }
+                    } catch (err) {
+                        console.error('Erro no autocomplete:', err);
+                        elements.autocompleteList.classList.remove('visible');
+                    }
+                }, 300);
+            });
+
+            // --- Inicialização ---
             elements.themeToggle.addEventListener('change', () => {
                 const isDark = elements.themeToggle.checked;
                 document.body.classList.toggle('dark-theme', isDark);
