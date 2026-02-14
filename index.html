@@ -2220,54 +2220,80 @@ function aplicarEmpilhamentoPorEsteira(forno) {
                 renderizarLayoutStep2();
                 renderizarTudoAPartirDoEstado();
             }
-            function vincularEventosDragDrop() {
-                const draggables = document.querySelectorAll('.item-card');
-                const containers = document.querySelectorAll('.lista-drop');
-                draggables.forEach(draggable => {
-                    draggable.addEventListener('dragstart', () => draggable.classList.add('dragging'));
-                    draggable.addEventListener('dragend', () => draggable.classList.remove('dragging'));
-                });
-                containers.forEach(container => {
-                    container.addEventListener('dragover', e => { e.preventDefault(); container.classList.add('drag-over'); });
-                    container.addEventListener('dragleave', () => container.classList.remove('drag-over'));
-                    container.addEventListener('drop', e => {
-                        e.preventDefault();
-                        container.classList.remove('drag-over');
-                        const draggable = document.querySelector('.dragging');
-                        if (!draggable) return;
-                        const cardData = extrairDadosDoCard(draggable);
-                        const sourceList = draggable.parentElement;
-                        if (sourceList.id === container.id) return;
-                        if (container.id.startsWith('lista-arranjo-')) {
-                            const targetForno = getFornoFromListId(container.id);
-                            const receita = estadoFornos[targetForno].receita;
-                            if (receita) {
-                                const [min, max] = receita.split('-').map(Number);
-                                const bitola = getEspessura(cardData);
-                                const isPlana = molasPlanasCodigos.has(cardData.codigo);
-                                const isCompativel = (bitola >= min && bitola <= max) || (isPlana && (bitola * 2) >= min && (bitola * 2) <= max);
-                                if (!isCompativel) {
-                                    showAlert(`A bitola (${bitola}mm) do item ${cardData.codigo} é incompatível com a receita (${min}-${max}mm) selecionada para este forno.`, "Bloqueio de Segurança", "error");
-                                    return;
-                                }
-                            }
-                        }
-                        if (sourceList.id === 'itens-pendentes-lista') {
-                            estadoPendentes = estadoPendentes.filter(c => c.id !== cardData.id);
-                        } else {
-                            const sourceForno = getFornoFromListId(sourceList.id);
-                            if (estadoFornos[sourceForno]) estadoFornos[sourceForno].cards = estadoFornos[sourceForno].cards.filter(c => c.id !== cardData.id);
-                        }
-                        if (container.id === 'itens-pendentes-lista') {
-                             estadoPendentes.push(cardData);
-                        } else {
-                             const targetForno = getFornoFromListId(container.id);
-                             if (estadoFornos[targetForno]) estadoFornos[targetForno].cards.push(cardData);
-                        }
-                        renderizarTudoAPartirDoEstado();
-                    });
-                });
+function vincularEventosDragDrop() {
+    const draggables = document.querySelectorAll('.item-card');
+    const containers = document.querySelectorAll('.lista-drop');
+    draggables.forEach(draggable => {
+        draggable.addEventListener('dragstart', () => draggable.classList.add('dragging'));
+        draggable.addEventListener('dragend', () => draggable.classList.remove('dragging'));
+    });
+    containers.forEach(container => {
+        container.addEventListener('dragover', e => { e.preventDefault(); container.classList.add('drag-over'); });
+        container.addEventListener('dragleave', () => container.classList.remove('drag-over'));
+        container.addEventListener('drop', e => {
+            e.preventDefault();
+            container.classList.remove('drag-over');
+            const draggable = document.querySelector('.dragging');
+            if (!draggable) return;
+
+            const cardData = extrairDadosDoCard(draggable);
+            const sourceList = draggable.parentElement;
+
+            // *** NOVA REGRA DE BLOQUEIO DE GT ***
+            // A validação só ocorre ao mover um item PARA um forno.
+            if (container.id.startsWith('lista-arranjo-')) {
+                const targetForno = getFornoFromListId(container.id);
+                
+                // Pega os GTs configurados para o forno de destino na Etapa 1
+                const gtsConfiguradosParaForno = Array.from(document.querySelectorAll(`.gt-input-field-${targetForno}`))
+                                                    .map(input => input.value.trim().toUpperCase())
+                                                    .filter(Boolean);
+
+                // Se a lista de GTs não estiver vazia e o GT do card não estiver incluído, bloqueia.
+                if (gtsConfiguradosParaForno.length > 0 && !gtsConfiguradosParaForno.includes(cardData.gt.toUpperCase())) {
+                    showAlert(
+                        `Ação bloqueada: O GT "${cardData.gt}" não pertence ao arranjo deste forno.`,
+                        'GT Incompatível',
+                        'error'
+                    );
+                    return; // Cancela a operação de drop.
+                }
+
+                // Validação de receita de empilhamento (já existente)
+                const receita = estadoFornos[targetForno].receita;
+                if (receita) {
+                    const [min, max] = receita.split('-').map(Number);
+                    const bitola = getEspessura(cardData);
+                    const isPlana = molasPlanasCodigos.has(cardData.codigo);
+                    const isCompativel = (bitola >= min && bitola <= max) || (isPlana && (bitola * 2) >= min && (bitola * 2) <= max);
+                    if (!isCompativel) {
+                        showAlert(`A bitola (${bitola}mm) do item ${cardData.codigo} é incompatível com a receita (${min}-${max}mm) selecionada para este forno.`, "Bloqueio de Segurança", "error");
+                        return;
+                    }
+                }
             }
+            
+            if (sourceList.id === container.id) return;
+
+            // Lógica padrão para mover o card entre os estados
+            if (sourceList.id === 'itens-pendentes-lista') {
+                estadoPendentes = estadoPendentes.filter(c => c.id !== cardData.id);
+            } else {
+                const sourceForno = getFornoFromListId(sourceList.id);
+                if (estadoFornos[sourceForno]) estadoFornos[sourceForno].cards = estadoFornos[sourceForno].cards.filter(c => c.id !== cardData.id);
+            }
+
+            if (container.id === 'itens-pendentes-lista') {
+                estadoPendentes.push(cardData);
+            } else {
+                const targetForno = getFornoFromListId(container.id);
+                if (estadoFornos[targetForno]) estadoFornos[targetForno].cards.push(cardData);
+            }
+            renderizarTudoAPartirDoEstado();
+        });
+    });
+}
+
             function criarCard(containerDOM, cardData) {
                 const card = document.createElement('div');
                 card.className = 'item-card';
