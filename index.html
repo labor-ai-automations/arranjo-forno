@@ -1032,10 +1032,13 @@
                 <div id="colunas-fornos-ativos" style="display: contents;"></div>
             
                 <div class="arranjo-coluna">
-                    <div class="arranjo-header">
-                        <h3>ITENS PENDENTES</h3>
-                        <button id="btn-add-manual" class="btn btn-sm btn-secondary">+ Adicionar Manual</button>
-                    </div>
+                <div class="arranjo-header">
+                    <h3>ITENS PENDENTES</h3>
+                    <div id="totalizador-pendentes" class="totalizador">0 OPs | 0 Molas</div>
+                </div>
+                <div style="text-align: right; margin-bottom: 1rem;">
+                    <button id="btn-add-manual" class="btn btn-sm btn-secondary">+ Adicionar Manual</button>
+                </div>
                     <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 1rem; margin-bottom: 1rem; padding: 0.5rem;">
                         <input type="search" id="search-pendentes" placeholder="Pesquisar por Código/OP...">
                         <select id="filter-bitola-pendentes">
