@@ -2437,16 +2437,28 @@ function aplicarEmpilhamentoPorEsteira(forno) {
                 }
             
                 try {
+                    // A busca por todos os dados (*) já estava correta.
                     const { data, error } = await _supabase.from('itens_mestre').select('*').eq('codigo_item', codigo).single();
                     if (error || !data) {
                         showAlert(`O código do item "${codigo}" não foi encontrado no cadastro mestre.`, 'Item não encontrado', 'error');
                         return;
                     }
+
+                    // *** CORREÇÃO APLICADA AQUI ***
+                    // Mapeando corretamente os dados do Supabase para as propriedades que o card visual espera.
                     const newCard = {
-                        id: `manual-${Date.now()}`, op: op, codigo: data.codigo_item, Descrição: data.descricao,
-                        Dimensões: data.dimensao, gt: data.gt, quantidade: quantidade, peso_unit: data.peso_kg,
-                        isEmpilhado: false, forno_destino: ''
+                        id: `manual-${Date.now()}`,
+                        op: op,
+                        codigo: data.codigo_item,
+                        Descrição: data.descricao,  // Garante que a descrição seja passada
+                        Dimensões: data.bitola,     // Mapeia a coluna 'bitola' para a propriedade 'Dimensões'
+                        gt: data.gt,
+                        quantidade: quantidade,
+                        peso_unit: data.peso_kg,    // Garante que o peso seja passado
+                        isEmpilhado: false,
+                        forno_destino: ''
                     };
+                    
                     estadoPendentes.push(newCard);
                     renderizarTudoAPartirDoEstado();
                     elements.modalManualOverlay.classList.remove('open');
