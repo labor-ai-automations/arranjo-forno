@@ -102,14 +102,20 @@
             display: grid;
             grid-template-columns: 1fr auto 1fr; 
             align-items: center;
-            padding: 1rem 2rem;
+            padding: 0 2rem;
             background-color: var(--bg-card);
             border-bottom: 1px solid var(--border-color);
             position: relative;
+            height: 70px; /* Mantém a barra fina */
+            z-index: 1000;
         }
         
         header .logo-area { 
-            text-align: center; 
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 200px;
         }
         
         header .left-actions { 
@@ -126,19 +132,16 @@
         }
         
         header img { 
-            height: 120px; /* Dobramos o tamanho para dar impacto visual */
+            height: 180px; /* Logo grande */
             width: auto;
-            margin: 10px 0;
+            position: absolute;
+            top: -25px; /* Faz a logo flutuar para fora da barra */
             transition: transform 0.3s ease;
         }
 
         header img:hover {
-            transform: scale(1.05); /* Efeito suave ao passar o mouse */
+            transform: scale(1.05);
         }
-
-        /* Ajuste fino do grid para acomodar a logo maior */
-        header {
-            padding: 0.5rem 2rem;
             min-height: 140px;
         }
         
