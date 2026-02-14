@@ -2039,7 +2039,19 @@ function renderizarTudoAPartirDoEstado() {
     const searchTerm = document.getElementById('search-pendentes').value.toLowerCase();
     const bitolaFilter = document.getElementById('filter-bitola-pendentes').value;
 
-    let pendentesFiltrados = [...estadoPendentes];
+    // Cria uma cópia para não modificar o estado original durante a renderização
+    let pendentesParaRenderizar = [...estadoPendentes];
+
+    // *** NOVA LÓGICA DE ORDENAÇÃO ***
+    // Ordena a lista de pendentes para que os itens com 'forno_destino' apareçam primeiro.
+    pendentesParaRenderizar.sort((a, b) => {
+        const aTemDestino = a.forno_destino ? 1 : 0;
+        const bTemDestino = b.forno_destino ? 1 : 0;
+        return bTemDestino - aTemDestino; // Ordena de forma decrescente (1 vem antes de 0)
+    });
+
+    // Aplica os filtros sobre a lista já ordenada
+    let pendentesFiltrados = pendentesParaRenderizar;
 
     if (searchTerm) {
         pendentesFiltrados = pendentesFiltrados.filter(card =>
