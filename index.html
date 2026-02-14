@@ -1280,7 +1280,7 @@
     <p>Desenvolvido por <strong>Labor_AI</strong></p>
     <p>
         <a href="https://ctfamadobrasil.com.br/wp-content/uploads/2026/02/Esp-Tec-Forno-Grande.jpeg" target="_blank" style="color: var(--text-secondary); text-decoration: none; margin: 0 10px;">📄 Spec. Forno Grande</a> | 
-        <a href="https://ctfamadobrasil.com.br/wp-content/uploads/2026/02/Esp-Tec-forno-pequeno.jpeg" target="_blank" style="color: var(--text-secondary); text-decoration: none; margin: 0 10px;">📄 Spec. Forno Pequeno</a>
+        <a href="https://ctfamadobrasil.com.br/wp-content/uploads/2026/02/Esp-Tec-Forno-Pequeno.jpeg" target="_blank" style="color: var(--text-secondary); text-decoration: none; margin: 0 10px;">📄 Spec. Forno Pequeno</a>
     </p>
     <p>AV BENTO MUNHOZ DA ROCHA NETTO 632 SL 1905-1908 - Torre Norte - 87030-010 - Maringá/PR</p>
     <p>contato@laborai.com.br</p>
@@ -2021,18 +2021,43 @@
                     if (unicoForno) popularFiltroReceitas(unicoForno, document.getElementById('filtro-intervalo-empilhamento'));
                 }
             }
-            function renderizarTudoAPartirDoEstado() {
-                document.querySelectorAll('.lista-drop').forEach(lista => lista.innerHTML = '');
-                for (const forno in estadoFornos) {
-                    if (estadoFornos.hasOwnProperty(forno)) {
-                        const listaDOM = document.getElementById(`lista-arranjo-${forno}`);
-                        if (listaDOM) estadoFornos[forno].cards.forEach(cardData => criarCard(listaDOM, cardData));
-                    }
-                }
-                estadoPendentes.forEach(cardData => criarCard(elements.itensPendentesLista, cardData));
-                vincularEventosDragDrop();
-                atualizarInterfaceCompleta();
-            }
+function renderizarTudoAPartirDoEstado() {
+    document.querySelectorAll('.lista-drop').forEach(lista => lista.innerHTML = '');
+    
+    // Renderiza cards dos fornos (sem alteração)
+    for (const forno in estadoFornos) {
+        if (estadoFornos.hasOwnProperty(forno)) {
+            const listaDOM = document.getElementById(`lista-arranjo-${forno}`);
+            if (listaDOM) estadoFornos[forno].cards.forEach(cardData => criarCard(listaDOM, cardData));
+        }
+    }
+
+    // LÓGICA DE FILTRAGEM PARA ITENS PENDENTES
+    const searchTerm = document.getElementById('search-pendentes').value.toLowerCase();
+    const bitolaFilter = document.getElementById('filter-bitola-pendentes').value;
+
+    let pendentesFiltrados = [...estadoPendentes];
+
+    if (searchTerm) {
+        pendentesFiltrados = pendentesFiltrados.filter(card =>
+            (card.op && String(card.op).toLowerCase().includes(searchTerm)) ||
+            (card.codigo && String(card.codigo).toLowerCase().includes(searchTerm))
+        );
+    }
+
+    if (bitolaFilter) {
+        pendentesFiltrados = pendentesFiltrados.filter(card => {
+            // Usa a função getEspessura para comparar com o valor do filtro
+            return getEspessura(card) == parseFloat(bitolaFilter);
+        });
+    }
+    
+    // Renderiza apenas os cards pendentes que passaram pelo filtro
+    pendentesFiltrados.forEach(cardData => criarCard(elements.itensPendentesLista, cardData));
+
+    vincularEventosDragDrop();
+    atualizarInterfaceCompleta();
+}
             function atualizarInterfaceCompleta() {
                 fornosAtivos.forEach(forno => {
                     const cardsNoForno = estadoFornos[forno] ? estadoFornos[forno].cards : [];
@@ -2478,8 +2503,11 @@ elements.modalInputCodigo.addEventListener('input', () => {
             });
 
             // --- Inicialização ---
-            elements.themeToggle.addEventListener('change', () => {
-                const isDark = elements.themeToggle.checked;
+        document.getElementById('search-pendentes').addEventListener('input', renderizarTudoAPartirDoEstado);
+        document.getElementById('filter-bitola-pendentes').addEventListener('change', renderizarTudoAPartirDoEstado);
+
+        elements.themeToggle.addEventListener('change', () => {
+            const isDark = elements.themeToggle.checked;
                 document.body.classList.toggle('dark-theme', isDark);
                 document.body.classList.toggle('light-theme', !isDark);
                 elements.logo.src = isDark ? 'https://ctfamadobrasil.com.br/wp-content/uploads/2025/12/Gemini_Generated_Image_v8cib8v8cib8v8ci-removebg-preview.png' : 'https://ctfamadobrasil.com.br/wp-content/uploads/2025/09/logo.png';
