@@ -947,10 +947,12 @@
 <body class="dark-theme">
 
     <header>
-        <div class="left-actions">
+         <div class="left-actions">
             <button id="btn-master-manager" class="nav-btn">🛠️ Itens Mestre</button>
             <button id="btn-history" class="nav-btn">📜 Histórico</button>
             <button id="btn-registro-barras" class="nav-btn">📦 Registro de Barras</button>
+            <button id="btn-spec-grande" class="nav-btn">📄 Spec. Forno Grande</button>
+            <button id="btn-spec-pequeno" class="nav-btn">📄 Spec. Forno Pequeno</button>
         </div>
         <div class="logo-area">
             <img id="logo-fama" src="https://ctfamadobrasil.com.br/wp-content/uploads/2025/12/Gemini_Generated_Image_v8cib8v8cib8v8ci-removebg-preview.png" alt="Logo Molas Fama">
@@ -1273,6 +1275,13 @@
             <h3 id="custom-dialog-title" class="custom-dialog-title">Atenção</h3>
             <p id="custom-dialog-msg" class="custom-dialog-msg">Mensagem aqui</p>
             <div id="custom-dialog-actions" class="custom-dialog-actions"></div>
+        </div>
+    </div>
+
+    <div id="spec-modal-overlay" class="custom-dialog-overlay" style="--bg-card: #fff;">
+        <div id="spec-modal-box" class="custom-dialog-box" style="max-width: 80vw; max-height: 90vh; padding: 1rem; background: var(--bg-card);">
+            <span id="spec-modal-close" style="position: absolute; top: 15px; right: 20px; font-size: 2rem; cursor: pointer; color: #555;">&times;</span>
+            <img id="spec-modal-img" src="" alt="Especificação Técnica do Forno" style="width: 100%; height: 100%; object-fit: contain;">
         </div>
     </div>
 
@@ -2058,53 +2067,97 @@
             function getFornoFromListId(listId) { return listId.replace('lista-arranjo-', ''); }
 
             // --- FUNÇÕES DE FILTRO INDEPENDENTES (NÃO DESTRUTIVAS) ---
-            function aplicarEmpilhamentoPorEsteira(forno) {
-                const selectFiltro = fornosAtivos.size > 1
-                    ? document.querySelector(`.filtro-empilhamento-forno[data-forno="${forno}"]`)
-                    : elements.globalEmpilhamentoSelect;
-                const intervalo = selectFiltro.value;
-                estadoFornos[forno].receita = intervalo;
-                if (!intervalo) {
-                    estadoFornos[forno].cards.forEach(card => card.isEmpilhado = false);
-                    renderizarTudoAPartirDoEstado();
-                    return;
-                }
-                try {
-                    const [tetoMinimo, tetoMaximo] = intervalo.split('-').map(Number);
-                    const candidatos = [...estadoFornos[forno].cards];
-                    candidatos.forEach(c => c.isEmpilhado = false);
-                    const idsUsados = new Set();
-                    const novoArranjoEsteira = [];
-                    const naoPareados = [];
-                    candidatos.sort((a, b) => getEspessura(b) - getEspessura(a));
-                    for (let i = 0; i < candidatos.length; i++) {
-                        const base = candidatos[i];
-                        if (idsUsados.has(base.id)) continue;
-                        const espessuraBase = getEspessura(base);
-                        if (espessuraBase >= tetoMinimo && espessuraBase <= tetoMaximo) {
-                            let parceiroEncontrado = null;
-                            for (let j = 0; j < candidatos.length; j++) {
-                                const p = candidatos[j];
-                                if (i === j || idsUsados.has(p.id)) continue;
-                                const espessuraDobrada = getEspessura(p) * 2;
-                                if (molasPlanasCodigos.has(p.codigo) && espessuraDobrada >= tetoMinimo && espessuraDobrada <= tetoMaximo) {
-                                    parceiroEncontrado = p;
-                                    break;
-                                }
-                            }
-                            if (parceiroEncontrado) {
-                                parceiroEncontrado.isEmpilhado = true;
-                                novoArranjoEsteira.push(base, parceiroEncontrado);
-                                idsUsados.add(base.id);
-                                idsUsados.add(parceiroEncontrado.id);
-                            }
-                        }
-                    }
-                    candidatos.forEach(c => { if (!idsUsados.has(c.id)) naoPareados.push(c); });
-                    estadoFornos[forno].cards = [...novoArranjoEsteira, ...naoPareados];
-                    renderizarTudoAPartirDoEstado();
-                } catch (err) { showAlert(`Erro ao aplicar empilhamento: ${err.message}`, 'Erro', 'error'); }
+function aplicarEmpilhamentoPorEsteira(forno) {
+    const selectFiltro = fornosAtivos.size > 1
+        ? document.querySelector(`.filtro-empilhamento-forno[data-forno="${forno}"]`)
+        : elements.globalEmpilhamentoSelect;
+    const intervalo = selectFiltro.value;
+    estadoFornos[forno].receita = intervalo;
+
+    const todosOsCards = [...estadoFornos[forno].cards, ...estadoPendentes];
+    const cardsParaEsteForno = todosOsCards.filter(c => c.forno_destino === forno || !c.forno_destino);
+    estadoPendentes = todosOsCards.filter(c => !cardsParaEsteForno.includes(c));
+    
+    // Se não há intervalo (receita), todos os cards do forno vão para a esteira e reseta o empilhamento.
+    if (!intervalo) {
+        cardsParaEsteForno.forEach(card => card.isEmpilhado = false);
+        estadoFornos[forno].cards = cardsParaEsteForno;
+        renderizarTudoAPartirDoEstado();
+        return;
+    }
+
+    try {
+        const [tetoMinimo, tetoMaximo] = intervalo.split('-').map(Number);
+        
+        // 1. Primeiro, separa os que são compatíveis dos que não são.
+        const compativeis = [];
+        const incompativeis = [];
+        
+        cardsParaEsteForno.forEach(card => {
+            const espessura = getEspessura(card);
+            const isPlana = molasPlanasCodigos.has(card.codigo);
+            // Um card é compatível se sua bitola está no range, OU se é uma mola plana e sua bitola dobrada está no range
+            const isCompativel = (espessura >= tetoMinimo && espessura <= tetoMaximo) ||
+                                 (isPlana && (espessura * 2) >= tetoMinimo && (espessura * 2) <= tetoMaximo);
+            
+            if (isCompativel) {
+                compativeis.push(card);
+            } else {
+                incompativeis.push(card);
             }
+        });
+
+        // 2. Os incompatíveis vão direto para a lista de pendentes.
+        estadoPendentes.push(...incompativeis);
+        
+        // 3. Agora, aplica a lógica de pareamento APENAS nos compatíveis.
+        const candidatos = compativeis;
+        candidatos.forEach(c => c.isEmpilhado = false);
+        const idsUsados = new Set();
+        const novoArranjoEsteira = [];
+        const naoPareados = [];
+        candidatos.sort((a, b) => getEspessura(b) - getEspessura(a)); // Ordena para priorizar as molas base mais grossas
+        
+        for (let i = 0; i < candidatos.length; i++) {
+            const base = candidatos[i];
+            if (idsUsados.has(base.id)) continue;
+            
+            const espessuraBase = getEspessura(base);
+            // Verifica se este item pode ser uma BASE (bitola normal no range)
+            if (espessuraBase >= tetoMinimo && espessuraBase <= tetoMaximo) {
+                let parceiroEncontrado = null;
+                // Procura um PARCEIRO para esta base
+                for (let j = 0; j < candidatos.length; j++) {
+                    const p = candidatos[j];
+                    if (i === j || idsUsados.has(p.id)) continue;
+                    
+                    const espessuraDobrada = getEspessura(p) * 2;
+                    // Verifica se o item 'p' pode ser um PARCEIRO (plana e bitola*2 no range)
+                    if (molasPlanasCodigos.has(p.codigo) && espessuraDobrada >= tetoMinimo && espessuraDobrada <= tetoMaximo) {
+                        parceiroEncontrado = p;
+                        break;
+                    }
+                }
+                
+                if (parceiroEncontrado) {
+                    parceiroEncontrado.isEmpilhado = true;
+                    novoArranjoEsteira.push(base, parceiroEncontrado);
+                    idsUsados.add(base.id);
+                    idsUsados.add(parceiroEncontrado.id);
+                }
+            }
+        }
+        
+        candidatos.forEach(c => { if (!idsUsados.has(c.id)) naoPareados.push(c); });
+        
+        // O novo estado do forno é o arranjo pareado + os itens compatíveis que não formaram par.
+        estadoFornos[forno].cards = [...novoArranjoEsteira, ...naoPareados];
+        renderizarTudoAPartirDoEstado();
+
+    } catch (err) {
+        showAlert(`Erro ao aplicar empilhamento: ${err.message}`, 'Erro', 'error');
+    }
+}
             function aplicarOrdenacaoPorEsteira(forno, direcao) {
                 const seletor = fornosAtivos.size > 1 
                     ? document.querySelector(`.bitola-referencia-forno[data-forno="${forno}"]`) 
@@ -2438,6 +2491,36 @@ elements.modalInputCodigo.addEventListener('input', () => {
                 inicializarEstados();
             }
             initApp();
+
+            // --- LÓGICA DO MODAL DE ESPECIFICAÇÕES TÉCNICAS ---
+            const specModalOverlay = document.getElementById('spec-modal-overlay');
+            const specModalImg = document.getElementById('spec-modal-img');
+            const btnSpecGrande = document.getElementById('btn-spec-grande');
+            const btnSpecPequeno = document.getElementById('btn-spec-pequeno');
+            const btnSpecClose = document.getElementById('spec-modal-close');
+
+            const urlFornoGrande = 'https://ctfamadobrasil.com.br/wp-content/uploads/2026/02/Esp-Tec-Forno-Grande.jpeg';
+            const urlFornoPequeno = 'https://ctfamadobrasil.com.br/wp-content/uploads/2026/02/Esp-Tec-Forno-Pequeno.jpeg';
+
+            function openSpecModal(imageUrl) {
+                specModalImg.src = imageUrl;
+                specModalOverlay.classList.add('open');
+            }
+
+            function closeSpecModal() {
+                specModalOverlay.classList.remove('open');
+                specModalImg.src = ''; // Limpa a imagem para evitar "flash" na próxima abertura
+            }
+
+            btnSpecGrande.addEventListener('click', () => openSpecModal(urlFornoGrande));
+            btnSpecPequeno.addEventListener('click', () => openSpecModal(urlFornoPequeno));
+            btnSpecClose.addEventListener('click', closeSpecModal);
+            specModalOverlay.addEventListener('click', (e) => {
+                // Fecha o modal apenas se o clique for no fundo (overlay) e não na imagem/caixa
+                if (e.target === specModalOverlay) {
+                    closeSpecModal();
+                }
+            });
         });
     </script>
 </body>
