@@ -106,17 +106,20 @@
             background-color: var(--bg-card);
             border-bottom: 1px solid var(--border-color);
             position: relative;
-            height: 60px; /* Barra fina e fixa */
+            height: 65px; /* Altura ideal para a barra de botões */
             z-index: 1000;
         }
         
         header .logo-area { 
-            position: relative;
             display: flex;
             justify-content: center;
-            align-items: flex-start; /* Ancorado no topo */
-            width: 300px;
+            align-items: center;
+            width: 350px; /* Largura para acomodar a logo maior */
             height: 100%;
+        }
+        
+        header .left-actions, header .right-actions {
+            flex: 1; /* Faz as laterais ocuparem o mesmo espaço para garantir a centralização real */
         }
         
         header .left-actions { 
@@ -133,12 +136,16 @@
         }
         
         header img { 
-            height: 220px; /* Logo 50% maior que a anterior */
+            height: 330px; /* Aumentado em 50% em relação aos 220px anteriores */
             width: auto;
             position: absolute;
-            top: -15px; /* Flutua a partir do topo do header */
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%); /* Centralização absoluta no Header */
             transition: transform 0.3s ease;
-            filter: drop-shadow(0px 4px 8px rgba(0,0,0,0.3));
+            filter: drop-shadow(0px 4px 12px rgba(0,0,0,0.4));
+            z-index: 1100;
+            pointer-events: none;
         }
 
         header img:hover {
@@ -979,15 +986,17 @@
 </head>
 <body class="dark-theme">
 
-    <header>
-         <div class="left-actions">
+<header>
+        <div class="left-actions">
             <button id="btn-master-manager" class="nav-btn">🛠️ Itens Mestre</button>
             <button id="btn-history" class="nav-btn">📜 Histórico</button>
             <button id="btn-registro-barras" class="nav-btn">📦 Registro de Barras</button>
         </div>
-<div class="logo-area">
-    <img id="logo-kosmos" src="https://ctfamadobrasil.com.br/wp-content/uploads/2026/02/image-removebg-preview-3.png" alt="Kosmos PCP">
-</div>
+        
+        <div class="logo-area">
+            <img id="logo-kosmos" src="https://ctfamadobrasil.com.br/wp-content/uploads/2026/02/image-removebg-preview-3.png" alt="Kosmos PCP">
+        </div>
+
         <div class="right-actions">
             <div class="theme-switcher">
                 ☀️ <input type="checkbox" id="theme-toggle" checked> 🌙
