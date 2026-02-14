@@ -126,7 +126,20 @@
         }
         
         header img { 
-            height: 55px;
+            height: 120px; /* Dobramos o tamanho para dar impacto visual */
+            width: auto;
+            margin: 10px 0;
+            transition: transform 0.3s ease;
+        }
+
+        header img:hover {
+            transform: scale(1.05); /* Efeito suave ao passar o mouse */
+        }
+
+        /* Ajuste fino do grid para acomodar a logo maior */
+        header {
+            padding: 0.5rem 2rem;
+            min-height: 140px;
         }
         
         /* Botões de Navegação do Header */
@@ -953,7 +966,7 @@
             <button id="btn-registro-barras" class="nav-btn">📦 Registro de Barras</button>
         </div>
 <div class="logo-area">
-    <img id="logo-kosmos" src="https://ctfamadobrasil.com.br/wp-content/uploads/2026/02/image-removebg-preview-3.png" alt="Kosmos PCP" style="height: 60px;">
+    <img id="logo-kosmos" src="https://ctfamadobrasil.com.br/wp-content/uploads/2026/02/image-removebg-preview-3.png" alt="Kosmos PCP">
 </div>
         <div class="right-actions">
             <div class="theme-switcher">
