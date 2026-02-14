@@ -2105,9 +2105,10 @@ function atualizarInterfaceCompleta() {
     // Atualiza totalizador para a coluna de pendentes
     const totalOPsPendentes = estadoPendentes.length;
     const totalMolasPendentes = estadoPendentes.reduce((acc, card) => acc + (parseInt(card.quantidade) || 0), 0);
+    const totalPesoKgPendentes = estadoPendentes.reduce((acc, card) => acc + ((parseFloat(card.quantidade) || 0) * (parseFloat(card.peso_unit) || 0)), 0);
     const totalizadorPendentes = document.getElementById('totalizador-pendentes');
     if (totalizadorPendentes) {
-        totalizadorPendentes.textContent = `${totalOPsPendentes} OPs | ${totalMolasPendentes} Molas`;
+        totalizadorPendentes.textContent = `${totalOPsPendentes} OPs | ${totalMolasPendentes} Molas | ${totalPesoKgPendentes.toFixed(0)} kg`;
     }
 
     if (fornosAtivos.size === 1) popularSeletorBitolaReferenciaGlobal();
