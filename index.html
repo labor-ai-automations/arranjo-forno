@@ -2073,28 +2073,46 @@ function renderizarTudoAPartirDoEstado() {
     vincularEventosDragDrop();
     atualizarInterfaceCompleta();
 }
-            function atualizarInterfaceCompleta() {
-                fornosAtivos.forEach(forno => {
-                    const cardsNoForno = estadoFornos[forno] ? estadoFornos[forno].cards : [];
-                    let totalPeso = cardsNoForno.reduce((acc, card) => acc + ((parseFloat(card.quantidade) || 0) * (parseFloat(card.peso_unit) || 0)), 0);
-                    const totalizador = document.getElementById(`totalizador-${forno}`);
-                    if (totalizador) totalizador.textContent = `${cardsNoForno.length} OPs | ${(totalPeso / 1000).toFixed(1)}T`;
-                    const capacityBar = document.getElementById(`capacity-bar-${forno}`);
-                    const capacityText = document.getElementById(`capacity-text-${forno}`);
-                    if (capacityBar && capacityText) {
-                        const maxCapacity = 60000;
-                        const percentage = Math.min((totalPeso / maxCapacity) * 100, 100);
-                        capacityBar.style.width = `${percentage}%`;
-                        capacityBar.style.backgroundColor = percentage > 85 ? 'var(--color-danger)' : percentage > 60 ? 'var(--color-warning)' : 'var(--color-success)';
-                        capacityText.textContent = `${(totalPeso / 1000).toFixed(1)}T / 60.0T`;
-                    }
-                    const selectReceita = document.querySelector(`.filtro-empilhamento-forno[data-forno="${forno}"]`);
-                    if (selectReceita) selectReceita.value = estadoFornos[forno].receita || "";
-                    popularSeletorBitolaPorEsteira(forno);
-                });
-                if (fornosAtivos.size === 1) popularSeletorBitolaReferenciaGlobal();
-                popularFiltroBitolaPendentes();
-            }
+function atualizarInterfaceCompleta() {
+    // Atualiza totalizadores para cada forno ativo
+    fornosAtivos.forEach(forno => {
+        const cardsNoForno = estadoFornos[forno] ? estadoFornos[forno].cards : [];
+        const totalOPs = cardsNoForno.length;
+        const totalMolas = cardsNoForno.reduce((acc, card) => acc + (parseInt(card.quantidade) || 0), 0);
+        const totalPesoKg = cardsNoForno.reduce((acc, card) => acc + ((parseFloat(card.quantidade) || 0) * (parseFloat(card.peso_unit) || 0)), 0);
+
+        const totalizador = document.getElementById(`totalizador-${forno}`);
+        if (totalizador) {
+            totalizador.textContent = `${totalOPs} OPs | ${totalMolas} Molas`;
+        }
+
+        const capacityBar = document.getElementById(`capacity-bar-${forno}`);
+        const capacityText = document.getElementById(`capacity-text-${forno}`);
+        if (capacityBar && capacityText) {
+            const maxCapacity = 60000;
+            const percentage = Math.min((totalPesoKg / maxCapacity) * 100, 100);
+            capacityBar.style.width = `${percentage}%`;
+            capacityBar.style.backgroundColor = percentage > 85 ? 'var(--color-danger)' : percentage > 60 ? 'var(--color-warning)' : 'var(--color-success)';
+            capacityText.textContent = `${totalPesoKg.toFixed(0)} kg / ${maxCapacity} kg`;
+        }
+
+        const selectReceita = document.querySelector(`.filtro-empilhamento-forno[data-forno="${forno}"]`);
+        if (selectReceita) selectReceita.value = estadoFornos[forno].receita || "";
+        
+        popularSeletorBitolaPorEsteira(forno);
+    });
+
+    // Atualiza totalizador para a coluna de pendentes
+    const totalOPsPendentes = estadoPendentes.length;
+    const totalMolasPendentes = estadoPendentes.reduce((acc, card) => acc + (parseInt(card.quantidade) || 0), 0);
+    const totalizadorPendentes = document.getElementById('totalizador-pendentes');
+    if (totalizadorPendentes) {
+        totalizadorPendentes.textContent = `${totalOPsPendentes} OPs | ${totalMolasPendentes} Molas`;
+    }
+
+    if (fornosAtivos.size === 1) popularSeletorBitolaReferenciaGlobal();
+    popularFiltroBitolaPendentes();
+}
             function extrairDadosDoCard(cardElement) {
                 const data = cardElement.dataset;
                 return { id: data.id, op: data.ordemProducao, codigo: data.codigo, Descrição: data.descricao, Dimensões: data.dimensao, gt: data.gt, quantidade: parseInt(data.quantidade), peso_unit: parseFloat(data.peso), isEmpilhado: data.isEmpilhado === 'true', forno_destino: data.fornoDestino };
