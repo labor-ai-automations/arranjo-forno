@@ -1658,44 +1658,6 @@
             // --- Lógica do Histórico ---
             let currentTab = 'simulacoes'; 
 
-function formatarParametros(rawParams) {
-    if (!rawParams) return "N/A";
-    
-    console.log('===== DEBUG formatarParametros =====');
-    console.log('Raw input:', rawParams);
-    console.log('Type:', typeof rawParams);
-    
-    try {
-        // Parse inicial
-        let params = rawParams;
-        
-        // Primeiro parse (se for string)
-        if (typeof params === 'string') {
-            try {
-                params = JSON.parse(params);
-                console.log('Após 1º parse:', params);
-            } catch (e) {
-                console.error('Falha no 1º parse:', e);
-                return "Formato inválido";
-            }
-        }
-        
-        // Segundo parse (se ainda for string)
-        if (typeof params === 'string') {
-            try {
-                params = JSON.parse(params);
-                console.log('Após 2º parse:', params);
-            } catch (e) {
-                console.error('Falha no 2º parse:', e);
-                return "Formato inválido";
-            }
-        }
-        
-        console.log('Params final:', params);
-        console.log('Type:', typeof params);
-
-        // Caso 1: Múltiplos fornos (config_fornos)
-function formatarParametros(rawParams) {
     if (!rawParams) return "N/A";
     
     try {
