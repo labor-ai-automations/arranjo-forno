@@ -1182,10 +1182,15 @@
     </main>
 
     <!-- VIEW HISTÓRICO -->
-    <main id="view-historico" class="container hidden">
+<main id="view-historico" class="container hidden">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
-            <h2>Histórico de Arranjos Gerados</h2>
+            <h2>Histórico Centralizado</h2>
             <button id="btn-voltar-producao-history" class="btn btn-secondary">← Voltar para Produção</button>
+        </div>
+
+        <div style="display: flex; gap: 10px; margin-bottom: 1rem;">
+            <button id="tab-simulacoes" class="btn btn-secondary active" style="flex: 1;">🔄 Simulações (Arranjos)</button>
+            <button id="tab-relatorios" class="btn btn-secondary" style="flex: 1;">📄 Prontas para o Forno (PDFs)</button>
         </div>
 
         <div class="card">
@@ -1645,72 +1650,81 @@
             elements.csvFileInput.addEventListener('change', () => { if (elements.csvFileInput.files.length > 0) elements.btnCarregarCsv.textContent = `Arquivo: ${elements.csvFileInput.files[0].name}`; });
 
             // --- Lógica do Histórico ---
+            let currentTab = 'simulacoes'; 
+
             function formatarParametros(rawParams) {
                 if (!rawParams) return "N/A";
-                let params = rawParams;
-                if (typeof params === 'string') { try { params = JSON.parse(params); } catch (e) { return rawParams; } }
-                if (typeof params === 'string') { try { params = JSON.parse(params); } catch (e) { } }
+                let params = typeof rawParams === 'string' ? JSON.parse(rawParams) : rawParams;
+                if (typeof params === 'string') params = JSON.parse(params);
+
+                if (params.config_fornos) {
+                    return Object.keys(params.config_fornos).map(f => {
+                        let nome = f === 'grande' ? 'Grande' : 'Pequeno';
+                        return `<b>${nome}:</b> ${params.config_fornos[f].join(', ')}`;
+                    }).join(' | ');
+                }
                 let forno = params.forno || '?';
-                forno = forno.charAt(0).toUpperCase() + forno.slice(1);
-                let gtsData = params.gts_selecionados;
-                let gtsList = [];
-                if (Array.isArray(gtsData)) { gtsList = gtsData; } 
-                else if (typeof gtsData === 'string') { try { gtsList = JSON.parse(gtsData); } catch (e) { gtsList = [gtsData]; } }
-                const gtsDisplay = gtsList.map(g => g.replace(/['"]+/g, '')).join(', ') || "Nenhum";
-                return `<b>Forno:</b> ${forno} <span style="margin: 0 10px; color: var(--border-color);">|</span> <b>GTs:</b> ${gtsDisplay}`;
+                let gts = Array.isArray(params.gts_selecionados) ? params.gts_selecionados.join(', ') : (params.gts_selecionados || 'Nenhum');
+                return `<b>Forno:</b> ${forno} | <b>GTs:</b> ${gts}`;
             }
+
             async function fetchHistory() {
-                elements.tableHistoryBody.innerHTML = '<tr><td colspan="4" style="text-align:center;">Carregando histórico...</td></tr>';
-                elements.btnHistoryPrev.disabled = true;
-                elements.btnHistoryNext.disabled = true;
+                const tableBody = elements.tableHistoryBody;
+                tableBody.innerHTML = '<tr><td colspan="4" style="text-align:center;">Carregando dados...</td></tr>';
+
                 try {
-                    let query = _supabase.from('arranjos_gerados').select('*', { count: 'exact' });
-                    const fornoVal = elements.filterHistoryForno.value;
-                    if (fornoVal !== 'all') query = query.contains('parametros_usados', { forno: fornoVal });
-                    const userVal = elements.filterHistoryUser.value.trim();
-                    if (userVal) query = query.ilike('usuario', `%${userVal}%`);
+                    let tableTarget = currentTab === 'simulacoes' ? 'arranjos_gerados' : 'prontas_para_o_forno_kosmos';
+                    let query = _supabase.from(tableTarget).select('*', { count: 'exact' });
+
                     const dateVal = elements.filterHistoryDate.value;
                     if (dateVal) {
                         const start = new Date(dateVal).toISOString();
                         const end = new Date(new Date(dateVal).setHours(23,59,59,999)).toISOString();
                         query = query.gte('created_at', start).lte('created_at', end);
                     }
+
                     query = query.order('created_at', { ascending: false });
-                    let dataToRender = [];
-                    if (selectedGTsFilter.length > 0) {
-                        const { data, error } = await query.limit(1000); 
-                        if (error) throw error;
-                        const filteredData = data.filter(row => {
-                            let params = row.parametros_usados;
-                            if (typeof params === 'string') { try { params = JSON.parse(params); } catch (e) { return false; } }
-                            if (typeof params === 'string') { try { params = JSON.parse(params); } catch (e) { return false; } }
-                            let gtsInRow = [];
-                            if (Array.isArray(params.gts_selecionados)) { gtsInRow = params.gts_selecionados; } 
-                            else if (typeof params.gts_selecionados === 'string') { try { gtsInRow = JSON.parse(params.gts_selecionados); } catch (e) { gtsInRow = [params.gts_selecionados]; } }
-                            gtsInRow = gtsInRow.map(g => String(g).replace(/['"]+/g, ''));
-                            return selectedGTsFilter.some(filterGt => gtsInRow.includes(filterGt));
-                        });
-                        totalHistoryItems = filteredData.length;
-                        if (historyItemsPerPage !== 'all') {
-                            const start = (currentHistoryPage - 1) * historyItemsPerPage;
-                            dataToRender = filteredData.slice(start, start + historyItemsPerPage);
-                        } else { dataToRender = filteredData; }
-                    } else {
-                        if (historyItemsPerPage !== 'all') {
-                            const from = (currentHistoryPage - 1) * historyItemsPerPage;
-                            const to = from + historyItemsPerPage - 1;
-                            query = query.range(from, to);
-                        }
-                        const { data, count, error } = await query;
-                        if (error) throw error;
-                        totalHistoryItems = count || 0;
-                        dataToRender = data;
+
+                    if (historyItemsPerPage !== 'all') {
+                        const from = (currentHistoryPage - 1) * historyItemsPerPage;
+                        query = query.range(from, from + historyItemsPerPage - 1);
                     }
-                    renderHistoryTable(dataToRender);
+
+                    const { data, count, error } = await query;
+                    if (error) throw error;
+                    totalHistoryItems = count || 0;
+
+                    tableBody.innerHTML = '';
+                    if (currentTab === 'simulacoes') {
+                        document.querySelector('#table-history thead tr').innerHTML = '<th>Data/Hora</th><th>Usuário</th><th>Configuração</th><th style="text-align:center;">Ação</th>';
+                        data.forEach(row => {
+                            const tr = document.createElement('tr');
+                            tr.innerHTML = `
+                                <td>${new Date(row.created_at).toLocaleString('pt-BR')}</td>
+                                <td>${row.usuario || 'Sistema'}</td>
+                                <td>${formatarParametros(row.parametros_usados)}</td>
+                                <td style="text-align: center;"><button class="btn btn-sm btn-primary btn-load-hist-item">📂 Abrir</button></td>
+                            `;
+                            tr.querySelector('.btn-load-hist-item').onclick = () => loadHistoryItemIntoView(row.arranjo_resultado);
+                            tableBody.appendChild(tr);
+                        });
+                    } else {
+                        document.querySelector('#table-history thead tr').innerHTML = '<th>Data/Hora</th><th>Forno</th><th>Molas / Peso</th><th style="text-align:center;">Documento</th>';
+                        data.forEach(row => {
+                            const tr = document.createElement('tr');
+                            tr.innerHTML = `
+                                <td>${new Date(row.created_at).toLocaleString('pt-BR')}</td>
+                                <td>${row.forno}</td>
+                                <td>${row.total_molas} molas | ${row.total_peso.toFixed(0)} kg</td>
+                                <td style="text-align: center;"><a href="${row.documento_url}" target="_blank" class="btn btn-sm btn-success" style="text-decoration:none">📄 Ver PDF</a></td>
+                            `;
+                            tableBody.appendChild(tr);
+                        });
+                    }
                     updateHistoryPaginationControls();
                 } catch (err) {
                     console.error(err);
-                    elements.tableHistoryBody.innerHTML = `<tr><td colspan="4" style="color:var(--color-danger)">Erro ao carregar histórico: ${err.message}</td></tr>`;
+                    tableBody.innerHTML = `<tr><td colspan="4" style="color:var(--color-danger)">Erro: ${err.message}</td></tr>`;
                 }
             }
             function updateHistoryPaginationControls() {
@@ -2702,10 +2716,28 @@ function initApp() {
     carregarMolasPlanas();
     inicializarEstados();
 }
-            initApp();
+                        const tabSimulacoes = document.getElementById('tab-simulacoes');
+            const tabRelatorios = document.getElementById('tab-relatorios');
 
-            // --- LÓGICA DO MODAL DE ESPECIFICAÇÕES TÉCNICAS ---
-// (Este bloco ficará vazio)
+            if (tabSimulacoes && tabRelatorios) {
+                tabSimulacoes.addEventListener('click', () => {
+                    currentTab = 'simulacoes';
+                    tabSimulacoes.classList.add('active', 'btn-primary');
+                    tabRelatorios.classList.remove('active', 'btn-primary');
+                    currentHistoryPage = 1;
+                    fetchHistory();
+                });
+
+                tabRelatorios.addEventListener('click', () => {
+                    currentTab = 'relatorios';
+                    tabRelatorios.classList.add('active', 'btn-primary');
+                    tabSimulacoes.classList.remove('active', 'btn-primary');
+                    currentHistoryPage = 1;
+                    fetchHistory();
+                });
+            }
+
+            initApp();
         });
     </script>
 </body>
