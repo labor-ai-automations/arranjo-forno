@@ -2080,24 +2080,47 @@ window.solicitarRelatorioPDF = async function(forno) {
                     }))
                 };
 
-                try {
-                    const response = await fetch('https://n8n-n8n.znxk1t.easypanel.host/webhook/gerar-relatorio-pdf', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(dadosRelatorio)
-                    });
-                    if (!response.ok) throw new Error('Erro no n8n');
-                    const blob = await response.blob();
-                    const url = window.URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = `Relatorio_Kosmos_${forno}.pdf`;
-                    document.body.appendChild(a);
-                    a.click();
-                    a.remove();
-                } catch (err) {
-                    showAlert('Erro ao gerar PDF: ' + err.message, 'Erro', 'error');
-                } finally {
+try {
+    const response = await fetch('https://n8n-n8n.znxk1t.easypanel.host/webhook/gerar-relatorio-pdf', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(dadosRelatorio)
+    });
+    
+    if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Erro ${response.status}: ${errorText}`);
+    }
+    
+    // Verifica se é realmente um PDF
+    const contentType = response.headers.get('content-type');
+    if (!contentType || !contentType.includes('pdf')) {
+        const responseText = await response.text();
+        console.error('Resposta recebida:', responseText);
+        throw new Error('O servidor não retornou um PDF válido. Tipo recebido: ' + contentType);
+    }
+    
+    const blob = await response.blob();
+    
+    // Verifica se o PDF tem tamanho válido
+    if (blob.size < 1000) {
+        throw new Error(`PDF muito pequeno (${blob.size} bytes). Pode estar corrompido.`);
+    }
+    
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Relatorio_Kosmos_${forno}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.URL.revokeObjectURL(url); // Libera memória
+    
+    showAlert('PDF gerado com sucesso!', 'Sucesso', 'success');
+} catch (err) {
+    console.error('Erro completo:', err);
+    showAlert('Erro ao gerar PDF: ' + err.message, 'Erro', 'error');
+} finally {
                     btn.innerHTML = originalText;
                     btn.disabled = false;
                 }
