@@ -2056,10 +2056,29 @@
                     col.querySelector('.btn-ordem-crescente-forno').addEventListener('click', (e) => aplicarOrdenacaoPorEsteira(e.target.dataset.forno, 'crescente'));
                     col.querySelector('.btn-ordem-decrescente-forno').addEventListener('click', (e) => aplicarOrdenacaoPorEsteira(e.target.dataset.forno, 'decrescente'));
                     col.querySelector('.btn-export-forno').addEventListener('click', (e) => exportarForno(e.target.dataset.forno));
-                });
                 const globalFilterCard = document.getElementById('global-filter-card');
                 const step2Header = document.getElementById('step-2-header');
                 let warningBar = document.getElementById('parallel-mode-warning');
+                if (fornosAtivos.size > 1) {
+                    globalFilterCard.classList.add('hidden');
+                    document.querySelectorAll('.card-filtros-internos').forEach(c => c.style.display = 'block');
+                    if (!warningBar) {
+                        warningBar = document.createElement('div');
+                        warningBar.id = 'parallel-mode-warning';
+                        warningBar.className = 'warning-bar';
+                        warningBar.innerHTML = '⚠️ MODO DE PRODUÇÃO EM PARALELO ATIVO';
+                        step2Header.insertAdjacentElement('afterend', warningBar);
+                    }
+                } else {
+                    globalFilterCard.classList.remove('hidden');
+                    document.querySelectorAll('.card-filtros-internos').forEach(c => c.style.display = 'none');
+                    if (warningBar) warningBar.remove();
+                    const unicoForno = Array.from(fornosAtivos)[0];
+                    if (unicoForno) popularFiltroReceitas(unicoForno, document.getElementById('filtro-intervalo-empilhamento'));
+                }
+            } // <--- ESTA CHAVE FECHA A FUNÇÃO renderizarLayoutStep2 CORRETAMENTE
+
+
                 if (fornosAtivos.size > 1) {
                     globalFilterCard.classList.add('hidden');
                     document.querySelectorAll('.card-filtros-internos').forEach(c => c.style.display = 'block');
@@ -2502,58 +2521,7 @@ function vincularEventosDragDrop() {
                 XLSX.utils.book_append_sheet(wb, ws, `Forno ${fornoId}`);
                 XLSX.writeFile(wb, `Arranjo_Forno_${fornoId}.xlsx`);
             }
-			async function solicitarRelatorioPDF(forno) {
-    const btn = document.querySelector(`.btn-print-pdf[data-forno="${forno}"]`);
-    const originalText = btn.innerHTML;
-    btn.innerHTML = '<div class="spinner"></div> Gerando...';
-    btn.disabled = true;
 
-    const cards = estadoFornos[forno].cards;
-    const dadosRelatorio = {
-        forno_nome: forno === 'grande' ? 'FORNO GRANDE (1001)' : 'FORNO PEQUENO (1002)',
-        data_geracao: new Date().toLocaleString('pt-BR'),
-        usuario: "PCP", 
-        status: "PRODUÇÃO",
-        total_ops: cards.length,
-        total_molas: cards.reduce((acc, c) => acc + (parseInt(c.quantidade) || 0), 0),
-        total_peso: cards.reduce((acc, c) => acc + ((parseFloat(c.quantidade) || 0) * (parseFloat(c.peso_unit) || 0)), 0).toFixed(0),
-        itens: cards.map(c => ({
-            op: c.op,
-            codigo: c.codigo,
-            descricao: c.Descrição,
-            bitola: c.Dimensões,
-            gt: c.gt,
-            quantidade: c.quantidade,
-            peso_total: (parseFloat(c.quantidade) * parseFloat(c.peso_unit)).toFixed(1),
-            is_empilhado: c.isEmpilhado
-        }))
-    };
-
-    try {
-        const response = await fetch('https://n8n-n8n.znxk1t.easypanel.host/webhook/gerar-relatorio-pdf', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(dadosRelatorio)
-        });
-
-        if (!response.ok) throw new Error('Falha ao gerar PDF. Verifique se o n8n está rodando.');
-
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `Relatorio_Kosmos_${forno}_${Date.now()}.pdf`;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        showAlert('Relatório gerado e registrado no histórico!', 'Sucesso', 'success');
-    } catch (err) {
-        showAlert(err.message, 'Erro', 'error');
-    } finally {
-        btn.innerHTML = originalText;
-        btn.disabled = false;
-    }
-}
             
             // --- CORREÇÃO: Lógica para Filtros Globais (Modo Forno Único) ---
             elements.globalBtnCrescente.addEventListener('click', () => {
