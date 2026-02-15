@@ -2053,7 +2053,7 @@
                 }
             }
 
-            async function solicitarRelatorioPDF(forno) {
+window.solicitarRelatorioPDF = async function(forno) {
                 const btn = document.querySelector(`.btn-print-pdf[data-forno="${forno}"]`);
                 const originalText = btn.innerHTML;
                 btn.innerHTML = '<div class="spinner"></div>...';
