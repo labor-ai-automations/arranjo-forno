@@ -1695,10 +1695,25 @@ function formatarParametros(rawParams) {
         console.log('Type:', typeof params);
 
         // Caso 1: Múltiplos fornos (config_fornos)
-        if (params.config_fornos) {
-            console.log('Detectado config_fornos:', params.config_fornos);
-            
-            return Object.keys(params.config_fornos).map(f => {
+if (params.config_fornos) {
+    console.log('Detectado config_fornos:', params.config_fornos);
+    console.log('Type de config_fornos:', typeof params.config_fornos);
+    
+    // SE config_fornos for string, fazer parse ANTES de Object.keys()
+    let configParsed = params.config_fornos;
+    if (typeof configParsed === 'string') {
+        try {
+            configParsed = JSON.parse(configParsed);
+            console.log('config_fornos após parse:', configParsed);
+        } catch (e) {
+            console.error('Erro ao parsear config_fornos:', e);
+            return "Erro no formato de dados";
+        }
+    }
+    
+    return Object.keys(configParsed).map(f => {
+        let nome = f === 'grande' ? 'Grande' : 'Pequeno';
+        let gts = configParsed[f];
                 let nome = f === 'grande' ? 'Grande' : 'Pequeno';
                 let gts = params.config_fornos[f];
                 
