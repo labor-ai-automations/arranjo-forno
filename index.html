@@ -1770,43 +1770,6 @@ async function fetchHistory() {
                     const userVal = elements.filterHistoryUser.value.trim();
                     if (userVal) query = query.ilike('usuario', `%${userVal}%`);
 
-                    // Filtro por Data
-// Filtro por Forno
-const fornoVal = elements.filterHistoryForno.value;
-if (fornoVal !== 'all') {
-    if (currentTab === 'simulacoes') {
-        query = query.or(`parametros_usados->>forno.eq.${fornoVal},parametros_usados->config_fornos.has.${fornoVal}`);
-    } else {
-        const labelForno = fornoVal === 'grande' ? 'FORNO GRANDE (1001)' : 'FORNO PEQUENO (1002)';
-        query = query.eq('forno', labelForno);
-    }
-}
-
-// Filtro por Usuário
-const userVal = elements.filterHistoryUser.value.trim();
-if (userVal) query = query.ilike('usuario', `%${userVal}%`);
-
-// Filtro por Data
-const dateVal = elements.filterHistoryDate.value;
-if (dateVal) {
-    const start = new Date(dateVal).toISOString();
-    const end = new Date(new Date(dateVal).setHours(23,59,59,999)).toISOString();
-    query = query.gte('created_at', start).lte('created_at', end);
-}
-
-// Filtro por GTs (NOVO - ADICIONE AQUI)
-if (selectedGTsFilter.length > 0 && currentTab === 'simulacoes') {
-    const gtConditions = selectedGTsFilter.map(gt => {
-        return `parametros_usados->gts_selecionados.cs.{${gt}},parametros_usados->gts.cs.{${gt}},parametros_usados->config_fornos->grande.cs.{${gt}},parametros_usados->config_fornos->pequeno.cs.{${gt}}`;
-    }).join(',');
-    
-    query = query.or(gtConditions);
-}
-
-query = query.order('created_at', { ascending: false });
-
-                    query = query.order('created_at', { ascending: false });
-
                     if (historyItemsPerPage !== 'all') {
                         const from = (currentHistoryPage - 1) * historyItemsPerPage;
                         query = query.range(from, from + historyItemsPerPage - 1);
