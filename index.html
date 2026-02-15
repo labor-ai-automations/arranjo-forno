@@ -1755,6 +1755,120 @@ async function fetchHistory() {
                     let tableTarget = currentTab === 'simulacoes' ? 'arranjos_gerados' : 'prontas_para_o_forno_kosmos';
                     let query = _supabase.from(tableTarget).select('*', { count: 'exact' });
 
+                    // --- LÓGICA DE FILTRO POR FORNO ---
+                    const fornoVal = elements.filterHistoryForno.value;
+                    if (fornoVal !== 'all') {
+                        if (currentTab === 'simulacoes') {
+                            query = query.or(`parametros_usados->>forno.eq.${fornoVal},parametros_usados->config_fornos.has.${fornoVal}`);
+                        } else {
+                            const labelForno = fornoVal === 'grande' ? 'FORNO GRANDE (1001)' : 'FORNO PEQUENO (1002)';
+                            query = query.eq('forno', labelForno);
+                        }
+                    }
+
+                    // --- LÓGICA DE FILTRO POR GTs (CORRIGIDA) ---
+                    // Se estivermos na aba de simulações e houver GTs selecionados no multi-select
+                    if (currentTab === 'simulacoes' && selectedGTsFilter.length > 0) {
+                        // Construímos uma consulta que verifica se algum dos GTs selecionados está presente no JSONB do banco
+                        // Usamos o operador 'cs' (contains) para verificar a presença no array de gts_selecionados
+                        // Ou verificamos dentro do novo formato config_fornos usando filtro de texto
+                        let filterParts = selectedGTsFilter.map(gt => `parametros_usados->gts_selecionados.cs.["${gt}"]`);
+                        
+                        // Para o formato novo (config_fornos), precisamos de uma lógica de filtro pós-carregamento 
+                        // ou uma consulta or complexa. Para performance e precisão, usaremos filtro pós-carregamento 
+                        // se a lista for curta, ou aplicaremos o filtro via query se possível.
+                    }
+
+                    const userVal = elements.filterHistoryUser.value.trim();
+                    if (userVal) query = query.ilike('usuario', `%${userVal}%`);
+
+                    const dateVal = elements.filterHistoryDate.value;
+                    if (dateVal) {
+                        const start = new Date(dateVal).toISOString();
+                        const end = new Date(new Date(dateVal).setHours(23,59,59,999)).toISOString();
+                        query = query.gte('created_at', start).lte('created_at', end);
+                    }
+
+                    query = query.order('created_at', { ascending: false });
+
+                    // Executa a query
+                    const { data, count, error } = await query;
+                    if (error) throw error;
+
+                    // --- FILTRAGEM REFINADA (Pós-processamento para GTs em JSON complexo) ---
+                    let dadosParaRenderizar = data;
+                    if (currentTab === 'simulacoes' && selectedGTsFilter.length > 0) {
+                        dadosParaRenderizar = data.filter(row => {
+                            const p = typeof row.parametros_usados === 'string' ? JSON.parse(row.parametros_usados) : row.parametros_usados;
+                            
+                            // Verifica no formato novo
+                            if (p.config_fornos) {
+                                return Object.values(p.config_fornos).flat().some(gt => selectedGTsFilter.includes(gt));
+                            }
+                            // Verifica no formato antigo
+                            const gtsOld = Array.isArray(p.gts_selecionados) ? p.gts_selecionados : [];
+                            return gtsOld.some(gt => selectedGTsFilter.includes(gt));
+                        });
+                    }
+
+                    totalHistoryItems = (currentTab === 'simulacoes' && selectedGTsFilter.length > 0) ? dadosParaRenderizar.length : count || 0;
+
+                    // Paginação manual para dados filtrados em memória
+                    let pagedData = dadosParaRenderizar;
+                    if (historyItemsPerPage !== 'all') {
+                        const from = (currentHistoryPage - 1) * historyItemsPerPage;
+                        pagedData = dadosParaRenderizar.slice(from, from + historyItemsPerPage);
+                    }
+
+                    tableBody.innerHTML = '';
+                    const headRow = document.querySelector('#table-history thead tr');
+
+                    if (currentTab === 'simulacoes') {
+                        headRow.innerHTML = '<th>Data/Hora</th><th>Usuário</th><th>Configuração</th><th style="text-align:center;">Ação</th>';
+                        pagedData.forEach(row => {
+                            const tr = document.createElement('tr');
+                            tr.innerHTML = `
+                                <td>${new Date(row.created_at).toLocaleString('pt-BR')}</td>
+                                <td>${row.usuario || 'PCP'}</td>
+                                <td>${formatarParametros(row.parametros_usados)}</td>
+                                <td style="text-align: center;"><button class="btn btn-sm btn-primary btn-load-hist-item">📂 Abrir</button></td>
+                            `;
+                            tr.querySelector('.btn-load-hist-item').onclick = () => loadHistoryItemIntoView(row.arranjo_resultado);
+                            tableBody.appendChild(tr);
+                        });
+                    } else {
+                        headRow.innerHTML = '<th>Data/Hora</th><th>Usuário</th><th>Forno</th><th>Molas / Peso</th><th style="text-align:center;">Documento</th>';
+                        pagedData.forEach(row => {
+                            const tr = document.createElement('tr');
+                            tr.innerHTML = `
+                                <td>${new Date(row.created_at).toLocaleString('pt-BR')}</td>
+                                <td>${row.usuario || 'PCP'}</td>
+                                <td>${row.forno}</td>
+                                <td>${row.total_molas} molas | ${parseFloat(row.total_peso || 0).toFixed(0)} kg</td>
+                                <td style="text-align: center;"><a href="${row.documento_url}" target="_blank" class="btn btn-sm btn-success" style="text-decoration:none">📄 Ver PDF</a></td>
+                            `;
+                            tableBody.appendChild(tr);
+                        });
+                    }
+                    
+                    updateHistoryPaginationControls();
+                } catch (err) {
+                    console.error(err);
+                    tableBody.innerHTML = `<tr><td colspan="5" style="color:var(--color-danger)">Erro: ${err.message}</td></tr>`;
+                }
+            }
+                if (gtFilterWrapper && gtFilterWrapper.parentElement) {
+                    if (currentTab === 'simulacoes') {
+                        gtFilterWrapper.parentElement.style.display = 'flex';
+                    } else {
+                        gtFilterWrapper.parentElement.style.display = 'none';
+                    }
+                }
+
+                try {
+                    let tableTarget = currentTab === 'simulacoes' ? 'arranjos_gerados' : 'prontas_para_o_forno_kosmos';
+                    let query = _supabase.from(tableTarget).select('*', { count: 'exact' });
+
                     // Filtro por Forno
                     const fornoVal = elements.filterHistoryForno.value;
                     if (fornoVal !== 'all') {
