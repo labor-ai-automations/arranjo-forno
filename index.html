@@ -1656,7 +1656,85 @@
             elements.csvFileInput.addEventListener('change', () => { if (elements.csvFileInput.files.length > 0) elements.btnCarregarCsv.textContent = `Arquivo: ${elements.csvFileInput.files[0].name}`; });
 
             // --- Lógica do Histórico ---
-            let currentTab = 'simulacoes'; 
+            let currentTab = 'simulacoes';
+
+function formatarParametros(rawParams) {
+    if (!rawParams) return "N/A";
+    
+    try {
+        let params = rawParams;
+        
+        if (typeof params === 'string') {
+            try {
+                params = JSON.parse(params);
+            } catch (e) {
+                return "Formato inválido";
+            }
+        }
+        
+        if (typeof params === 'string') {
+            try {
+                params = JSON.parse(params);
+            } catch (e) {
+                return "Formato inválido";
+            }
+        }
+
+        if (params.config_fornos) {
+            let configParsed = params.config_fornos;
+            if (typeof configParsed === 'string') {
+                try {
+                    configParsed = JSON.parse(configParsed);
+                } catch (e) {
+                    return "Erro no formato de dados";
+                }
+            }
+            
+            return Object.keys(configParsed).map(f => {
+                let nome = f === 'grande' ? 'Grande' : 'Pequeno';
+                let gts = configParsed[f];
+                
+                if (typeof gts === 'string') {
+                    try {
+                        gts = JSON.parse(gts);
+                    } catch (e) {}
+                }
+                
+                if (!Array.isArray(gts)) {
+                    gts = [String(gts)];
+                }
+                
+                let gtsDisplay = gts.filter(Boolean).join(', ');
+                return `<b>${nome}:</b> ${gtsDisplay}`;
+            }).join(' | ');
+        }
+        
+        let fornoNome = params.forno === 'grande' ? 'Grande' : 
+                       params.forno === 'pequeno' ? 'Pequeno' : params.forno;
+        
+        let gtsRaw = params.gts_selecionados || params.gts || [];
+        
+        if (typeof gtsRaw === 'string') {
+            try {
+                gtsRaw = JSON.parse(gtsRaw);
+            } catch (e) {
+                gtsRaw = [gtsRaw];
+            }
+        }
+        
+        if (!Array.isArray(gtsRaw)) {
+            gtsRaw = [String(gtsRaw)];
+        }
+        
+        let gtsDisplay = gtsRaw.filter(Boolean).join(', ') || 'Nenhum';
+        
+        return `<b>Forno:</b> ${fornoNome} | <b>GTs:</b> ${gtsDisplay}`;
+        
+    } catch (e) { 
+        console.error('Erro ao formatar parâmetros:', e);
+        return "Dados inválidos"; 
+    }
+} 
 
     if (!rawParams) return "N/A";
     
