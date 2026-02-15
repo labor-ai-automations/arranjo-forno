@@ -1654,18 +1654,24 @@
 
             function formatarParametros(rawParams) {
                 if (!rawParams) return "N/A";
-                let params = typeof rawParams === 'string' ? JSON.parse(rawParams) : rawParams;
-                if (typeof params === 'string') params = JSON.parse(params);
+                try {
+                    let params = typeof rawParams === 'string' ? JSON.parse(rawParams) : rawParams;
+                    if (typeof params === 'string') params = JSON.parse(params);
 
-                if (params.config_fornos) {
-                    return Object.keys(params.config_fornos).map(f => {
-                        let nome = f === 'grande' ? 'Grande' : 'Pequeno';
-                        return `<b>${nome}:</b> ${params.config_fornos[f].join(', ')}`;
-                    }).join(' | ');
-                }
-                let forno = params.forno || '?';
-                let gts = Array.isArray(params.gts_selecionados) ? params.gts_selecionados.join(', ') : (params.gts_selecionados || 'Nenhum');
-                return `<b>Forno:</b> ${forno} | <b>GTs:</b> ${gts}`;
+                    if (params.config_fornos) {
+                        return Object.keys(params.config_fornos).map(f => {
+                            let nome = f === 'grande' ? 'Grande' : 'Pequeno';
+                            let gts = params.config_fornos[f];
+                            // Garante que gts seja tratado como array mesmo se for string
+                            let gtsDisplay = Array.isArray(gts) ? gts.join(', ') : String(gts);
+                            return `<b>${nome}:</b> ${gtsDisplay}`;
+                        }).join(' | ');
+                    }
+                    let forno = params.forno || '?';
+                    let gtsRaw = params.gts_selecionados || params.gts;
+                    let gtsDisplay = Array.isArray(gtsRaw) ? gtsRaw.join(', ') : (gtsRaw || 'Nenhum');
+                    return `<b>Forno:</b> ${forno} | <b>GTs:</b> ${gtsDisplay}`;
+                } catch (e) { return "Erro nos parâmetros"; }
             }
 
             async function fetchHistory() {
@@ -1673,8 +1679,23 @@
                 tableBody.innerHTML = '<tr><td colspan="4" style="text-align:center;">Carregando dados...</td></tr>';
 
                 try {
-                    let tableTarget = currentTab === 'simulacoes' ? 'arranjos_gerados' : 'prontas_para_o_forno_kosmos';
-                    let query = _supabase.from(tableTarget).select('*', { count: 'exact' });
+let tableTarget = currentTab === 'simulacoes' ? 'arranjos_gerados' : 'prontas_para_o_forno_kosmos';
+        let query = _supabase.from(tableTarget).select('*', { count: 'exact' });
+
+        // Filtro por Forno (Ajustado para ambas as tabelas)
+        const fornoVal = elements.filterHistoryForno.value;
+        if (fornoVal !== 'all') {
+            if (currentTab === 'simulacoes') {
+                query = query.contains('parametros_usados', { forno: fornoVal });
+            } else {
+                const labelForno = fornoVal === 'grande' ? 'FORNO GRANDE (1001)' : 'FORNO PEQUENO (1002)';
+                query = query.eq('forno', labelForno);
+            }
+        }
+
+        // Filtro por Usuário
+        const userVal = elements.filterHistoryUser.value.trim();
+        if (userVal) query = query.ilike('usuario', `%${userVal}%`);
 
                     const dateVal = elements.filterHistoryDate.value;
                     if (dateVal) {
@@ -1709,18 +1730,27 @@
                             tableBody.appendChild(tr);
                         });
                     } else {
-                        document.querySelector('#table-history thead tr').innerHTML = '<th>Data/Hora</th><th>Forno</th><th>Molas / Peso</th><th style="text-align:center;">Documento</th>';
+                        // Títulos da tabela para a aba de PDFs
+                        document.querySelector('#table-history thead tr').innerHTML = '<th>Data/Hora</th><th>Usuário</th><th>Forno</th><th>Molas / Peso</th><th style="text-align:center;">Documento</th>';
                         data.forEach(row => {
                             const tr = document.createElement('tr');
                             tr.innerHTML = `
                                 <td>${new Date(row.created_at).toLocaleString('pt-BR')}</td>
+                                <td>${row.usuario || 'PCP'}</td>
                                 <td>${row.forno}</td>
-                                <td>${row.total_molas} molas | ${row.total_peso.toFixed(0)} kg</td>
+                                <td>${row.total_molas} molas | ${parseFloat(row.total_peso).toFixed(0)} kg</td>
                                 <td style="text-align: center;"><a href="${row.documento_url}" target="_blank" class="btn btn-sm btn-success" style="text-decoration:none">📄 Ver PDF</a></td>
                             `;
                             tableBody.appendChild(tr);
                         });
                     }
+                    
+                    // Re-vincula os filtros de busca para funcionarem em ambas as abas
+                    elements.filterHistoryForno.onchange = () => { currentHistoryPage = 1; fetchHistory(); };
+                    elements.filterHistoryUser.oninput = () => { 
+                        clearTimeout(historySearchTimeout); 
+                        historySearchTimeout = setTimeout(() => { currentHistoryPage = 1; fetchHistory(); }, 500); 
+                    };
                     updateHistoryPaginationControls();
                 } catch (err) {
                     console.error(err);
