@@ -2110,7 +2110,8 @@ try {
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `Relatorio_Kosmos_${forno}.pdf`;
+const dataHora = new Date().toLocaleString('pt-BR').replace(/[/:]/g, '-').replace(/,/g, '').replace(/ /g, '_');
+a.download = `Kosmos_Prontas_Forno_${forno}_${dataHora}.pdf`;
     document.body.appendChild(a);
     a.click();
     a.remove();
