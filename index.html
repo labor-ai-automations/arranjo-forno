@@ -1695,27 +1695,95 @@ function formatarParametros(rawParams) {
         console.log('Type:', typeof params);
 
         // Caso 1: Múltiplos fornos (config_fornos)
-if (params.config_fornos) {
-    console.log('Detectado config_fornos:', params.config_fornos);
-    console.log('Type de config_fornos:', typeof params.config_fornos);
+function formatarParametros(rawParams) {
+    if (!rawParams) return "N/A";
     
-    // SE config_fornos for string, fazer parse ANTES de Object.keys()
-    let configParsed = params.config_fornos;
-    if (typeof configParsed === 'string') {
-        try {
-            configParsed = JSON.parse(configParsed);
-            console.log('config_fornos após parse:', configParsed);
-        } catch (e) {
-            console.error('Erro ao parsear config_fornos:', e);
-            return "Erro no formato de dados";
+    try {
+        // Parse inicial
+        let params = rawParams;
+        
+        // Primeiro parse (se for string)
+        if (typeof params === 'string') {
+            try {
+                params = JSON.parse(params);
+            } catch (e) {
+                return "Formato inválido";
+            }
         }
-    }
-    
-    return Object.keys(configParsed).map(f => {
-        let nome = f === 'grande' ? 'Grande' : 'Pequeno';
-        let gts = configParsed[f];
+        
+        // Segundo parse (se ainda for string)
+        if (typeof params === 'string') {
+            try {
+                params = JSON.parse(params);
+            } catch (e) {
+                return "Formato inválido";
+            }
+        }
+
+        // Caso 1: Múltiplos fornos (config_fornos)
+        if (params.config_fornos) {
+            // SE config_fornos for string, fazer parse ANTES de Object.keys()
+            let configParsed = params.config_fornos;
+            if (typeof configParsed === 'string') {
+                try {
+                    configParsed = JSON.parse(configParsed);
+                } catch (e) {
+                    return "Erro no formato de dados";
+                }
+            }
+            
+            return Object.keys(configParsed).map(f => {
                 let nome = f === 'grande' ? 'Grande' : 'Pequeno';
-                let gts = params.config_fornos[f];
+                let gts = configParsed[f];
+                
+                // Parse se necessário
+                if (typeof gts === 'string') {
+                    try {
+                        gts = JSON.parse(gts);
+                    } catch (e) {
+                        // Se falhar, trata como valor único
+                    }
+                }
+                
+                // Garantir que é array
+                if (!Array.isArray(gts)) {
+                    gts = [String(gts)];
+                }
+                
+                let gtsDisplay = gts.filter(Boolean).join(', ');
+                return `<b>${nome}:</b> ${gtsDisplay}`;
+            }).join(' | ');
+        }
+        
+        // Caso 2: Forno único
+        let fornoNome = params.forno === 'grande' ? 'Grande' : 
+                       params.forno === 'pequeno' ? 'Pequeno' : params.forno;
+        
+        let gtsRaw = params.gts_selecionados || params.gts || [];
+        
+        // Parse se necessário
+        if (typeof gtsRaw === 'string') {
+            try {
+                gtsRaw = JSON.parse(gtsRaw);
+            } catch (e) {
+                gtsRaw = [gtsRaw]; // Trata como array de um elemento
+            }
+        }
+        
+        // Garantir que é array
+        if (!Array.isArray(gtsRaw)) {
+            gtsRaw = [String(gtsRaw)];
+        }
+        
+        let gtsDisplay = gtsRaw.filter(Boolean).join(', ') || 'Nenhum';
+        
+        return `<b>Forno:</b> ${fornoNome} | <b>GTs:</b> ${gtsDisplay}`;
+        
+    } catch (e) { 
+        console.error('Erro ao formatar parâmetros:', e);
+        return "Dados inválidos"; 
+    }
+}
                 
                 console.log(`Forno ${nome}, GTs raw:`, gts, 'Type:', typeof gts);
                 
