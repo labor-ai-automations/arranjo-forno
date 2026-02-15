@@ -161,6 +161,12 @@
             color: white !important;
         }
         
+        .btn.active {
+            background-color: var(--color-primary) !important;
+            color: white !important;
+            border-color: var(--color-primary-hover) !important;
+        }
+        
         .dark-theme .nav-btn:hover { 
             background-color: var(--color-border-dark); 
         }
@@ -1674,29 +1680,40 @@
                 } catch (e) { return "Erro nos parâmetros"; }
             }
 
-            async function fetchHistory() {
+async function fetchHistory() {
                 const tableBody = elements.tableHistoryBody;
-                tableBody.innerHTML = '<tr><td colspan="4" style="text-align:center;">Carregando dados...</td></tr>';
+                tableBody.innerHTML = '<tr><td colspan="5" style="text-align:center;">Carregando dados...</td></tr>';
+
+                // Controle visual de filtros conforme a aba ativa
+                const gtFilterWrapper = document.getElementById('filter-history-gt-wrapper');
+                if (gtFilterWrapper && gtFilterWrapper.parentElement) {
+                    if (currentTab === 'simulacoes') {
+                        gtFilterWrapper.parentElement.style.display = 'flex';
+                    } else {
+                        gtFilterWrapper.parentElement.style.display = 'none';
+                    }
+                }
 
                 try {
-let tableTarget = currentTab === 'simulacoes' ? 'arranjos_gerados' : 'prontas_para_o_forno_kosmos';
-        let query = _supabase.from(tableTarget).select('*', { count: 'exact' });
+                    let tableTarget = currentTab === 'simulacoes' ? 'arranjos_gerados' : 'prontas_para_o_forno_kosmos';
+                    let query = _supabase.from(tableTarget).select('*', { count: 'exact' });
 
-        // Filtro por Forno (Ajustado para ambas as tabelas)
-        const fornoVal = elements.filterHistoryForno.value;
-        if (fornoVal !== 'all') {
-            if (currentTab === 'simulacoes') {
-                query = query.contains('parametros_usados', { forno: fornoVal });
-            } else {
-                const labelForno = fornoVal === 'grande' ? 'FORNO GRANDE (1001)' : 'FORNO PEQUENO (1002)';
-                query = query.eq('forno', labelForno);
-            }
-        }
+                    // Filtro por Forno
+                    const fornoVal = elements.filterHistoryForno.value;
+                    if (fornoVal !== 'all') {
+                        if (currentTab === 'simulacoes') {
+                            query = query.or(`parametros_usados->>forno.eq.${fornoVal},parametros_usados->config_fornos.has.${fornoVal}`);
+                        } else {
+                            const labelForno = fornoVal === 'grande' ? 'FORNO GRANDE (1001)' : 'FORNO PEQUENO (1002)';
+                            query = query.eq('forno', labelForno);
+                        }
+                    }
 
-        // Filtro por Usuário
-        const userVal = elements.filterHistoryUser.value.trim();
-        if (userVal) query = query.ilike('usuario', `%${userVal}%`);
+                    // Filtro por Usuário
+                    const userVal = elements.filterHistoryUser.value.trim();
+                    if (userVal) query = query.ilike('usuario', `%${userVal}%`);
 
+                    // Filtro por Data
                     const dateVal = elements.filterHistoryDate.value;
                     if (dateVal) {
                         const start = new Date(dateVal).toISOString();
@@ -1716,45 +1733,49 @@ let tableTarget = currentTab === 'simulacoes' ? 'arranjos_gerados' : 'prontas_pa
                     totalHistoryItems = count || 0;
 
                     tableBody.innerHTML = '';
+                    const headRow = document.querySelector('#table-history thead tr');
+
                     if (currentTab === 'simulacoes') {
-                        document.querySelector('#table-history thead tr').innerHTML = '<th>Data/Hora</th><th>Usuário</th><th>Configuração</th><th style="text-align:center;">Ação</th>';
+                        headRow.innerHTML = '<th>Data/Hora</th><th>Usuário</th><th>Configuração</th><th style="text-align:center;">Ação</th>';
                         data.forEach(row => {
                             const tr = document.createElement('tr');
+                            const configText = formatarParametros(row.parametros_usados);
                             tr.innerHTML = `
                                 <td>${new Date(row.created_at).toLocaleString('pt-BR')}</td>
-                                <td>${row.usuario || 'Sistema'}</td>
-                                <td>${formatarParametros(row.parametros_usados)}</td>
+                                <td>${row.usuario || 'PCP'}</td>
+                                <td>${configText}</td>
                                 <td style="text-align: center;"><button class="btn btn-sm btn-primary btn-load-hist-item">📂 Abrir</button></td>
                             `;
                             tr.querySelector('.btn-load-hist-item').onclick = () => loadHistoryItemIntoView(row.arranjo_resultado);
                             tableBody.appendChild(tr);
                         });
                     } else {
-                        // Títulos da tabela para a aba de PDFs
-                        document.querySelector('#table-history thead tr').innerHTML = '<th>Data/Hora</th><th>Usuário</th><th>Forno</th><th>Molas / Peso</th><th style="text-align:center;">Documento</th>';
+                        headRow.innerHTML = '<th>Data/Hora</th><th>Usuário</th><th>Forno</th><th>Molas / Peso</th><th style="text-align:center;">Documento</th>';
                         data.forEach(row => {
                             const tr = document.createElement('tr');
                             tr.innerHTML = `
                                 <td>${new Date(row.created_at).toLocaleString('pt-BR')}</td>
                                 <td>${row.usuario || 'PCP'}</td>
                                 <td>${row.forno}</td>
-                                <td>${row.total_molas} molas | ${parseFloat(row.total_peso).toFixed(0)} kg</td>
+                                <td>${row.total_molas} molas | ${parseFloat(row.total_peso || 0).toFixed(0)} kg</td>
                                 <td style="text-align: center;"><a href="${row.documento_url}" target="_blank" class="btn btn-sm btn-success" style="text-decoration:none">📄 Ver PDF</a></td>
                             `;
                             tableBody.appendChild(tr);
                         });
                     }
                     
-                    // Re-vincula os filtros de busca para funcionarem em ambas as abas
+                    // Re-vincula os filtros de busca para funcionarem em tempo real
                     elements.filterHistoryForno.onchange = () => { currentHistoryPage = 1; fetchHistory(); };
                     elements.filterHistoryUser.oninput = () => { 
                         clearTimeout(historySearchTimeout); 
                         historySearchTimeout = setTimeout(() => { currentHistoryPage = 1; fetchHistory(); }, 500); 
                     };
+                    elements.filterHistoryDate.onchange = () => { currentHistoryPage = 1; fetchHistory(); };
+
                     updateHistoryPaginationControls();
                 } catch (err) {
                     console.error(err);
-                    tableBody.innerHTML = `<tr><td colspan="4" style="color:var(--color-danger)">Erro: ${err.message}</td></tr>`;
+                    tableBody.innerHTML = `<tr><td colspan="5" style="color:var(--color-danger)">Erro: ${err.message}</td></tr>`;
                 }
             }
             function updateHistoryPaginationControls() {
