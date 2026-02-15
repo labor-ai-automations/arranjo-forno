@@ -1886,6 +1886,7 @@ listaOriginalArranjo = (data.arranjo_producao || []).map((item, i) => ({
     peso_unit: parseFloat(item.peso_kg || item.peso_unit || 0),
     isEmpilhado: false,
     forno_destino: item.forno_destino || ''
+}));
                     resetarArranjosParaOriginal();
                 } catch (e) {
                     showAlert('Erro ao processar os dados do histórico: ' + e.message, 'Erro', 'error');
