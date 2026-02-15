@@ -1864,8 +1864,28 @@ async function fetchHistory() {
                     updateStepper(2);
                     elements.btnResetProduction.classList.add('hidden');
                     elements.btnBackToHistory.classList.remove('hidden');
-                    listaOriginalArranjo = (data.arranjo_producao || []).map((item, i) => ({...item, id: `hist-arr-${i}`}));
-                    listaOriginalPendentes = (data.itens_pendentes || []).map((item, i) => ({...item, id: `hist-pen-${i}`}));
+listaOriginalArranjo = (data.arranjo_producao || []).map((item, i) => ({
+    id: `orig-arr-${i}`,
+    op: item.OP || item.op || 'N/A',                    // ✅ Tenta maiúsculo primeiro
+    codigo: item.Item || item.codigo_item || item.codigo || 'N/A',  // ✅ Tenta "Item" primeiro
+    Descrição: item['Desc. Item'] || item.Descrição || item.descricao || '',
+    Dimensões: item.bitola || item.Dimensões || item.dimensao || '',
+    gt: item.gt || '',
+    quantidade: parseInt(item.quantidade) || 0,
+    peso_unit: parseFloat(item.peso_kg || item.peso_unit || 0),
+    isEmpilhado: item.isEmpilhado || false,
+    forno_destino: item.forno_destino || ''
+}));                    listaOriginalPendentes = (data.itens_pendentes || []).map((item, i) => ({
+    id: `orig-pen-${i}`,
+    op: item.OP || item.op || 'N/A',
+    codigo: item.Item || item.codigo_item || item.codigo || 'N/A',
+    Descrição: item['Desc. Item'] || item.Descrição || item.descricao || '',
+    Dimensões: item.bitola || item.Dimensões || item.dimensao || '',
+    gt: item.gt || '',
+    quantidade: parseInt(item.quantidade) || 0,
+    peso_unit: parseFloat(item.peso_kg || item.peso_unit || 0),
+    isEmpilhado: false,
+    forno_destino: item.forno_destino || ''
                     resetarArranjosParaOriginal();
                 } catch (e) {
                     showAlert('Erro ao processar os dados do histórico: ' + e.message, 'Erro', 'error');
@@ -2084,8 +2104,31 @@ async function fetchHistory() {
                     elements.step1.classList.add('hidden');
                     elements.step2.classList.remove('hidden');
                     updateStepper(2);
-                    listaOriginalArranjo = (data.arranjo_producao || []).map((item, i) => ({...item, id: `orig-arr-${i}`}));
-                    listaOriginalPendentes = (data.itens_pendentes || []).map((item, i) => ({...item, id: `orig-pen-${i}`}));
+listaOriginalArranjo = (data.arranjo_producao || []).map((item, i) => ({
+    id: `orig-arr-${i}`,
+    op: item.OP || item.op || 'N/A',
+    codigo: item.Item || item.codigo_item || item.codigo || 'N/A',
+    Descrição: item['Desc. Item'] || item.Descrição || item.descricao || '',
+    Dimensões: item.bitola || item.Dimensões || item.dimensao || '',
+    gt: item.gt || '',
+    quantidade: parseInt(item.quantidade) || 0,
+    peso_unit: parseFloat(item.peso_kg || item.peso_unit || 0),
+    isEmpilhado: item.isEmpilhado || false,
+    forno_destino: item.forno_destino || ''
+}));
+
+listaOriginalPendentes = (data.itens_pendentes || []).map((item, i) => ({
+    id: `orig-pen-${i}`,
+    op: item.OP || item.op || 'N/A',
+    codigo: item.Item || item.codigo_item || item.codigo || 'N/A',
+    Descrição: item['Desc. Item'] || item.Descrição || item.descricao || '',
+    Dimensões: item.bitola || item.Dimensões || item.dimensao || '',
+    gt: item.gt || '',
+    quantidade: parseInt(item.quantidade) || 0,
+    peso_unit: parseFloat(item.peso_kg || item.peso_unit || 0),
+    isEmpilhado: false,
+    forno_destino: item.forno_destino || ''
+}));
                     resetarArranjosParaOriginal();
                 } catch (error) {
                     showAlert('Ocorreu um erro ao gerar o arranjo: ' + error.message, 'Erro', 'error');
