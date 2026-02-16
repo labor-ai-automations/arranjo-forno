@@ -1514,11 +1514,19 @@
             // --- CARREGAR DADOS INICIAIS ---
             async function carregarMolasPlanas() {
                 try {
+                    // Carrega todos os códigos da tabela de mapeamento
                     const { data, error } = await _supabase.from('mapeamento_molas_planas').select('PRODUTO').limit(10000);
                     if (error) throw error;
-                    molasPlanasCodigos = new Set(data.map(item => item.PRODUTO));
+                    
+                    // Cria o Set para busca rápida (O(1)) e remove duplicatas ou vazios
+                    const codigosLimpas = data.map(item => item.PRODUTO).filter(Boolean);
+                    molasPlanasCodigos = new Set(codigosLimpas);
+
+                    // Exibe a contagem real no console para auditoria do PCP
+                    console.log(`✅ [Molas Planas] Banco de dados carregado com sucesso. Total de itens indexados: ${molasPlanasCodigos.size}`);
+                    
                 } catch (err) {
-                    console.error('Erro ao carregar mapeamento de molas planas:', err);
+                    console.error('❌ [Molas Planas] Erro ao carregar mapeamento:', err);
                 }
             }
             
