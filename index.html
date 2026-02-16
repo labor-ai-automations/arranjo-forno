@@ -2710,13 +2710,25 @@ function getEspessura(cardData) {
                 Array.from(espessuras).sort((a, b) => a - b).forEach(esp => seletor.innerHTML += `<option value="${esp}">${esp} mm</option>`);
                 seletor.value = currentValue;
             }
-            function popularFiltroBitolaPendentes() {
-                const seletor = document.getElementById('filter-bitola-pendentes');
-                const currentValue = seletor.value;
-                seletor.innerHTML = '<option value="">Filtrar bitola...</option>';
-                const espessuras = new Set(estadoPendentes.map(getEspessura).filter(esp => esp > 0));
-                Array.from(espessuras).sort((a, b) => a - b).forEach(esp => seletor.innerHTML += `<option value="${esp}">${esp}</option>`);
-                seletor.value = currentValue;
+function popularFiltroBitolaPendentes() {
+    const seletor = document.getElementById('filter-bitola-pendentes');
+    const currentValue = seletor.value;
+    seletor.innerHTML = '<option value="">Filtrar bitola...</option>';
+    
+    // *** DEBUG TEMPORÁRIO ***
+    console.log('🔍 TOTAL DE PENDENTES:', estadoPendentes.length);
+    console.log('🔍 PRIMEIRO PENDENTE:', estadoPendentes[0]);
+    
+    const espessuras = new Set(estadoPendentes.map(card => {
+        const esp = getEspessura(card);
+        console.log(`🔍 Card ${card.codigo}: Dimensões="${card.Dimensões}" → Espessura=${esp}`);
+        return esp;
+    }).filter(esp => esp > 0));
+    
+    console.log('🔍 ESPESSURAS EXTRAÍDAS:', Array.from(espessuras));
+    
+    Array.from(espessuras).sort((a, b) => a - b).forEach(esp => seletor.innerHTML += `<option value="${esp}">${esp}</option>`);
+    seletor.value = currentValue;
             }
             function exportarForno(forno) {
                 const cardsDoForno = estadoFornos[forno] ? estadoFornos[forno].cards : [];
