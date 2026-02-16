@@ -2833,15 +2833,16 @@ function popularFiltroBitolaPendentes() {
 
                     // *** CORREÇÃO APLICADA AQUI ***
                     // Mapeando corretamente os dados do Supabase para as propriedades que o card visual espera.
-                    const newCard = {
+const newCard = {
                         id: `manual-${Date.now()}`,
                         op: op,
                         codigo: data.codigo_item,
-                        Descrição: data.descricao,  // Garante que a descrição seja passada
-                        Dimensões: data.bitola,     // Mapeia a coluna 'bitola' para a propriedade 'Dimensões'
-                        gt: data.gt,
+                        Descrição: data.descricao || 'Adicionado Manualmente',
+                        Dimensões: data.bitola || 'N/A',
+                        gt: data.gt || 'N/A',
                         quantidade: quantidade,
-                        peso_unit: data.peso_kg,    // Garante que o peso seja passado
+                        // ✅ Usa o peso da tabela produtos_peso se existir, senão usa o do itens_mestre
+                        peso_unit: parseFloat(elements.modalInputCodigo.dataset.pesoSelecionado) || parseFloat(data.peso_kg) || 0,
                         isEmpilhado: false,
                         forno_destino: ''
                     };
@@ -2876,15 +2877,24 @@ elements.modalInputCodigo.addEventListener('input', () => {
                                 // CORREÇÃO 2: Exibe a 'bitola' como informação secundária, já que 'descricao' não existe.
                                 li.innerHTML = `<strong>${item.codigo_item}</strong><small>${item.bitola || 'Sem detalhes'}</small>`;
                                 
-                                li.addEventListener('click', () => {
+li.addEventListener('click', async () => {
                                     elements.modalInputCodigo.value = item.codigo_item;
-                                    // CORREÇÃO 3: Preenche o campo de bitola com a coluna 'bitola'.
                                     elements.modalInputBitola.value = item.bitola || '';
                                     elements.modalInputGt.value = item.gt || '';
 
-                                    // Limpa dados que não podem ser obtidos desta tabela para evitar erros futuros.
-                                    elements.modalInputCodigo.dataset.descricaoSelecionada = ''; 
-                                    elements.modalInputCodigo.dataset.pesoSelecionado = 0; 
+                                    // ✅ Busca o peso na tabela produtos_peso do Supabase
+                                    try {
+                                        const { data: pesoData } = await _supabase
+                                            .from('produtos_peso')
+                                            .select('peso_kg')
+                                            .eq('codigo_produto', item.codigo_item)
+                                            .maybeSingle();
+                                        
+                                        elements.modalInputCodigo.dataset.pesoSelecionado = pesoData ? pesoData.peso_kg : 0;
+                                        console.log(`⚖️ Peso encontrado para ${item.codigo_item}: ${elements.modalInputCodigo.dataset.pesoSelecionado}kg`);
+                                    } catch (e) {
+                                        elements.modalInputCodigo.dataset.pesoSelecionado = 0;
+                                    }
 
                                     elements.autocompleteList.classList.remove('visible');
                                 });
