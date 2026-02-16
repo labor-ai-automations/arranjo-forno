@@ -1883,8 +1883,9 @@ listaOriginalArranjo = (data.arranjo_producao || []).map((item, i) => ({
     Dimensões: item['Dimensões'] || item.dimensao || item.bitola || 'N/A',
     gt: item.gt || '',
     quantidade: parseInt(item.quantidade) || 0,
-    peso_unit: parseFloat(item.peso_kg || item.peso_unit || 0),
-    isEmpilhado: item.isEmpilhado || false,
+peso_unit: parseFloat(item.peso_kg || item.peso_unit || 0),
+    // ✅ Aceita tanto is_empilhado (n8n) quanto isEmpilhado (interno)
+    isEmpilhado: item.is_empilhado === true || item.isEmpilhado === true || false,
     forno_destino: item.forno_destino || ''
 }));
 
@@ -2416,7 +2417,8 @@ function aplicarEmpilhamentoPorEsteira(forno) {
             const normalizar = (str) => String(str || "").replace(/\s+/g, '').toUpperCase();
             
             // Verifica se o código da mola está no nosso Set de molas planas carregado do banco
-            const isPlana = molasPlanasCodigos.has(normalizar(card.codigo));
+            const codigoLimpoParaBusca = String(card.codigo || "").replace(/\s+/g, '').toUpperCase();
+            const isPlana = molasPlanasCodigos.has(codigoLimpoParaBusca);
             
             const isCompativel = (espessura >= tetoMinimo && espessura <= tetoMaximo) ||
                                  (isPlana && (espessura * 2) >= tetoMinimo && (espessura * 2) <= tetoMaximo);
@@ -2448,8 +2450,10 @@ function aplicarEmpilhamentoPorEsteira(forno) {
                     const p = candidatos[j];
                     if (i === j || idsUsados.has(p.id)) continue;
                     
-                    const espessuraDobrada = getEspessura(p) * 2;
-                    if (molasPlanasCodigos.has(p.codigo) && espessuraDobrada >= tetoMinimo && espessuraDobrada <= tetoMaximo) {
+const espessuraDobrada = getEspessura(p) * 2;
+                    // ✅ NORMALIZAÇÃO TOTAL também na busca do parceiro
+                    const codigoParceiroLimpo = String(p.codigo || "").replace(/\s+/g, '').toUpperCase();
+                    if (molasPlanasCodigos.has(codigoParceiroLimpo) && espessuraDobrada >= tetoMinimo && espessuraDobrada <= tetoMaximo) {
                         parceiroEncontrado = p;
                         break;
                     }
