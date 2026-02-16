@@ -1519,7 +1519,7 @@
                     if (error) throw error;
                     
                     // Cria o Set para busca rápida (O(1)) e remove duplicatas ou vazios
-                    const codigosLimpas = data.map(item => item.PRODUTO).filter(Boolean);
+                    const codigosLimpas = data.map(item => String(item.PRODUTO || "").replace(/\s+/g, '').toUpperCase()).filter(Boolean);
                     molasPlanasCodigos = new Set(codigosLimpas);
 
                     // Exibe a contagem real no console para auditoria do PCP
@@ -2411,8 +2411,8 @@ function aplicarEmpilhamentoPorEsteira(forno) {
         
         estadoFornos[forno].cards.forEach(card => {
             const espessura = getEspessura(card);
-            const isPlana = molasPlanasCodigos.has(card.codigo);
-            const isCompativel = (espessura >= tetoMinimo && espessura <= tetoMaximo) ||
+            const normalizar = (str) => String(str || "").replace(/\s+/g, '').toUpperCase();
+const isPlana = Array.from(molasPlanasCodigos).some(p => normalizar(p) === normalizar(card.codigo));            const isCompativel = (espessura >= tetoMinimo && espessura <= tetoMaximo) ||
                                  (isPlana && (espessura * 2) >= tetoMinimo && (espessura * 2) <= tetoMaximo);
             
             if (isCompativel) {
