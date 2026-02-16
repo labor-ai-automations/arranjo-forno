@@ -1191,7 +1191,7 @@
 <main id="view-historico" class="container hidden">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
             <h2>Histórico Centralizado</h2>
-            <button id="btn-voltar-producao-history" class="btn btn-secondary">← Voltar para Produção</button>
+            <button id="btn-voltar-producao-history" class="btn btn-secondary">← Voltar</button>
         </div>
 
         <div style="display: flex; gap: 10px; margin-bottom: 1rem;">
@@ -1587,11 +1587,34 @@ if (molasPlanasCodigos.size === 0) {
             }
 
             elements.btnMasterManager.addEventListener('click', () => { showView('view-gerenciador'); currentMasterPage = 1; fetchMasterItems(); });
-            elements.btnHistory.addEventListener('click', () => { showView('view-historico'); initGtMultiSelect(); currentHistoryPage = 1; fetchHistory(); });
-            elements.btnRegistroBarras.addEventListener('click', () => { showView('view-registro-barras'); currentRegistroPage = 1; fetchRegistroBarras(); });
+            elements.btnHistory.addEventListener('click', () => { 
+                showView('view-historico'); 
+                
+                // Ajusta o texto do botão de voltar dinamicamente
+                if (listaOriginalArranjo.length === 0) {
+                    elements.btnVoltarProducaoHistory.textContent = '← Voltar para Configuração';
+                } else {
+                    elements.btnVoltarProducaoHistory.textContent = '← Voltar para Produção';
+                }
+
+                initGtMultiSelect(); 
+                currentHistoryPage = 1; 
+                fetchHistory(); 
+            });            elements.btnRegistroBarras.addEventListener('click', () => { showView('view-registro-barras'); currentRegistroPage = 1; fetchRegistroBarras(); });
             elements.btnVoltarProducaoMaster.addEventListener('click', () => showView('view-principal'));
-            elements.btnVoltarProducaoHistory.addEventListener('click', () => showView('view-principal'));
-            elements.btnVoltarProducaoRegistro.addEventListener('click', () => showView('view-principal'));
+            elements.btnVoltarProducaoHistory.addEventListener('click', () => {
+                // Se a lista original está vazia, significa que não houve upload de CSV nesta sessão
+                if (listaOriginalArranjo.length === 0) {
+                    inicializarEstados();
+                    elements.step1.classList.remove('hidden');
+                    elements.step2.classList.add('hidden');
+                    updateStepper(1);
+                    showView('view-principal');
+                } else {
+                    // Se existe um arranjo em andamento, apenas volta para a tela de visualização
+                    showView('view-principal');
+                }
+            });            elements.btnVoltarProducaoRegistro.addEventListener('click', () => showView('view-principal'));
             elements.btnBackToHistory.addEventListener('click', () => { showView('view-historico'); fetchHistory(); });
 
             elements.btnResetProduction.addEventListener('click', function() {
