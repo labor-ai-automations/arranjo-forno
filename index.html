@@ -1289,9 +1289,17 @@
                     <label>Bitola (Auto)</label>
                     <input type="text" id="manual-input-bitola" placeholder="Será preenchido..." disabled style="background-color: var(--bg-main); opacity: 0.7;">
                 </div>
-                <div>
+<div>
                     <label>GT (Auto)</label>
                     <input type="text" id="manual-input-gt" placeholder="Será preenchido..." disabled style="background-color: var(--bg-main); opacity: 0.7;">
+                </div>
+                <div>
+                    <label>Peso Unit. (kg)</label>
+                    <input type="text" id="manual-input-peso-unit" placeholder="Auto..." disabled style="background-color: var(--bg-main); opacity: 0.7;">
+                </div>
+                <div>
+                    <label>Peso Total (kg)</label>
+                    <input type="text" id="manual-input-peso-total" placeholder="Calculando..." disabled style="background-color: var(--bg-main); opacity: 0.7; font-weight: bold; color: var(--color-primary);">
                 </div>
             </div>
 
@@ -2797,12 +2805,14 @@ function popularFiltroBitolaPendentes() {
             });
 
             // --- CORREÇÃO: Lógica do Modal de Adição Manual ---
-            elements.btnAddManual.addEventListener('click', () => {
+elements.btnAddManual.addEventListener('click', () => {
                 elements.modalInputCodigo.value = '';
                 elements.modalInputOp.value = '';
                 elements.modalInputQtd.value = '';
                 elements.modalInputBitola.value = '';
                 elements.modalInputGt.value = '';
+                document.getElementById('manual-input-peso-unit').value = '';
+                document.getElementById('manual-input-peso-total').value = '';
                 elements.autocompleteList.innerHTML = '';
                 elements.autocompleteList.classList.remove('visible');
                 elements.modalManualOverlay.classList.add('open');
@@ -2890,10 +2900,16 @@ li.addEventListener('click', async () => {
                                             .eq('codigo_produto', item.codigo_item)
                                             .maybeSingle();
                                         
-                                        elements.modalInputCodigo.dataset.pesoSelecionado = pesoData ? pesoData.peso_kg : 0;
-                                        console.log(`⚖️ Peso encontrado para ${item.codigo_item}: ${elements.modalInputCodigo.dataset.pesoSelecionado}kg`);
+                                        const pesoUnit = pesoData ? parseFloat(pesoData.peso_kg) : 0;
+                                        document.getElementById('manual-input-peso-unit').value = pesoUnit.toFixed(2);
+                                        elements.modalInputCodigo.dataset.pesoSelecionado = pesoUnit;
+                                        
+                                        // Trigger para calcular o total se já houver quantidade
+                                        atualizarPesoTotalManual();
+
                                     } catch (e) {
                                         elements.modalInputCodigo.dataset.pesoSelecionado = 0;
+                                        document.getElementById('manual-input-peso-unit').value = '0.00';
                                     }
 
                                     elements.autocompleteList.classList.remove('visible');
@@ -2926,6 +2942,16 @@ elements.themeToggle.addEventListener('change', () => {
     document.body.classList.toggle('light-theme', !isDark);
     logoImg.src = isDark ? urlLogoEscura : urlLogoClara;
 });
+
+// Função para calcular peso total no modal manual
+        function atualizarPesoTotalManual() {
+            const qtd = parseInt(elements.modalInputQtd.value) || 0;
+            const pesoUnit = parseFloat(elements.modalInputCodigo.dataset.pesoSelecionado) || 0;
+            document.getElementById('manual-input-peso-total').value = (qtd * pesoUnit).toFixed(1);
+        }
+
+        // Adiciona ouvinte para calcular o peso enquanto digita a quantidade
+        elements.modalInputQtd.addEventListener('input', atualizarPesoTotalManual);
 
 function initApp() {
     const isDark = elements.themeToggle.checked;
