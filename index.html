@@ -1869,7 +1869,8 @@ listaOriginalArranjo = (data.arranjo_producao || []).map((item, i) => ({
     op: item["﻿OP"] || item.OP || item.op || 'N/A',
     codigo: item.Item || item.codigo_item || item.codigo || 'N/A',
     Descrição: item['Desc. Item'] || item.Descrição || item.descricao || '',
-    Dimensões: item.bitola || item.Dimensões || item.dimensao || '',
+    // Prioriza o campo 'Dimensões' vindo tratado do n8n
+    Dimensões: item['Dimensões'] || item.dimensao || item.bitola || 'N/A',
     gt: item.gt || '',
     quantidade: parseInt(item.quantidade) || 0,
     peso_unit: parseFloat(item.peso_kg || item.peso_unit || 0),
@@ -2230,9 +2231,9 @@ window.solicitarRelatorioPDF = async function(forno) {
                     itens: cards.map(c => ({
                         op: c.op,
                         codigo: c.codigo,
-                        descricao: c.Descrição,
-                        bitola: c.Dimensões,
-                        gt: c.gt,
+            descricao: c.Descrição,
+            bitola: c.Dimensões || 'N/A', // Envia a string "70 X 11"
+            gt: c.gt,
                         quantidade: c.quantidade,
                         peso_total: (parseFloat(c.quantidade) * parseFloat(c.peso_unit)).toFixed(1),
                         is_empilhado: c.isEmpilhado
@@ -2606,9 +2607,9 @@ function vincularEventosDragDrop() {
                     <span class="delete-btn" onclick="removerCardPeloEstado('${cardData.id}')">×</span>
                     <p><b>OP:</b> ${card.dataset.ordemProducao} ${empilhamentoTag}</p>
                     <p><b>Código:</b> ${card.dataset.codigo}</p>
-                    <p>${card.dataset.descricao}</p> 
-                    <p><b>Bitola:</b> ${card.dataset.dimensao}</p>
-                    <p><b>Qtd:</b> ${card.dataset.quantidade} <small style="color: var(--text-secondary); margin-left: 10px;">(${pesoTotal} kg)</small></p>
+                    <p>${cardData.Descrição || 'N/A'}</p> 
+                    <p><b>Bitola:</b> ${cardData.Dimensões || 'N/A'}</p>
+                    <p><b>Qtd:</b> ${cardData.quantidade} <small style="color: var(--text-secondary); margin-left: 10px;">(${pesoTotal} kg)</small></p>
                     <p class="gt-display" onclick="editarGT(this, '${cardData.id}')"><b>GT:</b> ${card.dataset.gt || 'N/A'}</p>
                     ${cardData.forno_destino ? `<p style="font-size: 0.75rem; color: var(--color-info); margin-top: 5px; font-weight: 600;">📍 Destino: Forno ${cardData.forno_destino === 'grande' ? '1001' : '1002'}</p>` : ''}
                 `;
