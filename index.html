@@ -2109,7 +2109,8 @@ listaOriginalPendentes = (data.itens_pendentes || []).map((item, i) => ({
                     updateStepper(2);
 listaOriginalArranjo = (data.arranjo_producao || []).map((item, i) => ({
     id: `orig-arr-${i}`,
-    op: item.OP || item.op || 'N/A',
+   op: item["﻿OP"] || item.OP || item.op || 'N/A',
+
     codigo: item.Item || item.codigo_item || item.codigo || 'N/A',
     Descrição: item['Desc. Item'] || item.Descrição || item.descricao || '',
     Dimensões: item.bitola || item.Dimensões || item.dimensao || '',
