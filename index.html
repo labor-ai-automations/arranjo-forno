@@ -2657,32 +2657,11 @@ function vincularEventosDragDrop() {
                 }
                 return estadoPendentes.find(c => c.id === cardId);
             }
-function getEspessura(cardData) {
-    if (!cardData) return 0;
-    const dimensao = cardData.Dimensões || cardData.bitola || cardData.Bitola || '0';
-    
-    try {
-        // Tenta extrair do formato "XX X YY"
-        if (dimensao.includes('X') || dimensao.includes('x')) {
-            const partes = dimensao.split(/[Xx]/);
-            if (partes.length >= 2) {
-                const espessura = parseFloat(partes[1].trim().replace(',', '.'));
-                if (!isNaN(espessura) && espessura > 0) return espessura;
-            }
-            // Se falhar, tenta o primeiro número
-            const primeiroNum = parseFloat(partes[0].trim().replace(',', '.'));
-            if (!isNaN(primeiroNum) && primeiroNum > 0) return primeiroNum;
-        }
-        
-        // Se não tiver "X", tenta converter direto
-        const valor = parseFloat(String(dimensao).trim().replace(',', '.'));
-        return (!isNaN(valor) && valor > 0) ? valor : 0;
-        
-    } catch (e) {
-        console.error('Erro ao extrair espessura:', e, 'Dimensão:', dimensao);
-        return 0;
-    }
-}
+            function getEspessura(cardData) {
+                if (!cardData) return 0;
+                const dimensao = cardData.Dimensões || '0 X 0';
+                try { const partes = dimensao.split('X'); if (partes.length < 2) return 0; return parseFloat(partes[1].trim().replace(',', '.')) || 0; } 
+                catch (e) { return 0; }
             }
             async function popularFiltroReceitas(tipoForno, selectElement) {
                 selectElement.innerHTML = '<option value="">Nenhum</option>';
