@@ -1602,19 +1602,26 @@ if (molasPlanasCodigos.size === 0) {
                 fetchHistory(); 
             });            elements.btnRegistroBarras.addEventListener('click', () => { showView('view-registro-barras'); currentRegistroPage = 1; fetchRegistroBarras(); });
             elements.btnVoltarProducaoMaster.addEventListener('click', () => showView('view-principal'));
-            elements.btnVoltarProducaoHistory.addEventListener('click', () => {
-                // Se a lista original está vazia, significa que não houve upload de CSV nesta sessão
-                if (listaOriginalArranjo.length === 0) {
-                    inicializarEstados();
-                    elements.step1.classList.remove('hidden');
-                    elements.step2.classList.add('hidden');
-                    updateStepper(1);
-                    showView('view-principal');
-                } else {
-                    // Se existe um arranjo em andamento, apenas volta para a tela de visualização
-                    showView('view-principal');
-                }
-            });            elements.btnVoltarProducaoRegistro.addEventListener('click', () => showView('view-principal'));
+elements.btnVoltarProducaoHistory.addEventListener('click', () => {
+    // ✅ CORREÇÃO: Verifica se veio do histórico pelo botão "Voltar para Histórico" estar visível
+    const veiDoHistorico = !elements.btnBackToHistory.classList.contains('hidden');
+    
+    if (veiDoHistorico || listaOriginalArranjo.length === 0) {
+        // Limpa tudo e volta para configuração
+        listaOriginalArranjo = [];
+        listaOriginalPendentes = [];
+        inicializarEstados();
+        elements.step1.classList.remove('hidden');
+        elements.step2.classList.add('hidden');
+        updateStepper(1);
+        elements.btnResetProduction.classList.remove('hidden');
+        elements.btnBackToHistory.classList.add('hidden');
+        showView('view-principal');
+    } else {
+        // Se existe um arranjo em andamento (feito por CSV), apenas volta para a tela
+        showView('view-principal');
+    }
+});            elements.btnVoltarProducaoRegistro.addEventListener('click', () => showView('view-principal'));
             elements.btnBackToHistory.addEventListener('click', () => { showView('view-historico'); fetchHistory(); });
 
             elements.btnResetProduction.addEventListener('click', function() {
