@@ -2662,9 +2662,12 @@ function getEspessura(cardData) {
     const dimensao = cardData.Dimensões || cardData.bitola || cardData.Bitola || '0';
     
     try {
+        // ✅ CORREÇÃO: Converte para string ANTES de usar .includes()
+        const dimensaoStr = String(dimensao);
+        
         // Tenta extrair do formato "XX X YY"
-        if (dimensao.includes('X') || dimensao.includes('x')) {
-            const partes = dimensao.split(/[Xx]/);
+        if (dimensaoStr.includes('X') || dimensaoStr.includes('x')) {
+            const partes = dimensaoStr.split(/[Xx]/);
             if (partes.length >= 2) {
                 const espessura = parseFloat(partes[1].trim().replace(',', '.'));
                 if (!isNaN(espessura) && espessura > 0) return espessura;
@@ -2675,7 +2678,7 @@ function getEspessura(cardData) {
         }
         
         // Se não tiver "X", tenta converter direto
-        const valor = parseFloat(String(dimensao).trim().replace(',', '.'));
+        const valor = parseFloat(dimensaoStr.trim().replace(',', '.'));
         return (!isNaN(valor) && valor > 0) ? valor : 0;
         
     } catch (e) {
