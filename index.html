@@ -1777,10 +1777,13 @@ async function fetchHistory() {
                     }
 
                     // Filtro por Usuário
-                    const userVal = elements.filterHistoryUser.value.trim();
-                    if (userVal) query = query.ilike('usuario', `%${userVal}%`);
+        const userVal = elements.filterHistoryUser.value.trim();
+        if (userVal) query = query.ilike('usuario', `%${userVal}%`);
 
-                    if (historyItemsPerPage !== 'all') {
+        // ✅ ORDENAÇÃO: Garante que os mais novos (Fevereiro) fiquem no topo
+        query = query.order('created_at', { ascending: false });
+
+        if (historyItemsPerPage !== 'all') {
                         const from = (currentHistoryPage - 1) * historyItemsPerPage;
                         query = query.range(from, from + historyItemsPerPage - 1);
                     }
