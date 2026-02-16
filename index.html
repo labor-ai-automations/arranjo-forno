@@ -1523,8 +1523,10 @@
                     molasPlanasCodigos = new Set(codigosLimpas);
 
                     // Exibe a contagem real no console para auditoria do PCP
-                    console.log(`✅ [Molas Planas] Banco de dados carregado com sucesso. Total de itens indexados: ${molasPlanasCodigos.size}`);
-                    
+                    console.log(`✅ [Molas Planas] Banco de dados carregado: ${molasPlanasCodigos.size}`);
+if (molasPlanasCodigos.size === 0) {
+    console.error("ALERTA: Nenhuma mola plana carregada. O 2X não funcionará!");
+}                    
                 } catch (err) {
                     console.error('❌ [Molas Planas] Erro ao carregar mapeamento:', err);
                 }
@@ -2126,7 +2128,7 @@ Dimensões: item.Dimensões || item.dimensao || item.bitola || '',
     gt: item.gt || '',
     quantidade: parseInt(item.quantidade) || 0,
     peso_unit: parseFloat(item.peso_kg || item.peso_unit || 0),
-    isEmpilhado: item.isEmpilhado || false,
+    isEmpilhado: item.is_empilhado || item.isEmpilhado || false,
     forno_destino: item.forno_destino || ''
 }));
 
@@ -2412,7 +2414,11 @@ function aplicarEmpilhamentoPorEsteira(forno) {
         estadoFornos[forno].cards.forEach(card => {
             const espessura = getEspessura(card);
             const normalizar = (str) => String(str || "").replace(/\s+/g, '').toUpperCase();
-const isPlana = Array.from(molasPlanasCodigos).some(p => normalizar(p) === normalizar(card.codigo));            const isCompativel = (espessura >= tetoMinimo && espessura <= tetoMaximo) ||
+            
+            // Verifica se o código da mola está no nosso Set de molas planas carregado do banco
+            const isPlana = molasPlanasCodigos.has(normalizar(card.codigo));
+            
+            const isCompativel = (espessura >= tetoMinimo && espessura <= tetoMaximo) ||
                                  (isPlana && (espessura * 2) >= tetoMinimo && (espessura * 2) <= tetoMaximo);
             
             if (isCompativel) {
