@@ -2127,7 +2127,7 @@ listaOriginalPendentes = (data.itens_pendentes || []).map((item, i) => ({
     op: item.OP || item.op || 'N/A',
     codigo: item.Item || item.codigo_item || item.codigo || 'N/A',
     Descrição: item['Desc. Item'] || item.Descrição || item.descricao || '',
-    Dimensões: item.bitola || item.Dimensões || item.bitola || '',
+    Dimensões: item.bitola || item.dimensao || item.bitola || '',
     gt: item.gt || '',
     quantidade: parseInt(item.quantidade) || 0,
     peso_unit: parseFloat(item.peso_kg || item.peso_unit || 0),
