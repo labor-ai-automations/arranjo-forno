@@ -2207,9 +2207,15 @@ listaOriginalPendentes = (data.itens_pendentes || []).map((item, i) => ({
                     const tituloForno = forno === 'grande' ? 'GRANDE' : 'PEQUENO';
                     const col = document.createElement('div');
                     col.className = 'arranjo-coluna';
+                    const gtsNoForno = Array.from(document.querySelectorAll(`.gt-input-field-${forno}`)).map(input => input.value.trim()).filter(Boolean);
                     col.innerHTML = `
                         <div class="arranjo-header">
-                            <h3>FORNO ${tituloForno} (${idForno})</h3>
+                            <div>
+                                <h3>FORNO ${tituloForno} (${idForno})</h3>
+                                <div style="font-size: 0.8rem; color: var(--color-primary); font-weight: 600; margin-top: 4px;">
+                                    GTs: ${gtsNoForno.join(' | ') || 'Nenhum'}
+                                </div>
+                            </div>
                             <div id="totalizador-${forno}" class="totalizador">0 OPs | 0 Molas</div>
                         </div>
                         <div class="capacity-bar-container"><div id="capacity-bar-${forno}" class="capacity-bar-fill"></div></div>
@@ -2272,8 +2278,9 @@ listaOriginalPendentes = (data.itens_pendentes || []).map((item, i) => ({
                 btn.disabled = true;
 
                 const cards = estadoFornos[forno].cards;
+                const gtsConfigurados = Array.from(document.querySelectorAll(`.gt-input-field-${forno}`)).map(input => input.value.trim()).filter(Boolean);
                 const dadosRelatorio = {
-                    forno_nome: forno === 'grande' ? 'FORNO GRANDE (1001)' : 'FORNO PEQUENO (1002)',
+                    forno_nome: (forno === 'grande' ? 'FORNO GRANDE (1001)' : 'FORNO PEQUENO (1002)') + ` - GTs: ${gtsConfigurados.join(', ')}`,
                     data_geracao: new Date().toLocaleString('pt-BR'),
                     usuario: "PCP", 
                     status: "PRODUÇÃO",
