@@ -1306,8 +1306,8 @@
                     <input type="text" id="manual-input-bitola" placeholder="Será preenchido..." disabled style="background-color: var(--bg-main); opacity: 0.7;">
                 </div>
 <div>
-                    <label>GT (Auto)</label>
-                    <input type="text" id="manual-input-gt" placeholder="Será preenchido..." disabled style="background-color: var(--bg-main); opacity: 0.7;">
+                    <label>GT (Manual/Auto)</label>
+                    <input type="text" id="manual-input-gt" placeholder="Digite o GT ou busque o código" style="opacity: 1; background-color: var(--input-bg);">
                 </div>
                 <div>
                     <label>Peso Unit. (kg)</label>
@@ -2835,8 +2835,13 @@ elements.btnAddManual.addEventListener('click', () => {
                 elements.modalInputOp.value = '';
                 elements.modalInputQtd.value = '';
                 elements.modalInputBitola.value = '';
-                elements.modalInputGt.value = '';
+                const gtInput = document.getElementById('manual-input-gt');
+                gtInput.value = '';
+                gtInput.disabled = false;
+                gtInput.style.opacity = "1";
+                gtInput.style.backgroundColor = "var(--input-bg)";
                 document.getElementById('manual-input-peso-unit').value = '';
+                document.getElementById('manual-input-peso-total').value = '';
                 document.getElementById('manual-input-peso-total').value = '';
                 elements.autocompleteList.innerHTML = '';
                 elements.autocompleteList.classList.remove('visible');
@@ -2874,7 +2879,7 @@ const newCard = {
                         codigo: data.codigo_item,
                         Descrição: 'Adicionado Manualmente',
                         Dimensões: data.bitola || 'N/A',
-                        gt: data.gt || 'N/A',
+                        gt: document.getElementById('manual-input-gt').value.trim() || data.gt || 'N/A',
                         quantidade: quantidade,
                         // ✅ Usa o peso da tabela produtos_peso se existir, senão usa o do itens_mestre
                         peso_unit: parseFloat(elements.modalInputCodigo.dataset.pesoSelecionado) || parseFloat(data.peso_kg) || 0,
