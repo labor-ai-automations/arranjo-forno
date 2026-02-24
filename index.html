@@ -528,6 +528,22 @@
             margin-left: 8px;
             vertical-align: middle;
         }
+
+        .tag-op-antiga {
+            position: absolute;
+            bottom: 8px;
+            right: 12px;
+            background-color: #f59e0b; /* Cor Âmbar (Visível em ambos os temas) */
+            color: #000; /* Texto preto para melhor contraste no âmbar */
+            font-size: 0.65rem;
+            font-weight: 800;
+            padding: 2px 8px;
+            border-radius: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            pointer-events: none;
+        }
         
         /* --- Barra de Capacidade do Forno --- */
         .capacity-bar-container {
@@ -2646,8 +2662,10 @@ function vincularEventosDragDrop() {
                 card.dataset.isEmpilhado = cardData.isEmpilhado || false;
                 card.dataset.fornoDestino = cardData.forno_destino || '';
                 const empilhamentoTag = cardData.isEmpilhado ? '<span class="tag-2x">2X</span>' : '';
+                const opAntigaTag = String(cardData.id).startsWith('manual-') ? '<span class="tag-op-antiga">OP ANTIGA</span>' : '';
                 const pesoTotal = (parseFloat(card.dataset.quantidade) * parseFloat(card.dataset.peso)).toFixed(1);
                 card.innerHTML = `
+                    ${opAntigaTag}
                     <span class="delete-btn" onclick="removerCardPeloEstado('${cardData.id}')">×</span>
                     <p><b>OP:</b> ${card.dataset.ordemProducao} ${empilhamentoTag}</p>
                     <p><b>Código:</b> ${card.dataset.codigo}</p>
@@ -2854,7 +2872,7 @@ const newCard = {
                         id: `manual-${Date.now()}`,
                         op: op,
                         codigo: data.codigo_item,
-                        Descrição: data.descricao || 'Adicionado Manualmente',
+                        Descrição: 'Adicionado Manualmente',
                         Dimensões: data.bitola || 'N/A',
                         gt: data.gt || 'N/A',
                         quantidade: quantidade,
