@@ -2306,7 +2306,7 @@ listaOriginalPendentes = (data.itens_pendentes || []).map((item, i) => ({
                     itens: cards.map(c => ({
                         op: c.op,
                         codigo: c.codigo,
-                        descricao: c.Descrição,
+                        descricao: String(c.id).startsWith('manual-') ? `${c.Descrição} (OP ANTIGA)` : c.Descrição,
                         bitola: c.Dimensões || 'N/A', 
                         gt: c.gt,
                         quantidade: c.quantidade,
