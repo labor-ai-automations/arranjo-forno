@@ -2492,6 +2492,7 @@ function extrairDadosDoCard(cardElement) {
         peso_unit: parseFloat(data.peso), 
         isEmpilhado: data.isEmpilhado === 'true', 
         data_op: data.dataOp || null,
+        gtEditado: data.gtEditado === 'true', // Captura o estado da edição
         forno_destino: data.fornoDestino 
     };
 }
@@ -2720,9 +2721,10 @@ function vincularEventosDragDrop() {
                 card.dataset.dimensao = cardData.Dimensões || 'N/A';
                 card.dataset.gt = cardData.gt || '';
                 card.dataset.quantidade = cardData.quantidade || 0;
-                card.dataset.peso = cardData.peso_unit || 0;
-                card.dataset.isEmpilhado = cardData.isEmpilhado || false;
-                card.dataset.dataOp = cardData.data_op || '';
+card.dataset.peso = cardData.peso_unit || 0;
+    card.dataset.isEmpilhado = cardData.isEmpilhado || false;
+    card.dataset.gtEditado = cardData.gtEditado || false; // Guarda o estado da edição no HTML
+    card.dataset.dataOp = cardData.data_op || '';
                 card.dataset.fornoDestino = cardData.forno_destino || '';
                 
                 const empilhamentoTag = cardData.isEmpilhado ? '<span class="tag-2x">2X</span>' : '';
