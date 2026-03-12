@@ -1110,10 +1110,7 @@
                     <label class="config-label">Código</label>
                     <input type="text" id="new-item-codigo" placeholder="Ex: 12345">
                 </div>
-                <div>
-                    <label class="config-label">Descrição</label>
-                    <input type="text" id="new-item-descricao" placeholder="Descrição">
-                </div>
+                <!-- Descrição removida -->
                 <div>
                     <label class="config-label">Dimensão/Bitola</label>
                     <input type="text" id="new-item-dimensao" placeholder="Ex: 50.8 X 500">
@@ -1971,7 +1968,7 @@ Dimensões: item.Dimensões || item.dimensao || item.bitola || '',
             elements.btnHistoryNext.addEventListener('click', () => { const maxPages = historyItemsPerPage === 'all' ? 1 : Math.ceil(totalHistoryItems / historyItemsPerPage); if (currentHistoryPage < maxPages) { currentHistoryPage++; fetchHistory(); } });
             
             // --- Lógica das Tabelas Dinâmicas ---
-            const columnAliases = { 'created_at': 'Data', 'codigo_item': 'Código', 'comprimento_mm': 'Comprimento (mm)', 'ordem_producao': 'OP', 'gt_utilizado': 'GT Utilizado', 'usuario': 'Usuário', 'descricao': 'Descrição', 'dimensao': 'Dimensão', 'peso_kg': 'Peso (kg)', 'gt': 'GT' };
+            const columnAliases = { 'created_at': 'Data', 'codigo_item': 'Código', 'comprimento_mm': 'Comprimento (mm)', 'ordem_producao': 'OP', 'gt_utilizado': 'GT Utilizado', 'usuario': 'Usuário', 'dimensao': 'Dimensão', 'peso_kg': 'Peso (kg)', 'gt': 'GT' };
             function renderDynamicReadOnlyTable(tableElement, data) {
                 const thead = tableElement.querySelector('thead');
                 const tbody = tableElement.querySelector('tbody');
@@ -2041,7 +2038,7 @@ Dimensões: item.Dimensões || item.dimensao || item.bitola || '',
                 if(searchTerm === '') searchTerm = elements.searchMasterItems.value;
                 try {
                     let query = _supabase.from('itens_mestre').select('*', { count: 'exact' });
-                    if (searchTerm) query = query.or(`codigo_item.ilike.%${searchTerm}%,descricao.ilike.%${searchTerm}%,gt.ilike.%${searchTerm}%`);
+                    if (searchTerm) query = query.or(`codigo_item.ilike.%${searchTerm}%,gt.ilike.%${searchTerm}%`);
                     query = query.order('codigo_item', { ascending: true });
                     if (itemsPerPage !== 'all') {
                         const from = (currentMasterPage - 1) * itemsPerPage;
@@ -2136,7 +2133,6 @@ Dimensões: item.Dimensões || item.dimensao || item.bitola || '',
                 if (!codigo) { showAlert('Código é obrigatório.', 'Atenção'); return; }
                 const newItem = {
                     codigo_item: codigo, 
-                    descricao: elements.newItemDescricao.value.trim(), 
                     dimensao: elements.newItemDimensao.value.trim(), 
                     peso_kg: parseFloat(elements.newItemPeso.value) || 0,
                     gt: elements.newItemGt.value.trim() 
