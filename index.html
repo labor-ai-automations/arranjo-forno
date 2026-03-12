@@ -544,6 +544,25 @@
             box-shadow: 0 2px 4px rgba(0,0,0,0.2);
             pointer-events: none;
         }
+
+        .item-card.gt-editado {
+            background-color: rgba(59, 130, 246, 0.1) !important;
+            border-left-color: var(--color-info) !important;
+        }
+
+        .tag-gt-editado {
+            position: absolute;
+            bottom: 8px;
+            left: 12px;
+            background-color: var(--color-info);
+            color: #fff;
+            font-size: 0.6rem;
+            font-weight: 700;
+            padding: 2px 6px;
+            border-radius: 4px;
+            text-transform: uppercase;
+            pointer-events: none;
+        }
         
         /* --- Barra de Capacidade do Forno --- */
         .capacity-bar-container {
@@ -2685,7 +2704,7 @@ function vincularEventosDragDrop() {
 
             function criarCard(containerDOM, cardData) {
                 const card = document.createElement('div');
-                card.className = 'item-card';
+                card.className = 'item-card' + (cardData.gtEditado ? ' gt-editado' : '');
                 card.draggable = true;
                 card.dataset.id = cardData.id;
                 card.dataset.ordemProducao = cardData.op || 'N/A';
@@ -2700,7 +2719,10 @@ card.dataset.peso = cardData.peso_unit || 0;
     card.dataset.fornoDestino = cardData.forno_destino || '';
                 const empilhamentoTag = cardData.isEmpilhado ? '<span class="tag-2x">2X</span>' : '';
                 const opAntigaTag = String(cardData.id).startsWith('manual-') ? '<span class="tag-op-antiga">OP ANTIGA</span>' : '';
+                const gtAlteradoTag = cardData.gtEditado ? '<span class="tag-gt-editado">GT ALTERADO</span>' : '';
                 const pesoTotal = (parseFloat(card.dataset.quantidade) * parseFloat(card.dataset.peso)).toFixed(1);
+                card.innerHTML = `
+                    ${gtAlteradoTag}
                 card.innerHTML = `
                     ${opAntigaTag}
                     <span class="delete-btn" onclick="removerCardPeloEstado('${cardData.id}')">×</span>
@@ -2748,6 +2770,7 @@ card.dataset.peso = cardData.peso_unit || 0;
                     
                     // Atualiza apenas localmente no objeto do card
                     cardData.gt = novoGT;
+                    cardData.gtEditado = true; // Marca o item como editado nesta sessão
                     
                     // Feedback visual no console para auditoria rápida
                     console.log(`GT do item ${cardData.codigo} alterado localmente para: ${novoGT} (Não salvo no Banco)`);
