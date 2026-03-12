@@ -10,7 +10,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     
-    <!-- Biblioteca SheetJS for exportação em Excel -->
+    <!-- Biblioteca SheetJS para exportação em Excel -->
     <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
     
     <!-- Biblioteca Supabase -->
@@ -533,6 +533,13 @@
             position: absolute;
             bottom: 8px;
             right: 12px;
+            z-index: 2; /* Garante visibilidade */
+        }
+
+        /* Ajuste dinâmico: se houver as duas, a tag de GT sobe */
+        .item-card.gt-editado .tag-gt-editado {
+            bottom: 28px; /* Posiciona acima da tag OP ANTIGA */
+        }
             background-color: #f59e0b; /* Cor Âmbar (Visível em ambos os temas) */
             color: #000; /* Texto preto para melhor contraste no âmbar */
             font-size: 0.65rem;
@@ -553,7 +560,7 @@
         .tag-gt-editado {
             position: absolute;
             bottom: 8px;
-            left: 12px;
+            right: 12px; /* Alterado para o canto direito */
             background-color: var(--color-info);
             color: #fff;
             font-size: 0.6rem;
@@ -1141,7 +1148,7 @@
                 <!-- Descrição removida -->
                 <div>
                     <label class="config-label">Dimensão/Bitola</label>
-                    <input type="text" id="new-item-dimensao" placeholder="Ex: 80 X 12">
+                    <input type="text" id="new-item-dimensao" placeholder="Ex: 50.8 X 500">
                 </div>
                 <div>
                     <label class="config-label">Peso Unit. (kg)</label>
@@ -1996,7 +2003,7 @@ Dimensões: item.Dimensões || item.dimensao || item.bitola || '',
             elements.btnHistoryNext.addEventListener('click', () => { const maxPages = historyItemsPerPage === 'all' ? 1 : Math.ceil(totalHistoryItems / historyItemsPerPage); if (currentHistoryPage < maxPages) { currentHistoryPage++; fetchHistory(); } });
             
             // --- Lógica das Tabelas Dinâmicas ---
-            const columnAliases = { 'created_at': 'Data', 'codigo_item': 'Código', 'comprimento_mm': 'Comprimento (mm)', 'ordem_producao': 'OP', 'gt_utilizado': 'GT Utilizado', 'usuario': 'Usuário', 'descricao': 'Descrição', 'dimensao': 'Dimensão', 'peso_kg': 'Peso (kg)', 'gt': 'GT' };
+            const columnAliases = { 'created_at': 'Data', 'codigo_item': 'Código', 'comprimento_mm': 'Comprimento (mm)', 'ordem_producao': 'OP', 'gt_utilizado': 'GT Utilizado', 'usuario': 'Usuário', 'dimensao': 'Dimensão', 'peso_kg': 'Peso (kg)', 'gt': 'GT' };
             function renderDynamicReadOnlyTable(tableElement, data) {
                 const thead = tableElement.querySelector('thead');
                 const tbody = tableElement.querySelector('tbody');
@@ -2055,7 +2062,7 @@ Dimensões: item.Dimensões || item.dimensao || item.bitola || '',
             }
             elements.registroItemsPerPageSelect.addEventListener('change', (e) => { registroItemsPerPage = e.target.value === 'all' ? 'all' : parseInt(e.target.value, 10); currentRegistroPage = 1; fetchRegistroBarras(); });
             elements.btnRegistroPrev.addEventListener('click', () => { if (currentRegistroPage > 1) { currentRegistroPage--; fetchRegistroBarras(); } });
-            elements.btnRegistroNext.addEventListener('click', () => { const maxPages = registroItemsPerPage === 'all' ? 1 : Math.ceil(totalRegistroItems / registroItemsPerPage); if (currentHistoryPage < maxPages) { currentRegistroPage++; fetchRegistroBarras(); } });
+            elements.btnRegistroNext.addEventListener('click', () => { const maxPages = registroItemsPerPage === 'all' ? 1 : Math.ceil(totalRegistroItems / registroItemsPerPage); if (currentRegistroPage < maxPages) { currentRegistroPage++; fetchRegistroBarras(); } });
             elements.searchRegistroBarras.addEventListener('input', (e) => { clearTimeout(searchTimeout); searchTimeout = setTimeout(() => { currentRegistroPage = 1; fetchRegistroBarras(e.target.value); }, 500); });
             
             async function fetchMasterItems(searchTerm = '') {
@@ -2713,9 +2720,9 @@ function vincularEventosDragDrop() {
                 card.dataset.dimensao = cardData.Dimensões || 'N/A';
                 card.dataset.gt = cardData.gt || '';
                 card.dataset.quantidade = cardData.quantidade || 0;
-                card.dataset.peso = cardData.peso_unit || 0;
-                card.dataset.isEmpilhado = cardData.isEmpilhado || false;
-                card.dataset.dataOp = cardData.data_op || '';
+card.dataset.peso = cardData.peso_unit || 0;
+    card.dataset.isEmpilhado = cardData.isEmpilhado || false;
+card.dataset.dataOp = cardData.data_op || '';
                 card.dataset.fornoDestino = cardData.forno_destino || '';
                 
                 const empilhamentoTag = cardData.isEmpilhado ? '<span class="tag-2x">2X</span>' : '';
@@ -2727,6 +2734,17 @@ function vincularEventosDragDrop() {
                     ${gtAlteradoTag}
                     ${opAntigaTag}
                     <span class="delete-btn" onclick="removerCardPeloEstado('${cardData.id}')">×</span>
+                    <p><b>OP:</b> ${card.dataset.ordemProducao} ${empilhamentoTag}</p>
+                    <p><b>Código:</b> ${card.dataset.codigo}</p>
+                    <p>${cardData.Descrição || 'N/A'}</p> 
+                    <p><b>Bitola:</b> ${cardData.Dimensões || 'N/A'}</p>
+                    <p><b>Qtd:</b> ${cardData.quantidade} <small style="color: var(--text-secondary); margin-left: 10px;">(${pesoTotal} kg)</small></p>
+                    <p class="gt-display" onclick="editarGT(this, '${cardData.id}')" title="Clique para editar apenas nesta simulação">
+                        <b style="color: var(--color-info);">GT:</b> ${card.dataset.gt || 'N/A'}
+                    </p>
+                    <p style="font-size: 0.75rem; color: var(--text-secondary);">📅 Data: ${cardData.data_op || 'N/A'}</p>
+                    ${cardData.forno_destino ? `<p style="font-size: 0.75rem; color: var(--color-info); margin-top: 5px; font-weight: 600;">📍 Destino: Forno ${cardData.forno_destino === 'grande' ? '1001' : '1002'}</p>` : ''}
+                `;
                     <p><b>OP:</b> ${card.dataset.ordemProducao} ${empilhamentoTag}</p>
                     <p><b>Código:</b> ${card.dataset.codigo}</p>
                     <p>${cardData.Descrição || 'N/A'}</p> 
