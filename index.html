@@ -1121,7 +1121,7 @@
                 </div>
                 <div>
                     <label class="config-label">GT Padrão</label>
-                    <input type="text" id="new-item-gt" placeholder="GT01">
+                    <input type="text" id="new-item-gt" placeholder="Ex: 01">
                 </div>
                 <button id="btn-add-master-item" class="btn btn-primary btn-sm" style="height: 48px;">+ Criar</button>
             </div>
@@ -1304,7 +1304,7 @@
                 </div>
 <div>
                     <label>GT (Manual/Auto)</label>
-                    <input type="text" id="manual-input-gt" placeholder="Digite o GT ou busque o código" style="opacity: 1; background-color: var(--input-bg);">
+                    <input type="text" id="manual-input-gt" placeholder="Digite apenas o número (Ex: 151)" style="opacity: 1; background-color: var(--input-bg);">
                 </div>
                 <div>
                     <label>Peso Unit. (kg)</label>
@@ -1706,7 +1706,7 @@ elements.btnVoltarProducaoHistory.addEventListener('click', () => {
                     const input = document.createElement('input');
                     input.type = 'text';
                     input.className = `gt-input-field-${forno}`;
-                    input.placeholder = `Código do GT ${i} (Ex: GT0${i})`;
+                    input.placeholder = `Número do GT ${i} (Ex: 0${i})`;
                     input.style.marginTop = '0.5rem';
                     container.appendChild(input);
                 }
