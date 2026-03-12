@@ -2709,7 +2709,9 @@ card.dataset.peso = cardData.peso_unit || 0;
                     <p>${cardData.Descrição || 'N/A'}</p> 
                     <p><b>Bitola:</b> ${cardData.Dimensões || 'N/A'}</p>
                     <p><b>Qtd:</b> ${cardData.quantidade} <small style="color: var(--text-secondary); margin-left: 10px;">(${pesoTotal} kg)</small></p>
-                    <p class="gt-display" onclick="editarGT(this, '${cardData.id}')"><b>GT:</b> ${card.dataset.gt || 'N/A'}</p>
+                    <p class="gt-display" onclick="editarGT(this, '${cardData.id}')" title="Clique para editar apenas nesta simulação">
+                        <b style="color: var(--color-info);">GT:</b> ${card.dataset.gt || 'N/A'}
+                    </p>
                     <p style="font-size: 0.75rem; color: var(--text-secondary);">📅 Data: ${cardData.data_op || 'N/A'}</p>
                     ${cardData.forno_destino ? `<p style="font-size: 0.75rem; color: var(--color-info); margin-top: 5px; font-weight: 600;">📍 Destino: Forno ${cardData.forno_destino === 'grande' ? '1001' : '1002'}</p>` : ''}
                 `;
@@ -2735,21 +2737,25 @@ card.dataset.peso = cardData.peso_unit || 0;
                 const cardData = findCardDataById(cardId);
                 if(cardData) element.parentElement.innerHTML = `<b>GT:</b> ${cardData.gt || 'N/A'}`;
             }
-            window.reavaliarItem = async function(event, input, cardId) {
+            window.reavaliarItem = function(event, input, cardId) {
                 if (event.key === 'Enter') {
                     const novoGT = input.value.trim();
                     const cardData = findCardDataById(cardId);
-                    if (!cardData || novoGT === cardData.gt) { cancelarEdicao(input, cardId); return; }
-                    input.disabled = true;
-                    input.value = "Salvando...";
-                    try {
-                        const response = await fetch(n8nAtualizarGTUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ codigo: cardData.codigo, gt: novoGT }) });
-                        if (!response.ok) throw new Error('Falha ao atualizar o GT no banco.');
-                        cardData.gt = novoGT;
-                        showAlert('GT atualizado com sucesso!', 'Sucesso', 'success');
-                    } catch (error) { showAlert(error.message, 'Erro', 'error'); } 
-                    finally { renderizarTudoAPartirDoEstado(); }
-                } else if (event.key === 'Escape') { cancelarEdicao(input, cardId); }
+                    if (!cardData || novoGT === cardData.gt) { 
+                        cancelarEdicao(input, cardId); 
+                        return; 
+                    }
+                    
+                    // Atualiza apenas localmente no objeto do card
+                    cardData.gt = novoGT;
+                    
+                    // Feedback visual no console para auditoria rápida
+                    console.log(`GT do item ${cardData.codigo} alterado localmente para: ${novoGT} (Não salvo no Banco)`);
+                    
+                    renderizarTudoAPartirDoEstado();
+                } else if (event.key === 'Escape') { 
+                    cancelarEdicao(input, cardId); 
+                }
             }
             function findCardDataById(cardId) {
                 for (const forno in estadoFornos) {
