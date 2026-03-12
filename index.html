@@ -2128,20 +2128,32 @@ Dimensões: item.Dimensões || item.dimensao || item.bitola || '',
                     } catch (e) { showAlert('Erro ao excluir: ' + e.message, 'Erro', 'error'); btn.disabled = false; }
                 }
             }
-            elements.btnAddMasterItem.addEventListener('click', async () => {
+elements.btnAddMasterItem.addEventListener('click', async () => {
                 const codigo = elements.newItemCodigo.value.trim();
+                const peso = parseFloat(elements.newItemPeso.value) || 0;
+
                 if (!codigo) { showAlert('Código é obrigatório.', 'Atenção'); return; }
-const newItem = {
-                    codigo_item: codigo, 
-                    bitola: elements.newItemDimensao.value.trim(), 
-                    peso_kg: parseFloat(elements.newItemPeso.value) || 0,
-                    gt: elements.newItemGt.value.trim() 
-                };
+
                 elements.btnAddMasterItem.innerHTML = '<div class="spinner"></div>';
                 elements.btnAddMasterItem.disabled = true;
+
                 try {
-                    const { error } = await _supabase.from('itens_mestre').insert([newItem]).select();
-                    if (error) throw error;
+                    // 1. Inserir dados básicos em itens_mestre
+                    const { error: errorMestre } = await _supabase.from('itens_mestre').insert([{
+                        codigo_item: codigo, 
+                        bitola: elements.newItemDimensao.value.trim(), 
+                        gt: elements.newItemGt.value.trim() 
+                    }]);
+                    if (errorMestre) throw errorMestre;
+
+                    // 2. Inserir peso em produtos_peso
+                    if (peso > 0) {
+                        const { error: errorPeso } = await _supabase.from('produtos_peso').insert([{
+                            codigo_produto: codigo,
+                            peso_kg: peso
+                        }]);
+                        if (errorPeso) console.error("Erro ao gravar peso, mas item mestre criado:", errorPeso);
+                    }
                     ['newItemCodigo', 'newItemDescricao', 'newItemDimensao', 'newItemPeso', 'newItemGt'].forEach(k => elements[k].value = '');
                     currentMasterPage = 1;
                     await fetchMasterItems();
