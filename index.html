@@ -2038,7 +2038,7 @@ Dimensões: item.Dimensões || item.dimensao || item.bitola || '',
                 if(searchTerm === '') searchTerm = elements.searchMasterItems.value;
                 try {
                     let query = _supabase.from('itens_mestre').select('*', { count: 'exact' });
-                    if (searchTerm) query = query.or(`codigo_item.ilike.%${searchTerm}%,gt.ilike.%${searchTerm}%`);
+                    if (searchTerm) query = query.or(`codigo_item.ilike.%${searchTerm}%,gt.ilike.%${searchTerm}%,bitola.ilike.%${searchTerm}%`);
                     query = query.order('codigo_item', { ascending: true });
                     if (itemsPerPage !== 'all') {
                         const from = (currentMasterPage - 1) * itemsPerPage;
@@ -2131,9 +2131,9 @@ Dimensões: item.Dimensões || item.dimensao || item.bitola || '',
             elements.btnAddMasterItem.addEventListener('click', async () => {
                 const codigo = elements.newItemCodigo.value.trim();
                 if (!codigo) { showAlert('Código é obrigatório.', 'Atenção'); return; }
-                const newItem = {
+const newItem = {
                     codigo_item: codigo, 
-                    dimensao: elements.newItemDimensao.value.trim(), 
+                    bitola: elements.newItemDimensao.value.trim(), 
                     peso_kg: parseFloat(elements.newItemPeso.value) || 0,
                     gt: elements.newItemGt.value.trim() 
                 };
