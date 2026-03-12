@@ -2209,6 +2209,7 @@ Dimensões: item.Dimensões || item.dimensao || item.bitola || '',
     quantidade: parseInt(item.quantidade) || 0,
     peso_unit: parseFloat(item.peso_kg || item.peso_unit || 0),
     isEmpilhado: item.is_empilhado || item.isEmpilhado || false,
+    data_op: item.data_op || null,
     forno_destino: item.forno_destino || ''
 }));
 
@@ -2222,6 +2223,7 @@ listaOriginalPendentes = (data.itens_pendentes || []).map((item, i) => ({
     quantidade: parseInt(item.quantidade) || 0,
     peso_unit: parseFloat(item.peso_kg || item.peso_unit || 0),
     isEmpilhado: false,
+    data_op: item.data_op || null,
     forno_destino: item.forno_destino || ''
 }));
                     resetarArranjosParaOriginal();
@@ -2451,10 +2453,22 @@ function atualizarInterfaceCompleta() {
     if (fornosAtivos.size === 1) popularSeletorBitolaReferenciaGlobal();
     popularFiltroBitolaPendentes();
 }
-            function extrairDadosDoCard(cardElement) {
-                const data = cardElement.dataset;
-                return { id: data.id, op: data.ordemProducao, codigo: data.codigo, Descrição: data.descricao, Dimensões: data.dimensao, gt: data.gt, quantidade: parseInt(data.quantidade), peso_unit: parseFloat(data.peso), isEmpilhado: data.isEmpilhado === 'true', forno_destino: data.fornoDestino };
-            }
+function extrairDadosDoCard(cardElement) {
+    const data = cardElement.dataset;
+    return { 
+        id: data.id, 
+        op: data.ordemProducao, 
+        codigo: data.codigo, 
+        Descrição: data.descricao, 
+        Dimensões: data.dimensao, 
+        gt: data.gt, 
+        quantidade: parseInt(data.quantidade), 
+        peso_unit: parseFloat(data.peso), 
+        isEmpilhado: data.isEmpilhado === 'true', 
+        data_op: data.dataOp || null,
+        forno_destino: data.fornoDestino 
+    };
+}
             function getFornoFromListId(listId) { return listId.replace('lista-arranjo-', ''); }
 
             // --- FUNÇÕES DE FILTRO INDEPENDENTES (NÃO DESTRUTIVAS) ---
@@ -2680,9 +2694,10 @@ function vincularEventosDragDrop() {
                 card.dataset.dimensao = cardData.Dimensões || 'N/A';
                 card.dataset.gt = cardData.gt || '';
                 card.dataset.quantidade = cardData.quantidade || 0;
-                card.dataset.peso = cardData.peso_unit || 0;
-                card.dataset.isEmpilhado = cardData.isEmpilhado || false;
-                card.dataset.fornoDestino = cardData.forno_destino || '';
+card.dataset.peso = cardData.peso_unit || 0;
+    card.dataset.isEmpilhado = cardData.isEmpilhado || false;
+    card.dataset.dataOp = cardData.data_op || '';
+    card.dataset.fornoDestino = cardData.forno_destino || '';
                 const empilhamentoTag = cardData.isEmpilhado ? '<span class="tag-2x">2X</span>' : '';
                 const opAntigaTag = String(cardData.id).startsWith('manual-') ? '<span class="tag-op-antiga">OP ANTIGA</span>' : '';
                 const pesoTotal = (parseFloat(card.dataset.quantidade) * parseFloat(card.dataset.peso)).toFixed(1);
