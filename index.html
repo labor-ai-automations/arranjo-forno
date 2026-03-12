@@ -2144,17 +2144,22 @@ elements.btnAddMasterItem.addEventListener('click', async () => {
                         bitola: elements.newItemDimensao.value.trim(), 
                         gt: elements.newItemGt.value.trim() 
                     }]);
-                    if (errorMestre) throw errorMestre;
+if (errorMestre) throw errorMestre;
 
                     // 2. Inserir peso em produtos_peso
                     if (peso > 0) {
-                        const { error: errorPeso } = await _supabase.from('produtos_peso').insert([{
+                        const { error: errorPeso } = await _supabase.from('produtos_peso').upsert([{
                             codigo_produto: codigo,
                             peso_kg: peso
                         }]);
                         if (errorPeso) console.error("Erro ao gravar peso, mas item mestre criado:", errorPeso);
                     }
-                    ['newItemCodigo', 'newItemDescricao', 'newItemDimensao', 'newItemPeso', 'newItemGt'].forEach(k => elements[k].value = '');
+
+                    // Limpa apenas os campos que existem no HTML
+                    ['newItemCodigo', 'newItemDimensao', 'newItemPeso', 'newItemGt'].forEach(k => {
+                        if(elements[k]) elements[k].value = '';
+                    });
+                    
                     currentMasterPage = 1;
                     await fetchMasterItems();
                     showAlert('Item criado com sucesso!', 'Sucesso', 'success');
