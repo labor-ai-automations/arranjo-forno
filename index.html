@@ -2715,17 +2715,29 @@ function vincularEventosDragDrop() {
                 card.dataset.quantidade = cardData.quantidade || 0;
 card.dataset.peso = cardData.peso_unit || 0;
     card.dataset.isEmpilhado = cardData.isEmpilhado || false;
-    card.dataset.dataOp = cardData.data_op || '';
-    card.dataset.fornoDestino = cardData.forno_destino || '';
+card.dataset.dataOp = cardData.data_op || '';
+                card.dataset.fornoDestino = cardData.forno_destino || '';
+                
                 const empilhamentoTag = cardData.isEmpilhado ? '<span class="tag-2x">2X</span>' : '';
                 const opAntigaTag = String(cardData.id).startsWith('manual-') ? '<span class="tag-op-antiga">OP ANTIGA</span>' : '';
                 const gtAlteradoTag = cardData.gtEditado ? '<span class="tag-gt-editado">GT ALTERADO</span>' : '';
                 const pesoTotal = (parseFloat(card.dataset.quantidade) * parseFloat(card.dataset.peso)).toFixed(1);
+                
                 card.innerHTML = `
                     ${gtAlteradoTag}
-                card.innerHTML = `
                     ${opAntigaTag}
                     <span class="delete-btn" onclick="removerCardPeloEstado('${cardData.id}')">×</span>
+                    <p><b>OP:</b> ${card.dataset.ordemProducao} ${empilhamentoTag}</p>
+                    <p><b>Código:</b> ${card.dataset.codigo}</p>
+                    <p>${cardData.Descrição || 'N/A'}</p> 
+                    <p><b>Bitola:</b> ${cardData.Dimensões || 'N/A'}</p>
+                    <p><b>Qtd:</b> ${cardData.quantidade} <small style="color: var(--text-secondary); margin-left: 10px;">(${pesoTotal} kg)</small></p>
+                    <p class="gt-display" onclick="editarGT(this, '${cardData.id}')" title="Clique para editar apenas nesta simulação">
+                        <b style="color: var(--color-info);">GT:</b> ${card.dataset.gt || 'N/A'}
+                    </p>
+                    <p style="font-size: 0.75rem; color: var(--text-secondary);">📅 Data: ${cardData.data_op || 'N/A'}</p>
+                    ${cardData.forno_destino ? `<p style="font-size: 0.75rem; color: var(--color-info); margin-top: 5px; font-weight: 600;">📍 Destino: Forno ${cardData.forno_destino === 'grande' ? '1001' : '1002'}</p>` : ''}
+                `;
                     <p><b>OP:</b> ${card.dataset.ordemProducao} ${empilhamentoTag}</p>
                     <p><b>Código:</b> ${card.dataset.codigo}</p>
                     <p>${cardData.Descrição || 'N/A'}</p> 
